@@ -1,0 +1,19 @@
+﻿<Window x:Class="ImageEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Image Editor" Height="350" Width="525">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Button Content="Select Image" Grid.Row="0" Click="SelectImage_Click" Margin="10"/>
+        <Image Name="SelectedImage" Grid.Row="1" Stretch="Uniform"/>
+        <StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Center" Margin="10">
+            <Button Content="Grayscale" Click="Grayscale_Click" Margin="5"/>
+            <Button Content="Original" Click="Original_Click" Margin="5"/>
+        </StackPanel>
+    </Grid>
+</Window>
