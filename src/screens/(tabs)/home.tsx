@@ -6,6 +6,7 @@ import { PermissionsAndroid, Platform } from 'react-native';
 import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
 const { AudioRecorder } = NativeModules;
 import RNFS from 'react-native-fs';
+import "../../../global.css"
 export async function requestMicPermission() {
   
 
@@ -23,7 +24,8 @@ export async function requestMicPermission() {
   return true;
 }
 
-function App() {
+function Home() {
+  const [isRecording, setIsRecording] = useState(false);
   
   useEffect(()=>{
     
@@ -47,16 +49,19 @@ function App() {
 
   
   async function startRecording() {
+    if(isRecording) {
+    stopRecording()
+      return;
+    }
+    setIsRecording(true);
       const path = await AudioRecorder.startRecording();
 
    
    
   }
   async function stopRecording() {
-    const path = await AudioRecorder.stopRecording();
-
- 
- 
+    setIsRecording(false);
+    const path = await AudioRecorder.stopRecording(); 
 }
   async function playRecording() {
     const path = await AudioRecorder.playRecording();
@@ -65,19 +70,25 @@ function App() {
 
   return (
     <View>
-         <View>
-         <ScrollView >
+         <View className='bg-secondary'>
+          <Text className="text-black text-3xl">Hello World</Text>
+          
+      <ScrollView className="h-64 w-full border-4 border-red-500" style={{  height: 300, width: '100%'}}>
                 {predictions.map((prediction, index) => (
-                    <Text key={index}>Detected: {prediction}</Text>
+                    <Text  key={index}>Detected: {prediction}</Text>
                 ))}
             </ScrollView>
         </View>
-      <Button title="Start Recording" onPress={startRecording}  />
-      <Button title="Start Recording" onPress={stopRecording}  />
+        {isRecording ? (
+        <Button title="Stop Recording" onPress={stopRecording} color="red" />
+      ) : (
+        <Button title="Start Recording" onPress={startRecording} />
+      )}
+
 
 
     </View>
   );
 }
 
-export default App;
+export default Home;
