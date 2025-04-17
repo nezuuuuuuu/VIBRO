@@ -14,13 +14,19 @@ const Tab = createBottomTabNavigator();
 function App() {
   return (
     <>
-      <StatusBar backgroundColor="#1F2937" barStyle="light-content" />
-      
-      <SafeAreaView className="h-full">
-        <NavigationContainer>
-          <Tab.Navigator
+   
+      <SafeAreaView className="h-full bg-primary">
+
+        <NavigationContainer >
+          <Tab.Navigator 
             screenOptions={({ route }) => ({
               headerShown: true,
+              headerStyle: {
+                backgroundColor: '#1B1B3A',
+                borderBottomWidth: 0,
+             
+              },
+              headerTintColor: '#F5F5F5',
               tabBarIcon: ({ focused, color, size }) => {
                 let icon;
 
@@ -35,7 +41,7 @@ function App() {
                     icon =icons.sound;
                     break;
                   case 'Profile':
-                    icon = icons.home;
+                    icon = icons.profile;
                     break;
                 }
 

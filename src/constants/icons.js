@@ -14,6 +14,8 @@ import play from "../assets/icons/play.png";
 import sound from "../assets/icons/sound.png";
 import group from "../assets/icons/group.png";
 import person from "../assets/icons/you.png";
+import microphone from "../assets/images/microphone.png";
+import recording from "../assets/images/recording.png";
 
 export default {
   play,
@@ -32,4 +34,6 @@ export default {
   sound,
   group,
   person,
+  microphone,
+  recording
 };

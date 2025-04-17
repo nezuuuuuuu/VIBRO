@@ -89,21 +89,23 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) :
                 // Sorting the results
                 finalOutput.sortByDescending { it.score }
 
-                // Creating a multiline string with the filtered results
-                val outputStr = StringBuilder()
-                for (category in finalOutput) {
-                    outputStr.append(category.label)
-                        .append(": ").append(category.score).append("\n")
-                }
-                if(finalOutput.isNotEmpty()){
-                sendEvent(reactApplicationContext,"onPrediction",outputStr.toString())
-                }
+                if (finalOutput.isNotEmpty()) {
+                    val firstPrediction = finalOutput.first()
+                    val currentTime = System.currentTimeMillis()
 
+                    val params = Arguments.createMap()
+                    params.putDouble("time", currentTime.toDouble()) // Convert to Double for WritableMap
+                    params.putString("label", firstPrediction.label)
+                    params.putDouble("confidence", firstPrediction.score.toDouble()) // Convert to Double
+
+                    sendEvent(reactApplicationContext, "onPrediction", params)
+                }
             }
         }
 
         timer.schedule(timerTask, 1, 500)
     }
+
     @ReactMethod
     fun stopRecording() {
         if (!isRecording) {
@@ -114,7 +116,8 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) :
         timerTask?.cancel()
         record?.stop()
     }
-    private fun sendEvent(reactContext: ReactContext, eventName: String, params: String) {
+
+    private fun sendEvent(reactContext: ReactContext, eventName: String, params: WritableMap?) {
         reactContext
             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
             .emit(eventName, params)
@@ -123,5 +126,4 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) :
     override fun getName(): String {
         return NAME
     }
-
 }

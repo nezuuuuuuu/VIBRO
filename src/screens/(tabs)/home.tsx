@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, Button, DeviceEventEmitter, TouchableOpacity,ScrollView  } from 'react-native';
+import { View, Text, Button, DeviceEventEmitter, TouchableOpacity, ScrollView, Image  } from 'react-native';
 import { useState, useRef } from 'react';
 import { NativeModules } from 'react-native';
 import { PermissionsAndroid, Platform } from 'react-native';
@@ -7,6 +7,10 @@ import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
 const { AudioRecorder } = NativeModules;
 import RNFS from 'react-native-fs';
 import "../../../global.css"
+import DetectionDisplay from '../../components/detectionDisplay';
+
+import { icons } from '../../constants';
+
 export async function requestMicPermission() {
   
 
@@ -31,6 +35,7 @@ function Home() {
     
     DeviceEventEmitter.addListener("onPrediction",(data)=>
     {
+      const { time, label, confidence } = data;
       handlePrediction(data)
       console.log(data)
     })
@@ -38,7 +43,7 @@ function Home() {
 
 
   const [model, setModel] = useState(null);
-  const [predictions, setPredictions] = useState<string[]>([]);
+  const [predictions, setPredictions] = useState<any[]>([]);
 
 
   const handlePrediction = (prediction: string | null) => {
@@ -69,22 +74,36 @@ function Home() {
 }
 
   return (
-    <View>
-         <View className='bg-secondary'>
-          <Text className="text-black text-3xl">Hello World</Text>
+    <View className='bg-secondary h-full' >
+         <View className=' items-center justify-center'>
+      <Text className='text-white text-lg'>Sound Detected</Text>
           
-      <ScrollView className="h-64 w-full border-4 border-red-500" style={{  height: 300, width: '100%'}}>
-                {predictions.map((prediction, index) => (
-                    <Text  key={index}>Detected: {prediction}</Text>
+      <ScrollView className="h-3/4 w-full " >
+     
+                { predictions.slice().reverse().map((prediction, index) => (
+                    <DetectionDisplay key={index} time={new Date(prediction.time).toLocaleTimeString()} confidence={prediction.label} sound={ (prediction.confidence * 100).toFixed(2) + '%'}/>
+                  
                 ))}
+
             </ScrollView>
         </View>
+        <View className=' justify-center items-center mt-4'>
+        <View className="bg-tertiary  rounded-full items-center justify-center" style={{ width: 60, height: 60 }}>
         {isRecording ? (
-        <Button title="Stop Recording" onPress={stopRecording} color="red" />
-      ) : (
-        <Button title="Start Recording" onPress={startRecording} />
-      )}
 
+                <TouchableOpacity onPress={stopRecording}>
+                <Image source={icons.recording} />
+                </TouchableOpacity>
+              
+                
+              ) : (  
+              <TouchableOpacity onPress={startRecording}>
+                <Image source={icons.microphone} />
+                </TouchableOpacity>
+              
+              )}
+          </View>
+        </View>
 
 
     </View>
