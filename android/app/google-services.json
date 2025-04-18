@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "654329737878",
+    "project_id": "vibro-d34dc",
+    "storage_bucket": "vibro-d34dc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654329737878:android:f197fdb45db24354c448b7",
+        "android_client_info": {
+          "package_name": "com.vibro"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "654329737878-4dhfgplkhk6kp1q7rap654n8f6rum3n9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vibro",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "654329737878-l7pgi3cm8e4ktei456fvrausaf3fbgir.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vibro",
+            "certificate_hash": "2a13de2718a3a114732d9d6854579e5aebf6b623"
+          }
+        },
+        {
+          "client_id": "654329737878-frulfj5lng0f8rpa0viom1hh49vdk8gk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAF9B2KCSbKDZ7MPP4-NaAvStBy3U89UQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "654329737878-frulfj5lng0f8rpa0viom1hh49vdk8gk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

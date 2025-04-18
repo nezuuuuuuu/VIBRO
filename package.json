@@ -10,6 +10,9 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-firebase/app": "^21.14.0",
+    "@react-native-firebase/auth": "^21.14.0",
+    "@react-native-google-signin/google-signin": "^13.2.0",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/native": "^7.1.6",
     "nativewind": "^4.1.23",
