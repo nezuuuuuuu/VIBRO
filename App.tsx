@@ -1,90 +1,46 @@
-import React from 'react';
-import { StatusBar, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import '@react-native-firebase/app';
-import Home from './src/screens/(tabs)/home'; 
-import Group from './src/screens/(tabs)/group'; 
-import Sound from './src/screens/(tabs)/sound'; 
-import Profile from './src/screens/(tabs)/profile'; 
-import Login from './src/screens/account/login'; 
-import { icons } from './src/constants';
-const Tab = createBottomTabNavigator();
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Welcome from './src/screens/(welcome)/index';
+import AuthScreen from './src/screens/(auth)';
+import Tabs from './src/components/mainNavigator';
+import { useAuthStore } from "./store/authStore";
+import { View, ActivityIndicator } from 'react-native';
 
-function App() {
+const Stack = createNativeStackNavigator();
+
+export default function App() {
+  const { checkAuth, user, token } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const init = async () => {
+      await checkAuth();  // fetches and sets user/token
+      setLoading(false);  // only show UI after auth is checked
+    };
+    init();
+  }, []);
+
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
   return (
-  //   <>
-   
-  //     <SafeAreaView className="h-full bg-primary">
-
-  //       <NavigationContainer >
-  //         <Tab.Navigator 
-  //           screenOptions={({ route }) => ({
-  //             headerShown: true,
-  //             headerStyle: {
-  //               backgroundColor: '#1B1B3A',
-  //               borderBottomWidth: 0,
-             
-  //             },
-  //             headerTintColor: '#F5F5F5',
-  //             tabBarIcon: ({ focused, color, size }) => {
-  //               let icon;
-
-  //               switch (route.name) {
-  //                 case 'Home':
-  //                   icon = icons.home;
-  //                   break;
-  //                 case 'Group':
-  //                   icon = icons.group;
-  //                   break;
-  //                 case 'Sound':
-  //                   icon =icons.sound;
-  //                   break;
-  //                 case 'Profile':
-  //                   icon = icons.profile;
-  //                   break;
-  //               }
-
-  //               return (
-  //                 <Image
-  //                   source={icon}
-  //                   style={{
-  //                     width: 24,
-  //                     height: 24,
-  //                     tintColor: focused ? '#10B981' : '#9CA3AF', // green if active, gray if not
-  //                   }}
-  //                   resizeMode="contain"
-  //                 />
-  //               );
-  //             },
-  //             tabBarActiveTintColor: "#8A2BE2",
-  //             tabBarInactiveTintColor: "#CDCDE0",
-  //             tabBarShowLabel: false,
-  //             tabBarStyle: {
-  //               backgroundColor: "#1B1B3A",
-  //               borderTopWidth: 1,
-  //               borderTopColor: "#232533",
-  //               height: 84,
-  //               justifyContent: 'center'
-  //             },
-  //             tabBarItemStyle:{
-  //                 top: 20
-                  
-  //             }
-  //           })}
-  //         >
-  //           <Tab.Screen name="Home" component={Home} />
-  //           <Tab.Screen name="Group" component={Group} />
-  //           <Tab.Screen name="Sound" component={Sound} />
-  //           <Tab.Screen name="Profile" component={Profile} />
-  //         </Tab.Navigator>
-  //       </NavigationContainer>
-  //     </SafeAreaView>
-  //   </>
-  // 
-    <Login />
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!user || !token ? (
+          <>
+            <Stack.Screen name="Welcome" component={Welcome} />
+            <Stack.Screen name="Login" component={AuthScreen} />
+          </>
+        ) : (
+          <Stack.Screen name="Tabs" component={Tabs} />
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
-
-export default App;

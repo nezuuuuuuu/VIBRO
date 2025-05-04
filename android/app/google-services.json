@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "654329737878-59oepugberkcmc0pgqk8ttbl73opfqt5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vibro",
+            "certificate_hash": "5b0d0c27838fd2210a7587b18e784b91dcf01d71"
+          }
+        },
+        {
           "client_id": "654329737878-l7pgi3cm8e4ktei456fvrausaf3fbgir.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

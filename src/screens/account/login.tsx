@@ -8,10 +8,10 @@ import MainNavigator from '../../components/mainNavigator';
 const Login = () => {
   const [user, setUser] = useState<auth.User | null>(null);
   const [initializing, setInitializing] = useState(true);
-
+  let idToken = undefined;
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com', // Replace with your actual web client ID
+      webClientId: '654329737878-frulfj5lng0f8rpa0viom1hh49vdk8gk.apps.googleusercontent.com', // Replace with your actual web client ID
     });
 
     const subscriber = auth().onAuthStateChanged((authUser) => {
@@ -24,12 +24,13 @@ const Login = () => {
 
   async function onGoogleButtonPress() {
     try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      console.log('Signing in with Google...');
-      const { idToken } = await GoogleSignin.signIn();
+      const signInResult = await GoogleSignin.signIn();
+      idToken = signInResult.data?.idToken;
+
 
       if (!idToken) {
-        throw new Error('No ID token found');
+        console.log(user);
+
       }
 
       const googleCredential = auth.GoogleAuthProvider.credential(idToken);
@@ -50,10 +51,14 @@ const Login = () => {
 
   if (user) {
     // User is logged in, render the MainNavigator
+    console.log('User is logged in:', user.toJSON()); 
     return <MainNavigator />;
   }
 
   // User is not logged in, render the login screen
+//   const toNavigation = () => {
+//     return <MainNavigator  />;
+// }
   return (
     <SafeAreaView className="h-full bg-primary">
       <View className="h-full w-full flex items-center pt-60 bg-primary">
@@ -64,11 +69,13 @@ const Login = () => {
           <Button
             title="Join for free"
             onPress={() => onGoogleButtonPress().then(() => console.log('Signed in with Google!'))}
+            // onPress={toNavigation}
+
           />
 
           <Button
             title="Google Sign-In"
-            onPress={onGoogleButtonPress}
+            // onPress={onGoogleButtonPress}
           />
         </View>
       </View>

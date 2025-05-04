@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import { View, Text, Button, DeviceEventEmitter, TouchableOpacity, ScrollView, Image  } from 'react-native';
 import { useState, useRef } from 'react';
 import { NativeModules } from 'react-native';
@@ -8,6 +8,8 @@ const { AudioRecorder } = NativeModules;
 import RNFS from 'react-native-fs';
 import "../../../global.css"
 import DetectionDisplay from '../../components/detectionDisplay';
+import { useAuthStore } from "../../../store/authStore";
+import { useNavigation } from '@react-navigation/native';
 
 import { icons } from '../../constants';
 
@@ -29,7 +31,30 @@ export async function requestMicPermission() {
 }
 
 function Home() {
+  const navigation = useNavigation(); 
+  const { user, token } = useAuthStore();
+
   const [isRecording, setIsRecording] = useState(false);
+
+  // useLayoutEffect(() => {
+  //   if (user) {
+  //     navigation.setOptions({
+  //       headerTitle: '',
+  //       headerRight: () => (
+  //         <View className="flex-row items-center gap-2 mr-4">
+  //           <Text className="text-white font-psemibold">{user.username}</Text>
+  //           <Image
+  //             source={{ uri: user.profileImage }}
+  //             style={{ width: 20, height: 20, borderRadius: 50 }}
+  //           />
+  //         </View>
+  //       ),
+  //       headerStyle: {
+  //         backgroundColor: '#1B1B3A',
+  //       },
+  //     });
+  //   }
+  // }, [navigation, user]);
   
   useEffect(()=>{
     
@@ -73,8 +98,9 @@ function Home() {
     console.log(path)
 }
 
+
   return (
-    <View className='bg-secondary h-full' >
+    <View className='bg-primary h-full' >
          <View className=' items-center justify-center'>
       <Text className='text-white text-lg'>Sound Detected</Text>
           
@@ -88,7 +114,7 @@ function Home() {
             </ScrollView>
         </View>
         <View className=' justify-center items-center mt-4'>
-        <View className="bg-tertiary  rounded-full items-center justify-center" style={{ width: 60, height: 60 }}>
+        <View className="bg-secondary rounded-full items-center justify-center" style={{ width: 60, height: 60 }}>
         {isRecording ? (
 
                 <TouchableOpacity onPress={stopRecording}>
