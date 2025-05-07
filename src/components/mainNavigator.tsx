@@ -8,8 +8,9 @@ import CreateGroup from '../screens/(tabs)/createGroup';
 import Sound from '../screens/(tabs)/sound';
 import ProfileScreen from '../screens/(tabs)/profile'; 
 import EditProfile from '../screens/(tabs)/editprofile';
-
-
+import GroupDetails from '../screens/(tabs)/GroupDetails';
+import GroupSoundsDetected from '../screens/(tabs)/GroupSoundsDetected';
+import GroupInfo from '../screens/(tabs)/GroupInfo';
 import { icons } from '../constants';
 import "../../global.css";
 
@@ -32,6 +33,9 @@ const GroupStackNavigator = () => {
     <GroupStack.Navigator screenOptions={{ headerShown: true }}>
       <GroupStack.Screen name="Group" component={Group} />
       <GroupStack.Screen name="CreateGroup" component={CreateGroup} options={{ headerShown: false}}/>
+      <GroupStack.Screen name="GroupDetails" component={GroupDetails} options={{ headerShown: true}}/>
+      <GroupStack.Screen name="GroupSoundsDetected" component={GroupSoundsDetected} options={{ headerShown: true }} />
+      <GroupStack.Screen name="GroupInfo" component={GroupInfo} options={{ headerShown: true }} />
     </GroupStack.Navigator>
   );
 };

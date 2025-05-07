@@ -17,6 +17,8 @@ import person from "../assets/icons/you.png";
 import microphone from "../assets/images/microphone.png";
 import recording from "../assets/images/recording.png";
 import addgroup from "../assets/icons/addgroup.png";
+import chat from "../assets/icons/chat.png";
+import info from "../assets/icons/info.png";
 
 export default {
   play,
@@ -37,5 +39,7 @@ export default {
   person,
   microphone,
   recording,
-  addgroup
+  addgroup,
+  chat,
+  info,
 };

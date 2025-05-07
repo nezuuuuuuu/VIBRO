@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
 import "../../../global.css"; // Assuming your global CSS for Tailwind is here
 import { icons } from '../../constants'; // Assuming icons are correctly imported
-
+import { useGroupStore } from "../../../store/groupStore"; // Assuming you have an API utility for creating groups
 const CreateGroup = () => {
+  
   const [groupName, setGroupName] = useState('');
   const [groupPhotoUri, setGroupPhotoUri] = useState(null); // State to hold the selected group photo URI
-
+  const { createGroup } = useGroupStore();
   // Placeholder function for selecting a photo
   const handleSelectPhoto = () => {
     // Implement photo selection logic here (e.g., using ImagePicker)
@@ -17,12 +18,20 @@ const CreateGroup = () => {
 
   // Placeholder function for creating the group
   const handleCreateGroup = () => {
+    if(groupPhotoUri === null) {
+      console.log("Please select a group photo");
+    }
+
+    createGroup(groupName, groupPhotoUri);  
+    
     // Implement group creation logic here
     console.log('Create Group pressed');
     console.log('Group Name:', groupName);
     console.log('Group Photo URI:', groupPhotoUri);
     // You would typically send this data to your backend API
   };
+
+  
 
   return (
     <ScrollView className="flex-1 bg-primary p-4">

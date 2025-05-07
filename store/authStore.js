@@ -133,4 +133,6 @@ export const useAuthStore = create((set) => ({
              return { success: false, error: error.message };
         }
     },
+
+    
 }));
