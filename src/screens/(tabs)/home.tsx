@@ -36,25 +36,28 @@ function Home() {
 
   const [isRecording, setIsRecording] = useState(false);
 
-  // useLayoutEffect(() => {
-  //   if (user) {
-  //     navigation.setOptions({
-  //       headerTitle: '',
-  //       headerRight: () => (
-  //         <View className="flex-row items-center gap-2 mr-4">
-  //           <Text className="text-white font-psemibold">{user.username}</Text>
-  //           <Image
-  //             source={{ uri: user.profileImage }}
-  //             style={{ width: 20, height: 20, borderRadius: 50 }}
-  //           />
-  //         </View>
-  //       ),
-  //       headerStyle: {
-  //         backgroundColor: '#1B1B3A',
-  //       },
-  //     });
-  //   }
-  // }, [navigation, user]);
+  useLayoutEffect(() => {
+    if (user) {
+      navigation.setOptions({
+        headerTitle: () => ( 
+          <Text className="font-pbold text-2xl text-white">VIBRO</Text>
+       ),
+        headerRight: () => (
+          <View className="flex-row items-center gap-2 mr-4">
+            <Image
+                style={{ width: 20, height: 20, borderRadius: 50 }}
+                source={{ uri: `https://api.dicebear.com/7.x/bottts/png?seed=${user?.username || "guest"}` }}
+                resizeMode="cover"
+              />
+            <Text className="text-white font-psemibold">{user.username}</Text>
+          </View>
+        ),
+        headerStyle: {
+          backgroundColor: '#1B1B3A',
+        },
+      });
+    }
+  }, [navigation, user]);
   
   useEffect(()=>{
     

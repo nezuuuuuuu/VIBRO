@@ -6,6 +6,8 @@ import AuthScreen from './src/screens/(auth)';
 import Tabs from './src/components/mainNavigator';
 import { useAuthStore } from "./store/authStore";
 import { View, ActivityIndicator } from 'react-native';
+import Signup from './src/screens/(auth)/signup';
+import Login from './src/screens/(auth)';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,7 +37,8 @@ export default function App() {
         {!user || !token ? (
           <>
             <Stack.Screen name="Welcome" component={Welcome} />
-            <Stack.Screen name="Login" component={AuthScreen} />
+            <Stack.Screen name="Login" component={Login} />
+            <Stack.Screen name="Signup" component={Signup} />
           </>
         ) : (
           <Stack.Screen name="Tabs" component={Tabs} />

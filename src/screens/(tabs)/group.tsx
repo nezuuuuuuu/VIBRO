@@ -1,12 +1,209 @@
-import { View, Text } from 'react-native'
-import React from 'react'
+import React, { useEffect, useLayoutEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Pressable, Image, TextInput } from 'react-native';
+import "../../../global.css";
+import { useNavigation } from '@react-navigation/native';
+import { icons } from '../../constants';
+// Importing CreateGroup here is not necessary for navigation,
+// it's only needed in the file where your navigator is defined.
+// import CreateGroup from './createGroup';
 
-const Group = () => {
+const Groups = () => {
+  const navigation = useNavigation();
+  const allGroups = [
+    { id: 1, name: 'Group 1', status: 'Active' },
+    { id: 2, name: 'Group 2', status: null },
+    { id: 3, name: 'Group 3', status: null },
+    { id: 4, name: 'Group 4', status: null },
+    { id: 5, name: 'Group 5', status: null },
+    { id: 6, name: 'Group 6', status: null },
+    { id: 8, name: 'Group 8', status: null },
+    { id: 9, name: 'Group 9', status: null },
+    { id: 10, name: 'Group 10', status: null },
+    { id: 11, name: 'Group 11', status: null },
+    { id: 12, name: 'Group 12', status: null },
+  ];
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [searchActive, setSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredGroups, setFilteredGroups] = useState(allGroups);
+  const [groupCode, setGroupCode] = useState(''); // State for the group code input
+
+  useEffect(() => {
+    if (searchQuery === '') {
+      setFilteredGroups(allGroups);
+    } else {
+      setFilteredGroups(
+        allGroups.filter(group =>
+          group.name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+    }
+  }, [searchQuery]);
+
+  useLayoutEffect(() => {
+    if (navigation) {
+      navigation.setOptions({
+        headerTitle: () => (
+          searchActive ? (
+            <View className="w-72 h-12 bg-[#2a2a5a] px-4 py-0 rounded-full justify-center">
+              <TextInput
+                className="text-white flex-1"
+                placeholder="Search groups..."
+                placeholderTextColor="#ccc"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus={true}
+                style={{ paddingVertical: 0 }}
+              />
+            </View>
+          ) : (
+            <Text className="font-psemibold text-2xl text-white">GROUPS</Text>
+          )
+        ),
+        headerStyle: {
+          backgroundColor: '#1a1a3d',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+        headerRight: () => (
+          <View className="flex-row mr-2 gap-2 items-center pr-3">
+            <TouchableOpacity onPress={() => setSearchActive(!searchActive)} className="mr-4">
+              <Image
+                source={icons.search}
+                className="w-6 h-6 tint-white"
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setModalVisible(true)}>
+               <Image
+                 source={icons.addgroup}
+                 className="w-8 h-8 tint-white"
+                 resizeMode="contain"
+               />
+            </TouchableOpacity>
+          </View>
+        ),
+      });
+    }
+  }, [navigation, searchActive, searchQuery]);
+
+  const handleJoinGroup = () => {
+    console.log('Joining group with code:', groupCode);
+    // Implement your join group logic here
+    // e.g., API call to join the group
+    setModalVisible(false); // Close modal after attempting to join
+    setGroupCode(''); // Clear the input
+  };
+
+  const handleCreateGroupNavigation = () => {
+    console.log('Navigating to New Group screen');
+    setModalVisible(false); // Close modal
+    setGroupCode(''); // Clear the input
+    // Navigate to the CreateGroup screen.
+    // Ensure 'CreateGroup' screen is registered in your navigator.
+    navigation.navigate('CreateGroup');
+  };
+
   return (
-    <View>
-      <Text>group</Text>
-    </View>
-  )
-}
+    <View className="flex-1 bg-primary p-4">
+      <ScrollView className="flex-1">
+        {filteredGroups.map((group) => (
+          <TouchableOpacity
+            key={group.id}
+            className="flex-row justify-between items-center bg-[#2a2a5a] p-4 mb-3 rounded-lg"
+            onPress={() => {
+              // Handle group press, e.g., navigation to group details
+              console.log('Group pressed:', group.name);
+            }}
+          >
+            <Text className="text-white text-lg font-pregular">
+              {group.name}
+            </Text>
+            <View className="flex-row items-center">
+              {group.status === 'Active' && (
+                <Text className="text-green-400 font-plight text-sm mr-2">
+                  {group.status}
+                </Text>
+              )}
+              {/* Right Arrow Icon Placeholder */}
+              <Image
+                source={icons.rightArrow} // <-- Replace with your actual icon source
+                className="w-7 h-7" // <-- Adjust size as needed
+                resizeMode="contain"
+                style={{ tintColor: 'white' }} // <-- To make the icon white
+              />
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-export default Group
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(!modalVisible);
+          setGroupCode(''); // Clear input on close
+        }}
+      >
+        {/* Outer Pressable to dismiss modal by tapping outside */}
+        <Pressable
+            className="flex-1 justify-center items-center bg-black/50"
+            onPress={() => {
+                setModalVisible(false);
+                setGroupCode(''); // Clear input on close
+            }}
+        >
+          <Pressable className="bg-white p-6 py-8 rounded-lg w-4/5 items-center" onPress={(e) => e.stopPropagation()}>
+              <Text className="text-xl font-pbold mb-6 text-center text-black"> 
+                  ADD GROUP
+              </Text>
+
+              {/* Content matching the image */}
+              <Text className="text-left w-full mb-2 text-gray-700 font-psemibold"> 
+                  Group Code
+              </Text>
+              <View className="w-full h-14 bg-gray-200 px-4 rounded-lg justify-center mb-4"> 
+                  <TextInput
+                      className="flex-1 text-black font-pregular" 
+                      placeholder="Enter group code here"
+                      placeholderTextColor="#888" 
+                      value={groupCode}
+                      onChangeText={setGroupCode}
+                  />
+              </View>
+              <TouchableOpacity
+                  className="bg-secondary p-4 rounded-lg w-full items-center mb-4" 
+                  onPress={handleJoinGroup}
+              >
+                  <Text className="text-white text-base font-psemibold">
+                      Join Group
+                  </Text>
+              </TouchableOpacity>
+
+              
+              <View className="flex-row justify-center">
+                  <Text className="text-gray-700 font-pregular text-sm text-center"> 
+                      Create a new group instead?{' '}
+                  </Text>
+                  <TouchableOpacity
+                      onPress={handleCreateGroupNavigation}
+                      className="items-center"
+                  >
+                      <Text className="text-secondary text-sm font-pbold underline"> 
+                          New Group
+                      </Text>
+                  </TouchableOpacity>
+              </View>
+
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+};
+
+export default Groups;

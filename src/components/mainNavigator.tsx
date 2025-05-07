@@ -4,14 +4,18 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack'; // Import Stack Navigator
 import Home from '../screens/(tabs)/home';
 import Group from '../screens/(tabs)/group';
+import CreateGroup from '../screens/(tabs)/createGroup';
 import Sound from '../screens/(tabs)/sound';
 import ProfileScreen from '../screens/(tabs)/profile'; 
 import EditProfile from '../screens/(tabs)/editprofile';
+
+
 import { icons } from '../constants';
 import "../../global.css";
 
 const Tab = createBottomTabNavigator();
-const ProfileStack = createNativeStackNavigator(); // Create a Stack for the Profile flow
+const ProfileStack = createNativeStackNavigator(); 
+const GroupStack = createNativeStackNavigator();
 
 // Create a nested Stack Navigator for the Profile screen and its related screens
 const ProfileStackNavigator = () => {
@@ -23,11 +27,20 @@ const ProfileStackNavigator = () => {
   );
 };
 
+const GroupStackNavigator = () => {
+  return (
+    <GroupStack.Navigator screenOptions={{ headerShown: true }}>
+      <GroupStack.Screen name="Group" component={Group} />
+      <GroupStack.Screen name="CreateGroup" component={CreateGroup} options={{ headerShown: false}}/>
+    </GroupStack.Navigator>
+  );
+};
+
 const MainNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false, // Hide header for tabs, nested stacks can control it
+        headerShown: true, // Hide header for tabs, nested stacks can control it
         tabBarIcon: ({ focused, color, size }) => {
           let iconSource;
 
@@ -41,7 +54,7 @@ const MainNavigator = () => {
             case 'Group':
               iconSource = icons.group;
               break;
-            case 'ProfileTab': 
+            case 'Profile': 
               iconSource = icons.profile;
               break;
             default:
@@ -76,9 +89,9 @@ const MainNavigator = () => {
       })}
     >
       <Tab.Screen name="Home" component={Home} />
-      <Tab.Screen name="Group" component={Group} />
+      <Tab.Screen name="Group" component={GroupStackNavigator} options={{ tabBarLabel: 'Group', headerShown: false}}/>
       <Tab.Screen name="Sound" component={Sound} />
-      <Tab.Screen name="ProfileTab" component={ProfileStackNavigator} options={{ tabBarLabel: 'Profile' }} />
+      <Tab.Screen name="Profile" component={ProfileStackNavigator} options={{ tabBarLabel: 'Profile' }} />
     </Tab.Navigator>
   );
 };
