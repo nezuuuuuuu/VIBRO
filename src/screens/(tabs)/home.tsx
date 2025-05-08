@@ -12,8 +12,17 @@ import { useAuthStore } from "../../../store/authStore";
 import { useNavigation } from '@react-navigation/native';
 
 import { icons } from '../../constants';
+import {useDetectedSoundStore} from '../../../store/detectedSoundStore';
+
+import useSocket from '../../../store/useSocket';
+
+
+
 
 export async function requestMicPermission() {
+
+
+
   
 
   if (Platform.OS === 'android') {
@@ -31,6 +40,10 @@ export async function requestMicPermission() {
 }
 
 function Home() {
+
+  const { socket, connect, disconnect } = useSocket();
+  const { addSound} = useDetectedSoundStore();
+
   const navigation = useNavigation(); 
   const { user, token } = useAuthStore();
 
@@ -61,12 +74,13 @@ function Home() {
   }, [navigation, user]);
   
   useEffect(()=>{
+    connect(user._id);
     
     DeviceEventEmitter.addListener("onPrediction",(data)=>
     {
       const { time, label, confidence } = data;
       handlePrediction(data)
-      console.log(data)
+      // console.log(data)
     })
   },[]);
 
@@ -75,14 +89,34 @@ function Home() {
   const [predictions, setPredictions] = useState<any[]>([]);
 
 
-  const handlePrediction = (prediction: string ) => {
+  const handlePrediction = async (prediction: { label: string, confidence: number, timestamp: number }) => {
     const MIN_CONFIDENCE = 0.6; // adjust as needed (60%)
+    const TIME_LIMIT = 10000; // 10 seconds in milliseconds
 
-    if (prediction.confidence >= MIN_CONFIDENCE && ALLOWED_LABELS.includes(prediction.label)){
-      setPredictions(prevPredictions => [...prevPredictions, prediction]);
+    // Ensure prediction has valid data
+    if (prediction.confidence >= MIN_CONFIDENCE && ALLOWED_LABELS.includes(prediction.label)) {
+        // Get the current time (timestamp)
+        const currentTime = Date.now();
+
+        // Check if the label already exists and if it's within the time window
+        const lastPrediction = predictions.find(pred => pred.label === prediction.label);
+        
+        if (lastPrediction && (currentTime - lastPrediction.timestamp) <= TIME_LIMIT) {
+            console.log('Prediction with the same label is too soon, skipping...');
+            return; // Skip the prediction
+        }
+
+        // Add sound to your store or handle accordingly
+        addSound(prediction.label, prediction.confidence);
+
+        // Update predictions state (add the timestamp to the prediction)
+        setPredictions(prevPredictions => [
+            ...prevPredictions,
+            { ...prediction, timestamp: currentTime }
+        ]);
     }
-  
 };
+
 
   
   async function startRecording() {

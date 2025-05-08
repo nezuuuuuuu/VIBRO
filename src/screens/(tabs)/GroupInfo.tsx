@@ -2,19 +2,19 @@ import React, { useLayoutEffect } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { icons } from '../../constants';
 import { useNavigation, useRoute } from '@react-navigation/native';
-
+import { useGroupStore } from '../../../store/groupStore';
 
 const GroupInfo = () => {
-    const route = useRoute();
-    const { groupId, groupName } = route.params;
+    const {setGroupNavigation, groupPointer,getMembers,groupMembersPointer } = useGroupStore();
+    
     const navigation = useNavigation();
-        console.log(groupName + "asdasd");
+        
         
     useLayoutEffect(() => {
             if (navigation) {
                 navigation.setOptions({
                     headerTitle: () => (
-                        <Text className="font-psemibold text-2xl text-white">{groupName}</Text>
+                        <Text className="font-psemibold text-2xl text-white">{groupPointer.groupName}</Text>
                     ),
                     headerStyle: {
                         backgroundColor: '#1a1a3d',

@@ -1,6 +1,7 @@
 // stores/groupStore.js or groupStore.ts
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import BASE_URL from './api'; // Adjust the path as needed
 
 export const useGroupStore = create((set) => ({
     isLoading: false,
@@ -13,7 +14,7 @@ export const useGroupStore = create((set) => ({
         try {
             const token = await AsyncStorage.getItem('token');
 
-            const response = await fetch("http://192.168.1.103:3000/api/group/createGroup", {
+            const response = await fetch(`${BASE_URL}/group/createGroup`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -44,7 +45,7 @@ export const useGroupStore = create((set) => ({
         try {
             const token = await AsyncStorage.getItem('token');
     
-            const response = await fetch("http://192.168.1.103:3000/api/group/getGroups", {
+            const response = await fetch(`${BASE_URL}/group/getGroups`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -72,7 +73,7 @@ export const useGroupStore = create((set) => ({
         set({ isLoading: true });
         try {
             const token = await AsyncStorage.getItem('token');
-            const response = await fetch(`http://192.168.1.103:3000/api/group/${groupId}`, {
+            const response = await fetch(`${BASE_URL}/group/${groupId}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -94,12 +95,44 @@ export const useGroupStore = create((set) => ({
             set({ isLoading: false });
         }
     },
+    joinGroup: async (groupId) => {
+        set({ isLoading: true });
+        try {
+            const token = await AsyncStorage.getItem('token');
+
+            const response = await fetch(`${BASE_URL}/group/${groupId}/join`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                return false ;
+            }
+
+            set((state) => ({
+                groups: [...state.groups, data.group],
+                isLoading: false,
+            }));
+
+            return true ;
+        } catch (error) {
+            console.error("Error joining group:", error);
+            set({ isLoading: false });
+            return { success: false, error: error.message };
+        }
+    },
+
     getMembers: async(groupId) => {
         console.log(groupId)
         set({ isLoading: true });
         try {
             const token = await AsyncStorage.getItem('token');
-            const response = await fetch(`http://192.168.1.103:3000/api/group/getMembers/${groupId}`, {
+            const response = await fetch(`${BASE_URL}/group/getMembers/${groupId}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,

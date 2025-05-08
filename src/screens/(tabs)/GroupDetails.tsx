@@ -79,7 +79,7 @@ const GroupDetails = () => {
                         key={member._id}
                         className='flex-row justify-between items-center bg-[#2a2a5a] p-4 mb-3 rounded-lg'
                         onPress={() => 
-                            navigation.navigate('GroupSoundsDetected')
+                            navigation.navigate('GroupSoundsDetected',{userId: member._id, username: member.username})
                         }
                     >
                         <View className="flex-row items-center space-x-4">

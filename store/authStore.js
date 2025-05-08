@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import BASE_URL from './api'; // Adjust the path as needed
 
 export const useAuthStore = create((set) => ({
     user: null,
@@ -11,7 +12,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true });
         
         try {
-            const response = await fetch("http://192.168.1.103:3000/api/auth/register", {
+            const response = await fetch(`${BASE_URL}/auth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -47,7 +48,7 @@ export const useAuthStore = create((set) => ({
     login: async (email, password) => {
         set({ isLoading: true });
         try {
-            const response = await fetch("http://192.168.1.103:3000/api/auth/login", {
+            const response = await fetch(`${BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -102,7 +103,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true });
         try {
             //  Update the user data on the server
-            const response = await fetch("http://192.168.1.103:3000/api/auth/update", { //  endpoint
+            const response = await fetch(`${BASE_URL}/auth/update`, { //  endpoint
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

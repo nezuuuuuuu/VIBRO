@@ -9,18 +9,25 @@ import { View, ActivityIndicator } from 'react-native';
 import Signup from './src/screens/(auth)/signup';
 import Login from './src/screens/(auth)';
 
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+
+
+
   const { checkAuth, user, token } = useAuthStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+
+
     const init = async () => {
       await checkAuth();  // fetches and sets user/token
       setLoading(false);  // only show UI after auth is checked
     };
     init();
+ 
   }, []);
 
   if (loading) {

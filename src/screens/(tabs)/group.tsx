@@ -10,7 +10,7 @@ import { useGroupStore } from "../../../store/groupStore"; // Assuming you have 
 
 
 const Groups = () => {
-  const { getGroups, groups, isLoading,setGroupNavigation, groupPointer,getMembers } = useGroupStore();
+  const { getGroups, groups, isLoading,setGroupNavigation, groupPointer,getMembers,joinGroup } = useGroupStore();
 
   const navigation = useNavigation();
 
@@ -19,6 +19,7 @@ const Groups = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredGroups, setFilteredGroups] = useState(groups);
   const [groupCode, setGroupCode] = useState(''); // State for the group code input
+  const [groupCodePlaceholder, setgroupCodePlaceholder] = useState('');
   const fetchGroups = async () => {
     await getGroups(); 
   };
@@ -92,10 +93,14 @@ const Groups = () => {
 
   const handleJoinGroup = () => {
     console.log('Joining group with code:', groupCode);
-    // Implement your join group logic here
-    // e.g., API call to join the group
-    setModalVisible(false); // Close modal after attempting to join
-    setGroupCode(''); // Clear the input
+    if(joinGroup(groupCode)== true){
+      setModalVisible(false); // Close modal after attempting to join
+      setGroupCode(''); // Clear the input
+    }
+    else{
+      setgroupCodePlaceholder('code is not valid')
+      setGroupCode(''); // Clear the input
+    }
   };
 
   const handleCreateGroupNavigation = () => {
@@ -172,7 +177,7 @@ const Groups = () => {
             <View className="w-full h-14 bg-gray-200 px-4 rounded-lg justify-center mb-4">
               <TextInput
                 className="flex-1 text-black font-pregular"
-                placeholder="Enter group code here"
+                placeholder={groupCodePlaceholder}
                 placeholderTextColor="#888"
                 value={groupCode}
                 onChangeText={setGroupCode}
