@@ -35,7 +35,8 @@ function Home() {
   const { user, token } = useAuthStore();
 
   const [isRecording, setIsRecording] = useState(false);
-
+  const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass_break'];
+  const CUSTOM_ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass'];
   useLayoutEffect(() => {
     if (user) {
       navigation.setOptions({
@@ -74,10 +75,13 @@ function Home() {
   const [predictions, setPredictions] = useState<any[]>([]);
 
 
-  const handlePrediction = (prediction: string | null) => {
-    if (prediction) {
-        setPredictions(prevPredictions => [...prevPredictions, prediction]);
+  const handlePrediction = (prediction: string ) => {
+    const MIN_CONFIDENCE = 0.6; // adjust as needed (60%)
+
+    if (prediction.confidence >= MIN_CONFIDENCE && ALLOWED_LABELS.includes(prediction.label)){
+      setPredictions(prevPredictions => [...prevPredictions, prediction]);
     }
+  
 };
 
   

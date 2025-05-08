@@ -10,7 +10,7 @@ import { useGroupStore } from "../../../store/groupStore"; // Assuming you have 
 
 
 const Groups = () => {
-  const { getGroups, groups, isLoading } = useGroupStore();
+  const { getGroups, groups, isLoading,setGroupNavigation, groupPointer,getMembers } = useGroupStore();
 
   const navigation = useNavigation();
 
@@ -114,7 +114,9 @@ const Groups = () => {
             key={group._id}
             className="flex-row justify-between items-center bg-[#2a2a5a] p-4 mb-3 rounded-lg"
             onPress={() => {
-              navigation.navigate('GroupDetails', { groupId: group._id, groupName: group?.groupName });
+              setGroupNavigation(group._id);
+              // getMembers(group._id);
+              navigation.navigate('GroupDetails');
               // console.log('Group ID:', group._id); // Log the group ID for debugging
             }}
         >

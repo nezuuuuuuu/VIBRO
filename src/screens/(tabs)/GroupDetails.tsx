@@ -6,16 +6,24 @@ import { useGroupStore } from '../../../store/groupStore';
 import { Member } from '../../constants/constants';
 
 const GroupDetails = () => {
-    const route = useRoute();
-    const { groupId, groupName } = route.params;
+      const { getGroups, groups, isLoading,setGroupNavigation, groupPointer,getMembers,groupMembersPointer } = useGroupStore();
+    
+    
     const navigation = useNavigation();
     
-
+    useEffect(() => {
+        if (groupPointer?._id) {
+            getMembers(groupPointer._id); // Fetch members only when groupPointer is ready
+        }
+    }, [groupPointer]);
     useLayoutEffect(() => {
-        if (navigation) {
+        
+        if (navigation && groupPointer ) {
+            
+         
             navigation.setOptions({
                 headerTitle: () => (
-                    <Text className="font-psemibold text-2xl text-white">{groupName}</Text>
+                    <Text className="font-psemibold text-2xl text-white">{groupPointer.groupName}</Text>
                 ),
                 headerStyle: {
                     backgroundColor: '#1a1a3d',
@@ -45,7 +53,7 @@ const GroupDetails = () => {
                         <TouchableOpacity 
                             className="mr-4"
                             onPress={() => 
-                                navigation.navigate("GroupInfo", { groupId: groupId, groupName: groupName})
+                                navigation.navigate("GroupInfo")
                             }
                         >
                             <Image
@@ -58,33 +66,29 @@ const GroupDetails = () => {
                 ),
             });
         }
-    }, [navigation]);
+    }, [navigation,groupPointer,groupMembersPointer]);
 
     return (
         <View className='bg-primary p-4 flex-1'>
             <Text className='text-white my-5'>Monitoring on:</Text>
             <ScrollView className='w-full rounded-lg'>
-                {/* TODO: MAP ALL THE MEMBERS HERE. */}
-                {Member.map((member) => (
+                
+                {groupMembersPointer.map((member) => (
                     // NAVIGATE TO GROUPSOUNDSDETECTED.TSX
                     <TouchableOpacity 
-                        key={member.id}
+                        key={member._id}
                         className='flex-row justify-between items-center bg-[#2a2a5a] p-4 mb-3 rounded-lg'
                         onPress={() => 
-                            navigation.navigate('GroupSoundsDetected', {
-                                memberId: member.id,
-                                memberName: member.memberName,
-                                memberSounds: member.soundsDetected,
-                            })
+                            navigation.navigate('GroupSoundsDetected')
                         }
                     >
                         <View className="flex-row items-center space-x-4">
                             <Image
-                                source={member.profile}
+                                source={{ uri: `https://api.dicebear.com/7.x/bottts/png?seed=${member?.username || "guest"}` }}
                                 className="w-12 h-12 rounded-full bg-gray-300"
                                 resizeMode="cover"
                             />
-                            <Text className="text-white px-4 text-lg font-pregular">{member.memberName}</Text>
+                            <Text className="text-white px-4 text-lg font-pregular">{member.username}</Text>
                         </View>
 
                         <View>

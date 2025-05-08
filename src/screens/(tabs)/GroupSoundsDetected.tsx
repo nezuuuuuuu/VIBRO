@@ -2,10 +2,13 @@ import React, { useLayoutEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { icons } from '../../constants';
+    import { useGroupStore } from '../../../store/groupStore';
 
+    
 const GroupSoundsDetected = () => {
+    const { groupMembersPointer } = useGroupStore();
+
     const route = useRoute();
-    const { memberId, memberName, memberSounds } = route.params;
     const navigation = useNavigation();
 
     useLayoutEffect(() => {

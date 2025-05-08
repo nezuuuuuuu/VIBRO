@@ -11,7 +11,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true });
         
         try {
-            const response = await fetch("https://mern-vibro.onrender.com/api/auth/register", {
+            const response = await fetch("http://192.168.1.103:3000/api/auth/register", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -47,7 +47,7 @@ export const useAuthStore = create((set) => ({
     login: async (email, password) => {
         set({ isLoading: true });
         try {
-            const response = await fetch("https://mern-vibro.onrender.com/api/auth/login", {
+            const response = await fetch("http://192.168.1.103:3000/api/auth/login", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true });
         try {
             //  Update the user data on the server
-            const response = await fetch("https://mern-vibro.onrender.com/api/auth/update", { //  endpoint
+            const response = await fetch("http://192.168.1.103:3000/api/auth/update", { //  endpoint
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
