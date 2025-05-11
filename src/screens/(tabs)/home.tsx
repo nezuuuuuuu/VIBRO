@@ -10,14 +10,15 @@ import "../../../global.css"
 import DetectionDisplay from '../../components/detectionDisplay';
 import { useAuthStore } from "../../../store/authStore";
 import { useNavigation } from '@react-navigation/native';
+import { useGroupStore } from '../../../store/groupStore';
 
 import { icons } from '../../constants';
 import {useDetectedSoundStore} from '../../../store/detectedSoundStore';
 
-import useSocket from '../../../store/useSocket';
+import {useSocket} from '../../../store/useSocket';
 
 
-
+ 
 
 export async function requestMicPermission() {
 
@@ -40,17 +41,20 @@ export async function requestMicPermission() {
 }
 
 function Home() {
-
+    
   const { socket, connect, disconnect } = useSocket();
+  const {getGroups} = useGroupStore()
   const { addSound} = useDetectedSoundStore();
 
   const navigation = useNavigation(); 
   const { user, token } = useAuthStore();
 
   const [isRecording, setIsRecording] = useState(false);
-  const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass_break'];
+  const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass'];
   const CUSTOM_ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass'];
   useLayoutEffect(() => {
+    
+
     if (user) {
       navigation.setOptions({
         headerTitle: () => ( 
@@ -74,7 +78,30 @@ function Home() {
   }, [navigation, user]);
   
   useEffect(()=>{
-    connect(user._id);
+      const fetchAndConnect = async () => {
+    try {
+      const result = await getGroups(); // Calls your getGroups() above
+
+      if (result && result.groups) {
+        const groupIds = result.groups.map(group => group._id);
+     
+        const userId = user._id; // Or however you're storing user info
+
+        connect(userId, groupIds); 
+
+
+      
+      
+      }
+    } catch (error) {
+      console.error("Error connecting socket:", error);
+    }
+    console.log("safeee")
+  };
+
+  // Fetch groups and connect socket when the component mounts
+  fetchAndConnect();
+    
     
     DeviceEventEmitter.addListener("onPrediction",(data)=>
     {
@@ -92,7 +119,7 @@ function Home() {
   const handlePrediction = async (prediction: { label: string, confidence: number, timestamp: number }) => {
     const MIN_CONFIDENCE = 0.6; // adjust as needed (60%)
     const TIME_LIMIT = 10000; // 10 seconds in milliseconds
-
+    console.log(prediction.label)
     // Ensure prediction has valid data
     if (prediction.confidence >= MIN_CONFIDENCE && ALLOWED_LABELS.includes(prediction.label)) {
         // Get the current time (timestamp)

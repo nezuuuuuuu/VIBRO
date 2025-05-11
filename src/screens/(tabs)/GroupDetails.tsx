@@ -4,14 +4,33 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { icons } from '../../constants';
 import { useGroupStore } from '../../../store/groupStore';
 import { Member } from '../../constants/constants';
+import  {useSocket}  from '../../../store/useSocket'; // Import the socket hook
 
 const GroupDetails = () => {
       const { getGroups, groups, isLoading,setGroupNavigation, groupPointer,getMembers,groupMembersPointer } = useGroupStore();
-    
-    
-    const navigation = useNavigation();
+      const { socket, connect, disconnect,updateOnlineStatus,onlineUsers } = useSocket(); // Use the socket hook
+        const navigation = useNavigation();
+
+
     
     useEffect(() => {
+         
+        if (socket) {
+            socket.on('user-online', ({ userId }) => updateOnlineStatus(userId, true));
+            socket.on('user-offline', ({ userId }) => updateOnlineStatus(userId, false));
+           
+        }
+        return () => {
+            if (socket) {
+                socket.off('user-online');
+                socket.off('user-offline');
+            }
+        };
+    }, [socket]);
+ 
+    useEffect(() => {
+
+
         if (groupPointer?._id) {
             getMembers(groupPointer._id); // Fetch members only when groupPointer is ready
         }
@@ -92,8 +111,8 @@ const GroupDetails = () => {
                         </View>
 
                         <View>
-                            {member.isMonitoring ? (
-                                <Text className="text-green-400 text-sm">Monitoring</Text>
+                            {onlineUsers.has(member._id) ? (
+                                <Text className="text-green-400 text-sm">Online</Text>
                             ) : (
                                 <Text className="text-gray-400 text-sm">Offline</Text>
                             )}

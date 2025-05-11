@@ -48,7 +48,7 @@ export const useAuthStore = create((set) => ({
     login: async (email, password) => {
         set({ isLoading: true });
         try {
-            const response = await fetch(`${BASE_URL}/api/auth/login`, {
+            const response = await fetch(`${BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -58,9 +58,9 @@ export const useAuthStore = create((set) => ({
                     password,
                 }),
             });
-
+        
             const data = await response.json();
-
+            console.log("asdasdasd222222"+email + password)
             if(!response.ok) throw new Error(data.message || 'Something went wrong!');
 
             await AsyncStorage.setItem('user', JSON.stringify(data.user));
