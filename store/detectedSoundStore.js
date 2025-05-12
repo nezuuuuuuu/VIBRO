@@ -21,9 +21,9 @@ export const useDetectedSoundStore = create((set) => ({
                 },
                 body: JSON.stringify({ label, confidence }),
             });
-            console.log(label + "   "+ confidence)
+       
             const data = await response.json();
-            console.log(data+"asdsadasadasdasdasdasdasdasdasdasd")
+            
 
             if (!response.ok) throw new Error(data.message || 'Failed to add sound');
 
@@ -45,7 +45,7 @@ export const useDetectedSoundStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const token = await AsyncStorage.getItem('token');
-            console.log("data returned : " )
+           
             const response = await fetch(`${BASE_URL}/detectedSound/${userId}`, {
                 method: 'GET',
                 headers: {
@@ -54,7 +54,7 @@ export const useDetectedSoundStore = create((set) => ({
             });
 
             const data = await response.json();
-            console.log("data returned for  "+userId+ +data.sounds)
+           
             if (!response.ok) throw new Error(data.message || 'Failed to fetch sounds');
 
             set({ sounds: data.sounds, isLoading: false });

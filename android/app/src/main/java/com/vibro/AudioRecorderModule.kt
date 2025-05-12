@@ -19,7 +19,7 @@ import kotlin.concurrent.thread
 import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream
 
-
+import android.util.Base64;
 import org.tensorflow.lite.support.audio.TensorAudio;
 import org.tensorflow.lite.support.label.Category;
 import org.tensorflow.lite.task.audio.classifier.AudioClassifier;
@@ -70,9 +70,15 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) :
         record = classifier?.createAudioRecord()
         record?.startRecording()
 
+        val sampleRate = classifier?.requiredTensorAudioFormat?.sampleRate ?: 16000 // Default if null
+        val channels = classifier?.requiredTensorAudioFormat?.channels ?: 1       // Default if null
+
+
+
+
         timerTask = object : TimerTask() {
             override fun run() {
-                // Classifying audio data
+
                 val numberOfSamples = tensor?.load(record) ?: 0
                 val output = classifier?.classify(tensor) ?: emptyList()
 
@@ -85,25 +91,32 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) :
                         }
                     }
                 }
-
                 // Sorting the results
                 finalOutput.sortByDescending { it.score }
 
                 if (finalOutput.isNotEmpty()) {
-                    val firstPrediction = finalOutput.first()
                     val currentTime = System.currentTimeMillis()
+                    val allPredictionsArray = Arguments.createArray()
+
+                    for (prediction in finalOutput) {
+                            val predictionMap = Arguments.createMap()
+                            predictionMap.putString("label", prediction.label)
+                            predictionMap.putDouble("confidence", prediction.score.toDouble())
+                            allPredictionsArray.pushMap(predictionMap)
+                    }
 
                     val params = Arguments.createMap()
-                    params.putDouble("time", currentTime.toDouble()) // Convert to Double for WritableMap
-                    params.putString("label", firstPrediction.label)
-                    params.putDouble("confidence", firstPrediction.score.toDouble()) // Convert to Double
+                    params.putDouble("time", currentTime.toDouble())
+                    params.putArray("predictions", allPredictionsArray) // Send the array of predictions
 
                     sendEvent(reactApplicationContext, "onPrediction", params)
+
+
                 }
             }
         }
 
-        timer.schedule(timerTask, 1, 500)
+        timer.schedule(timerTask, 0, 3000)
     }
 
     @ReactMethod

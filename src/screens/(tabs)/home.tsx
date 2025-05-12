@@ -41,17 +41,34 @@ export async function requestMicPermission() {
 }
 
 function Home() {
-    
-  const { socket, connect, disconnect } = useSocket();
+
+  const [isHandligPrediction,setIsHandlingPrediction]= useState(false);
+  const { socket, connect, disconnect,isOnline } = useSocket();
   const {getGroups} = useGroupStore()
   const { addSound} = useDetectedSoundStore();
 
   const navigation = useNavigation(); 
   const { user, token } = useAuthStore();
+  const [predictions, setPredictions] = useState<any[]>([]);
 
   const [isRecording, setIsRecording] = useState(false);
   const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass'];
-  const CUSTOM_ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass'];
+  
+  const predictionQueue: { label: string, confidence: number }[] = [];
+  let isProcessing = false;
+  const processQueue = async () => {
+  isProcessing = true;
+
+  while (predictionQueue.length > 0) {
+    const prediction = predictionQueue.shift(); // get next item
+
+    if (prediction) {
+      await handlePrediction(prediction); // process one at a time
+    }
+  }
+
+  isProcessing = false;
+};
   useLayoutEffect(() => {
     
 
@@ -77,7 +94,10 @@ function Home() {
     }
   }, [navigation, user]);
   
+  
+  
   useEffect(()=>{
+
       const fetchAndConnect = async () => {
     try {
       const result = await getGroups(); // Calls your getGroups() above
@@ -102,46 +122,44 @@ function Home() {
   // Fetch groups and connect socket when the component mounts
   fetchAndConnect();
     
-    
-    DeviceEventEmitter.addListener("onPrediction",(data)=>
-    {
-      const { time, label, confidence } = data;
-      handlePrediction(data)
-      // console.log(data)
-    })
+ 
+
+DeviceEventEmitter.addListener("onPrediction", (data) => {
+  console.log(data);
+  const { predictions } = data;
+
+  if (Array.isArray(predictions) && predictions.length > 0) {
+    const { label, confidence } = predictions[0];
+
+    // Add to queue
+    predictionQueue.push({ label, confidence });
+
+    // Start processing if not already
+    if (!isProcessing) processQueue();
+  }
+});
+
+
   },[]);
 
 
-  const [model, setModel] = useState(null);
-  const [predictions, setPredictions] = useState<any[]>([]);
+
+const handlePrediction = async (prediction: { label: string, confidence: number }) => {
+  const MIN_CONFIDENCE = 0.80;
+
+  if (prediction.confidence >= MIN_CONFIDENCE && ALLOWED_LABELS.includes(prediction.label)) {
+    const currentTime = Date.now();
 
 
-  const handlePrediction = async (prediction: { label: string, confidence: number, timestamp: number }) => {
-    const MIN_CONFIDENCE = 0.6; // adjust as needed (60%)
-    const TIME_LIMIT = 10000; // 10 seconds in milliseconds
-    console.log(prediction.label)
-    // Ensure prediction has valid data
-    if (prediction.confidence >= MIN_CONFIDENCE && ALLOWED_LABELS.includes(prediction.label)) {
-        // Get the current time (timestamp)
-        const currentTime = Date.now();
+    setPredictions(prevPredictions => [
+      ...prevPredictions,
+      { label: prediction.label, confidence: prediction.confidence, timestamp: currentTime }
+    ]);
+   
+    addSound(prediction.label,prediction.confidence)
 
-        // Check if the label already exists and if it's within the time window
-        const lastPrediction = predictions.find(pred => pred.label === prediction.label);
-        
-        if (lastPrediction && (currentTime - lastPrediction.timestamp) <= TIME_LIMIT) {
-            console.log('Prediction with the same label is too soon, skipping...');
-            return; // Skip the prediction
-        }
-
-        // Add sound to your store or handle accordingly
-        addSound(prediction.label, prediction.confidence);
-
-        // Update predictions state (add the timestamp to the prediction)
-        setPredictions(prevPredictions => [
-            ...prevPredictions,
-            { ...prediction, timestamp: currentTime }
-        ]);
-    }
+    
+  }
 };
 
 
@@ -175,7 +193,7 @@ function Home() {
       <ScrollView className="h-3/4 w-full " >
      
                 { predictions.slice().reverse().map((prediction, index) => (
-                    <DetectionDisplay key={index} time={new Date(prediction.time).toLocaleTimeString()} confidence={prediction.label} sound={ (prediction.confidence * 100).toFixed(2) + '%'}/>
+                    <DetectionDisplay key={index} time={new Date(prediction.timestamp).toLocaleTimeString()} confidence={ (prediction.confidence * 100).toFixed(2) + '%'} sound={prediction.label}/>
                   
                 ))}
 

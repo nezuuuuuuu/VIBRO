@@ -31,7 +31,7 @@ const ProfileStackNavigator = () => {
 const GroupStackNavigator = () => {
   return (
     <GroupStack.Navigator screenOptions={{ headerShown: true }}>
-      <GroupStack.Screen name="Group" component={Group} />
+      <GroupStack.Screen name="Groups" component={Group} />
       <GroupStack.Screen name="CreateGroup" component={CreateGroup} options={{ headerShown: false}}/>
       <GroupStack.Screen name="GroupDetails" component={GroupDetails} options={{ headerShown: true}}/>
       <GroupStack.Screen name="GroupSoundsDetected" component={GroupSoundsDetected} options={{ headerShown: true }} />

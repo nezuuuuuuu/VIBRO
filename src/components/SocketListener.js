@@ -1,6 +1,6 @@
 // components/SocketListener.js
 import { useEffect } from 'react';
-import {useSocket} from '../../../store/useSocket';
+import {useSocket} from '../../store/useSocket';
 
 const SocketListener = () => {
   const { socket, updateOnlineStatus } = useSocket();

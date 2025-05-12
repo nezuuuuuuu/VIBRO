@@ -3,12 +3,13 @@ import { create } from 'zustand';
 
 import io from 'socket.io-client';
 import BASE_URL from './api'; // Adjust the path as needed
+import { Alert } from 'react-native';
 
-const SOCKET_URL =  'http://192.168.1.3:3000'; // Replace with your server IP
+const SOCKET_URL =  'https://mern-vibro.onrender.com'; // Replace with your server IP
 
 export const useSocket = create((set, get) => ({
   socket: null,
-  onlineUsers: new Set(),
+  onlineUsers: new Set(),isOnline: false,
   updateOnlineStatus: (userId, isOnline) => {
     console.log("ADDING ONLINE USER"+userId)
     set((state) => {
@@ -29,6 +30,7 @@ export const useSocket = create((set, get) => ({
 
     newSocket.on('connect', () => {
       console.log('✅ Connected to socket server:', newSocket.id);
+      isOnline=true
       set({ socket: newSocket });
       const heartbeatInterval = setInterval(() => {
         if (newSocket && newSocket.connected) {
@@ -42,6 +44,12 @@ export const useSocket = create((set, get) => ({
 
         newSocket.on('user-offline', ({ userId }) => {
           get().updateOnlineStatus(userId, false);
+        });
+        set({ socket: newSocket });
+  
+
+        newSocket.on('new-sound', ({ userId }) => {
+          console.log("new sound detected from ", userId)
         });
         set({ socket: newSocket });
 
@@ -62,8 +70,11 @@ export const useSocket = create((set, get) => ({
       set({ socket: null });
     }
   },
+  
 
 
 
 
 }));
+
+
