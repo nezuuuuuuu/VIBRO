@@ -238,7 +238,7 @@ const handlePrediction = async (prediction: { label: string, confidence: number,
       { label: prediction.label, confidence: prediction.confidence, timestamp: currentTime, audioBase64: prediction.audioBase64  }
     ]);
    
-    addSound(prediction.label,prediction.confidence)
+    addSound(prediction.label,prediction.confidence,prediction.audioBase64)
 
     
   }

@@ -8,8 +8,9 @@ export const useDetectedSoundStore = create((set) => ({
     isLoading: false,
     error: null,
 
-    addSound: async (label, confidence) => {
+    addSound: async (label, confidence, sound) => {
         set({ isLoading: true, error: null });
+
         try {
             const token = await AsyncStorage.getItem('token');
 
@@ -19,7 +20,7 @@ export const useDetectedSoundStore = create((set) => ({
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                body: JSON.stringify({ label, confidence }),
+                body: JSON.stringify({ label, confidence, sound }),
             });
        
             const data = await response.json();

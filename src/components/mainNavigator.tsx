@@ -14,6 +14,7 @@ import GroupInfo from '../screens/(tabs)/GroupInfo';
 import ChatScreen from '../screens/(tabs)/chatScreen';
 import { icons } from '../constants';
 import "../../global.css";
+import CustomSounds from '../screens/(tabs)/customSound';
 
 const Tab = createBottomTabNavigator();
 const ProfileStack = createNativeStackNavigator(); 
@@ -82,9 +83,14 @@ const GroupStackNavigator = () => {
       />
       <GroupStack.Screen 
         name="ChatScreen"
-        component={ChatScreen}
+        component ={ChatScreen}
         options={({ title: 'Chat Screen'})}
       />
+      <GroupStack.Screen
+       name="CustomSounds"
+        component={CustomSounds}
+         options={{ headerShown: true }} />
+
     </GroupStack.Navigator>
   );
 };

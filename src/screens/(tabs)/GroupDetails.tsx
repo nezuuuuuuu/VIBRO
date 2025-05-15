@@ -87,7 +87,11 @@ const GroupDetails = () => {
                             />
                         </TouchableOpacity>
 
-                        <TouchableOpacity className="mr-4">
+                           <TouchableOpacity className="mr-4"
+                         onPress={() => 
+                                navigation.navigate("CustomSounds")
+                            }
+                            >
                             <Image
                                 source={icons.sound}
                                 className="w-6 h-6 tint-white"

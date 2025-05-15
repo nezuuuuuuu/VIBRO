@@ -101,7 +101,9 @@ const GroupSoundsDetected = () => {
                    
 
                 
-                <DetectionDisplay  time={formatTime(item.createdAt)} confidence={(item.confidence * 100).toFixed(2)+ '%'} sound={item.label}/>
+                <DetectionDisplay  time={formatTime(item.createdAt)} confidence={(item.confidence * 100).toFixed(2)+ '%'} sound={item.label} 
+                 audioBase64={item.sound}
+                />
                     
                 )}
             />
