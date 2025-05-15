@@ -15,8 +15,9 @@ import {
 } from 'react-native';
 import "../../../global.css"
 import { useSocket } from '../../../store/useSocket'; // Adjust the import path as needed
+import BASE_URL from '../../../store/api';
 
-const API_BASE_URL = 'http://192.168.254.104:3000/api'; // Replace with your API base URL
+const API_BASE_URL = BASE_URL; 
 
 interface User {
     _id: string;
