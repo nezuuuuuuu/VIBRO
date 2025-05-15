@@ -16,7 +16,10 @@ import {
 import "../../../global.css"
 import { useSocket } from '../../../store/useSocket'; // Adjust the import path as needed
 
-const API_BASE_URL = 'http://192.168.254.104:3000/api'; // Replace with your API base URL
+import BASE_URL from '../../../store/api';
+
+
+const API_BASE_URL = BASE_URL; // Replace with your API base URL
 
 interface User {
     _id: string;

@@ -5,7 +5,6 @@ import { NativeModules } from 'react-native';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
 const { AudioRecorder } = NativeModules;
-import RNFS from 'react-native-fs';
 import "../../../global.css"
 import DetectionDisplay from '../../components/detectionDisplay';
 import { useAuthStore } from "../../../store/authStore";
@@ -17,8 +16,11 @@ import {useDetectedSoundStore} from '../../../store/detectedSoundStore';
 
 import {useSocket} from '../../../store/useSocket';
 
+import RNFS from 'react-native-fs';
 
- 
+import { Buffer } from 'buffer';
+import Sound from 'react-native-sound';
+
 
 export async function requestMicPermission() {
 
@@ -52,9 +54,9 @@ function Home() {
   const [predictions, setPredictions] = useState<any[]>([]);
 
   const [isRecording, setIsRecording] = useState(false);
-  const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass','Speech','Crying, sobbing','Baby cry, infant cry'];
+  const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass','Siren'];
   
-  const predictionQueue: { label: string, confidence: number }[] = [];
+  const predictionQueue: { label: string; confidence: number; audioBase64?: string }[] = [];
   let isProcessing = false;
   const processQueue = async () => {
   isProcessing = true;
@@ -69,6 +71,53 @@ function Home() {
 
   isProcessing = false;
 };
+
+
+const playBase64Audio = async (base64Audio: string) => {
+  try {
+    // 1. Decode base64 to binary (using Buffer correctly)
+    const audioBuffer = Buffer.from(base64Audio, 'base64');
+
+    // 2. Save it as a temporary WAV file
+    const filePath = `${RNFS.TemporaryDirectoryPath}/audio.wav`;
+    // RNFS.writeFile expects binary data, not a base64 string.  This is the key change.
+    await RNFS.writeFile(filePath, audioBuffer, 'utf8');
+
+    // 3. Play the audio
+    const playBase64Audio = async (base64Audio: string) => {
+      try {
+        // 1. Decode base64 to binary (using Buffer correctly)
+        const audioBuffer = Buffer.from(base64Audio, 'base64');
+    
+        // 2. Save it as a temporary WAV file
+        const filePath = `${RNFS.TemporaryDirectoryPath}/audio.wav`;
+        // RNFS.writeFile expects binary data, not a base64 string.
+        await RNFS.writeFile(filePath, audioBuffer);
+    
+        // 3. Play the audio
+        const sound = new Sound(filePath, '', (error) => {
+          if (error) {
+            console.error('Failed to load the sound', error);
+            return;
+          }
+          sound.play((success) => {
+            if (!success) {
+              console.error('Playback failed');
+            }
+            sound.release();
+          });
+        });
+      } catch (err) {
+        console.error('Error decoding or playing audio:', err);
+      }
+    };
+    
+    
+  } catch (err) {
+    console.error('Error decoding or playing audio:', err);
+  }
+};
+
   useLayoutEffect(() => {
     
 
@@ -79,13 +128,11 @@ function Home() {
        ),
         headerRight: () => (
           <View className="flex-row items-center gap-2 mr-4">
-           <View className="w-10 h-10 rounded-full bg-white p-1 shadow-lg justify-center items-center">
-              <Image
-                  style={{ width: 30, height: 30, borderRadius: 50 }}
-                  source={{ uri: `https://api.dicebear.com/7.x/personas/png?seed=${user?.username || "guest"}` }}
-                  resizeMode="cover"
-                />
-            </View>
+            <Image
+                style={{ width: 20, height: 20, borderRadius: 50 }}
+                source={{ uri: `https://api.dicebear.com/7.x/bottts/png?seed=${user?.username || "guest"}` }}
+                resizeMode="cover"
+              />
             <Text className="text-white font-psemibold">{user.username}</Text>
           </View>
         ),
@@ -97,8 +144,32 @@ function Home() {
   }, [navigation, user]);
   
   
-  
+  const copyModelToInternalStorage = async () => {
+  try {
+    // Path to the model in the assets folder
+const assetPath = 'VIBRO.tflite';    // Path where the model will be copied to in internal storage
+    const destinationPath = `${RNFS.DocumentDirectoryPath}/VIBRO.tflite`;
+
+    // Check if the file already exists in internal storage
+    const fileExists = await RNFS.exists(destinationPath);
+    // if (fileExists) {
+    //   console.log('Model already copied to internal storage.');
+    //   return destinationPath;
+    // }
+
+    // Copy the model from assets to internal storage
+    await RNFS.copyFileAssets(assetPath, destinationPath);
+    console.log('Model copied to internal storage successfully.');
+    return destinationPath;
+  } catch (error) {
+    console.error('Failed to copy model to internal storage:', error);
+    throw error;
+  }
+};
   useEffect(()=>{
+    copyModelToInternalStorage();
+    console.log(RNFS.DocumentDirectoryPath); // Usually maps to filesDir
+
 
       const fetchAndConnect = async () => {
     try {
@@ -113,7 +184,6 @@ function Home() {
 
 
       
-      
       }
     } catch (error) {
       console.error("Error connecting socket:", error);
@@ -124,20 +194,28 @@ function Home() {
   // Fetch groups and connect socket when the component mounts
   fetchAndConnect();
     
- 
+
 
 DeviceEventEmitter.addListener("onPrediction", (data) => {
-  console.log(data);
-  const { predictions } = data;
+  console.log("YAMNET PREDICTIONS:", data.yamnetPredictions);
+  console.log("CUSTOM PREDICTIONS:", data.customPredictions);
 
-  if (Array.isArray(predictions) && predictions.length > 0) {
-    const { label, confidence } = predictions[0];
+  // If you want to work with the custom predictions:
+  const { customPredictions, yamnetPredictions, audioBase64 } = data;
 
-    // Add to queue
-    predictionQueue.push({ label, confidence });
+  // Example: Push predictions and audio data together
+  if (Array.isArray(customPredictions)) {
+    customPredictions.forEach(({ label, confidence }) => {
+      predictionQueue.push({ label, confidence, audioBase64 });
+      if (!isProcessing) processQueue();
+    });
+  }
 
-    // Start processing if not already
-    if (!isProcessing) processQueue();
+  if (Array.isArray(yamnetPredictions)) {
+    yamnetPredictions.forEach(({ label, confidence }) => {
+      predictionQueue.push({ label, confidence, audioBase64 });
+      if (!isProcessing) processQueue();
+    });
   }
 });
 
@@ -146,16 +224,18 @@ DeviceEventEmitter.addListener("onPrediction", (data) => {
 
 
 
-const handlePrediction = async (prediction: { label: string, confidence: number }) => {
+const handlePrediction = async (prediction: { label: string, confidence: number, audioBase64: string  }) => {
   const MIN_CONFIDENCE = 0.80;
+  console.log(prediction.audioBase64)
+ 
 
-  if (prediction.confidence >= MIN_CONFIDENCE && ALLOWED_LABELS.includes(prediction.label)) {
+  if (prediction.confidence >= MIN_CONFIDENCE ) {
     const currentTime = Date.now();
 
 
     setPredictions(prevPredictions => [
       ...prevPredictions,
-      { label: prediction.label, confidence: prediction.confidence, timestamp: currentTime }
+      { label: prediction.label, confidence: prediction.confidence, timestamp: currentTime, audioBase64: prediction.audioBase64  }
     ]);
    
     addSound(prediction.label,prediction.confidence)
@@ -177,14 +257,14 @@ const handlePrediction = async (prediction: { label: string, confidence: number 
    
    
   }
+    async function playAudio(base64audio: string) {
+      const path = await AudioRecorder.playAudio(base64audio);
+  }
   async function stopRecording() {
     setIsRecording(false);
     const path = await AudioRecorder.stopRecording(); 
 }
-  async function playRecording() {
-    const path = await AudioRecorder.playRecording();
-    console.log(path)
-}
+
 
 
   return (
@@ -195,7 +275,12 @@ const handlePrediction = async (prediction: { label: string, confidence: number 
       <ScrollView className="h-3/4 w-full " >
      
                 { predictions.slice().reverse().map((prediction, index) => (
-                    <DetectionDisplay key={index} time={new Date(prediction.timestamp).toLocaleTimeString()} confidence={ (prediction.confidence * 100).toFixed(2) + '%'} sound={prediction.label}/>
+                    
+                    <DetectionDisplay key={index} time={new Date(prediction.timestamp).toLocaleTimeString()} confidence={ (prediction.confidence * 100).toFixed(2) + '%'} sound={prediction.label}
+                    audioBase64={prediction.audioBase64}
+                    />  
+                    
+              
                   
                 ))}
 
