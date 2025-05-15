@@ -22,11 +22,28 @@ export default function Signup({navigation}) {
     const [showPassword, setShowPassword] = useState(false);
     const { user, isLoading, register, token } = useAuthStore();
 
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/;
+
 
 
     // const router = useRouter();
 
     const handleSignup = async () => {
+
+
+        // Check for empty fields first
+        if (!username || !email || !password) {
+            Alert.alert("Validation Error", "Please fill in all fields.");
+            return; 
+        }
+
+
+         // Check email format using the regex
+        if (!emailRegex.test(email)) {
+            Alert.alert("Validation Error", "Please enter a valid email address format (e.g., user@example.com).");
+            return; 
+        }
+
         const result = await register(username, email, password);
 
         if (!result.success) {
@@ -35,6 +52,8 @@ export default function Signup({navigation}) {
           Alert.alert("Success", "Account created! Please log in.");
           navigation.replace('Login');
         }
+
+       
         
     };
 

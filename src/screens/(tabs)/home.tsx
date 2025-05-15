@@ -52,7 +52,7 @@ function Home() {
   const [predictions, setPredictions] = useState<any[]>([]);
 
   const [isRecording, setIsRecording] = useState(false);
-  const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass'];
+  const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass','Speech','Crying, sobbing','Baby cry, infant cry'];
   
   const predictionQueue: { label: string, confidence: number }[] = [];
   let isProcessing = false;
@@ -79,11 +79,13 @@ function Home() {
        ),
         headerRight: () => (
           <View className="flex-row items-center gap-2 mr-4">
-            <Image
-                style={{ width: 20, height: 20, borderRadius: 50 }}
-                source={{ uri: `https://api.dicebear.com/7.x/bottts/png?seed=${user?.username || "guest"}` }}
-                resizeMode="cover"
-              />
+           <View className="w-10 h-10 rounded-full bg-white p-1 shadow-lg justify-center items-center">
+              <Image
+                  style={{ width: 30, height: 30, borderRadius: 50 }}
+                  source={{ uri: `https://api.dicebear.com/7.x/personas/png?seed=${user?.username || "guest"}` }}
+                  resizeMode="cover"
+                />
+            </View>
             <Text className="text-white font-psemibold">{user.username}</Text>
           </View>
         ),

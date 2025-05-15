@@ -4,6 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { icons } from '../../constants';
 import { useGroupStore } from '../../../store/groupStore';
 import { Member } from '../../constants/constants';
+import { useAuthStore } from '../../../store/authStore';
 import  {useSocket}  from '../../../store/useSocket'; // Import the socket hook
 
 const GroupDetails = () => {
@@ -11,7 +12,9 @@ const GroupDetails = () => {
       const { socket, connect, disconnect,updateOnlineStatus,onlineUsers } = useSocket(); // Use the socket hook
         const navigation = useNavigation();
 
-
+        const { user, token, isLoadingAuth } = useAuthStore();
+        const currentUserId = user?._id;
+        const route = useRoute();
     
     useEffect(() => {
          
@@ -37,12 +40,12 @@ const GroupDetails = () => {
     }, [groupPointer]);
     useLayoutEffect(() => {
         
-        if (navigation && groupPointer ) {
+         if (navigation && groupPointer && !isLoadingAuth) {
             
          
             navigation.setOptions({
                 headerTitle: () => (
-                    <Text className="font-psemibold text-2xl text-white">{groupPointer.groupName}</Text>
+                    <Text className="font-psemibold text-xl text-white">{groupPointer.groupName}</Text>
                 ),
                 headerStyle: {
                     backgroundColor: '#1a1a3d',
@@ -53,7 +56,30 @@ const GroupDetails = () => {
                 },
                 headerRight: () => (
                     <View className="flex-row gap-2 justify-between">
-                        <TouchableOpacity className="mr-4">
+                        <TouchableOpacity 
+                            className="mr-4"
+                            onPress={() => {
+                                if (groupPointer?._id && currentUserId && token) {
+                                    console.log('Navigating to ChatScreen with:');
+                                    console.log('  groupId:', groupPointer._id);
+                                    console.log('  groupName:', groupPointer.groupName);
+                                    console.log('  currentUserId:', currentUserId);
+                                    console.log('  token:', token ? 'Token Exists' : 'Token Missing!'); // Log existence
+
+                                    navigation.navigate('ChatScreen', {
+                                        groupId: groupPointer._id,
+                                        groupName: groupPointer.groupName,
+                                        currentUserId: currentUserId, // <-- Pass the user ID
+                                        token: token, // <-- Pass the token!
+                                    });
+                                } else {
+                                    // Add this else block for debugging
+                                    console.log('Navigation to ChatScreen prevented. Check values:');
+                                    console.log('groupPointer?._id:', groupPointer?._id);
+                                    console.log('currentUserId:', currentUserId); // This will likely show undefined
+                                }
+                            }}
+                        >
                             <Image
                                 source={icons.chat}
                                 className="w-6 h-6 tint-white"
@@ -85,7 +111,7 @@ const GroupDetails = () => {
                 ),
             });
         }
-    }, [navigation,groupPointer,groupMembersPointer]);
+    }, [navigation,groupPointer,groupMembersPointer,currentUserId, token]);
 
     return (
         <View className='bg-primary p-4 flex-1'>
@@ -103,7 +129,7 @@ const GroupDetails = () => {
                     >
                         <View className="flex-row items-center space-x-4">
                             <Image
-                                source={{ uri: `https://api.dicebear.com/7.x/bottts/png?seed=${member?.username || "guest"}` }}
+                                source={{ uri: `https://api.dicebear.com/7.x/personas/png?seed=${member?.username || "guest"}` }}
                                 className="w-12 h-12 rounded-full bg-gray-300"
                                 resizeMode="cover"
                             />

@@ -19,6 +19,7 @@ import recording from "../assets/images/recording.png";
 import addgroup from "../assets/icons/addgroup.png";
 import chat from "../assets/icons/chat.png";
 import info from "../assets/icons/info.png";
+import add_user from "../assets/icons/add_user.png";
 
 export default {
   play,
@@ -42,4 +43,5 @@ export default {
   addgroup,
   chat,
   info,
+  add_user,
 };

@@ -41,33 +41,33 @@ const GroupSoundsDetected = () => {
                     headerTitleStyle: {
                         fontWeight: 'bold',
                     },
-                    headerRight: () => (
-                        <View className="flex-row gap-2 justify-between">
-                            <TouchableOpacity className="mr-4">
-                                <Image
-                                    source={icons.chat}
-                                    className="w-6 h-6 tint-white"
-                                    resizeMode="contain"
-                                />
-                            </TouchableOpacity>
+                    // headerRight: () => (
+                    //     <View className="flex-row gap-2 justify-between">
+                    //         <TouchableOpacity className="mr-4">
+                    //             <Image
+                    //                 source={icons.chat}
+                    //                 className="w-6 h-6 tint-white"
+                    //                 resizeMode="contain"
+                    //             />
+                    //         </TouchableOpacity>
     
-                            <TouchableOpacity className="mr-4">
-                                <Image
-                                    source={icons.sound}
-                                    className="w-6 h-6 tint-white"
-                                    resizeMode="contain"
-                                />
-                            </TouchableOpacity>
+                    //         <TouchableOpacity className="mr-4">
+                    //             <Image
+                    //                 source={icons.sound}
+                    //                 className="w-6 h-6 tint-white"
+                    //                 resizeMode="contain"
+                    //             />
+                    //         </TouchableOpacity>
     
-                            <TouchableOpacity className="mr-4">
-                                <Image
-                                    source={icons.info}
-                                    className="w-6 h-6 tint-white"
-                                    resizeMode="contain"
-                                />
-                            </TouchableOpacity>
-                        </View>
-                    ),
+                    //         <TouchableOpacity className="mr-4">
+                    //             <Image
+                    //                 source={icons.info}
+                    //                 className="w-6 h-6 tint-white"
+                    //                 resizeMode="contain"
+                    //             />
+                    //         </TouchableOpacity>
+                    //     </View>
+                    // ),
                 });
             }
     }, [navigation]);
