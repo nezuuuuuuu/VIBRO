@@ -5,8 +5,8 @@ import io from 'socket.io-client';
 import BASE_URL from './api'; // Adjust the path as needed
 import { Alert } from 'react-native';
 
-const SOCKET_URL =  'https://mern-vibro.onrender.com'; // Replace with your server IP
-// const SOCKET_URL =  'http://192.168.254.104:3000';
+// const SOCKET_URL =  'https://mern-vibro.onrender.com'; // Replace with your server IP
+const SOCKET_URL =  'http://192.168.1.3:3000';
 
 export const useSocket = create((set, get) => ({
   socket: null,
