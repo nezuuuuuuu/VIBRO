@@ -23,11 +23,15 @@ import '../../../global.css';
 import { icons } from '../../constants';
 import { Buffer } from 'buffer';
 import Sound from 'react-native-sound';
+import { AndroidImportance } from '@notifee/react-native';
+import Torch from 'react-native-torch';
 
 const { AudioRecorder, Flashlight } = NativeModules;
 
 const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass', 'Siren', 'Speech'];
-const NOTIF_ALLOWED_LABELS = ['Speech'];
+const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Speech'];
+const NOTIF_LEVEL_2_ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)'];
+const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass',];
 
 export async function requestMicPermission() {
   if (Platform.OS === 'android') {
@@ -144,35 +148,68 @@ function Home() {
       setPredictions((prev) => [...prev, { label, confidence, timestamp, audioBase64 }]);
       addSound(label, confidence, audioBase64);
 
-      if (NOTIF_ALLOWED_LABELS.includes(label)) {
+      if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
         await notifee.displayNotification({
           title: `Detected: ${label}`,
           body: `Confidence: ${(confidence * 100).toFixed(2)}%`,
           android: {
-            channelId: 'sound-alerts',
+            channelId: 'sound-alerts1',
+            importance: AndroidImportance.MIN,
           },
         });
       }
 
-      if (label.toLowerCase().includes('siren')) await flashLight();
+      if (NOTIF_LEVEL_2_ALLOWED_LABELS.includes(label)) {
+        await notifee.displayNotification({
+          title: `Detected: ${label}`,
+          body: `Confidence: ${(confidence * 100).toFixed(2)}% - STAY ALERT`,
+          android: {
+            channelId: 'sound-alerts2',
+            importance: AndroidImportance.DEFAULT,
+          },
+        });
+        await blinkFlashlight(3, 300);
+      }
+
+      if (NOTIF_LEVEL_3_ALLOWED_LABELS.includes(label)) {
+        await notifee.displayNotification({
+          title: `Detected: ${label}`,
+          body: `Confidence: ${(confidence * 100).toFixed(2)}% - STAY ALERT`,
+          android: {
+            channelId: 'sound-alerts3',
+            importance: AndroidImportance.HIGH,
+          },
+        });
+        await blinkFlashlight(5, 200);
+      }
+
+      // if (label.toLowerCase().includes('siren')) await flashLight();
+      
     }
   };
 
-  const flashLight = async () => {
-    try {
-      const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA);
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        for (let i = 0; i < 10; i++) {
-          await Flashlight.toggleFlashlight(true);
-          await new Promise(res => setTimeout(res, 200));
-          await Flashlight.toggleFlashlight(false);
-          await new Promise(res => setTimeout(res, 200));
+  // Flashlight Di mugana
+  const blinkFlashlight = async (times = 5, interval = 200) => {
+      if (Platform.OS === 'android' && Platform.Version >= 23) {
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
+          title: 'Camera Permission',
+          message: 'App needs access to the camera to flash the light.',
+          buttonPositive: 'OK',
+        });
+    
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          console.warn('Camera permission denied.');
+          return;
         }
       }
-    } catch (err) {
-      console.error('Flashlight error:', err);
-    }
-  };
+    
+      for (let i = 0; i < times; i++) {
+        Torch.switchState(true);  // ON
+        await new Promise(res => setTimeout(res, interval));
+        Torch.switchState(false); // OFF
+        await new Promise(res => setTimeout(res, interval));
+      }
+    };
 
   const toggleRecording = async () => {
     if (isRecording) {

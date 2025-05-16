@@ -4,7 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import notifee from '@notifee/react-native';
+import notifee, { AndroidColor, AndroidImportance } from '@notifee/react-native';
 import '@react-native-firebase/app';
 
 // Auth store
@@ -27,12 +27,44 @@ const Tab = createBottomTabNavigator();
 
 // 🔔 Notifee Setup
 if (Platform.OS === 'android') {
+  const androidVersion = Platform.Version;
+  const hasLedSupport = androidVersion >= 26; // Android 8.0 (Oreo)
+
   notifee.createChannel({
-    id: 'sound-alerts',
+    id: 'sound-alerts1',
     name: 'Sound Alerts',
     description: 'Notifications for detected sounds',
-    importance: 4,
+    importance: AndroidImportance.MIN,
     vibration: true,
+    vibrationPattern: [300, 500],
+    sound: 'default',
+  });
+
+  notifee.createChannel({
+    id: 'sound-alerts2',
+    name: 'Sound Alerts',
+    description: 'Notifications for detected sounds',
+    importance: AndroidImportance.DEFAULT,
+    vibration: true,
+    vibrationPattern: [300, 500, 700, 900],
+    ...(hasLedSupport && {
+      lights: true,
+      lightColor: '#FF0000',
+    }),
+    sound: 'default',
+  });
+
+  notifee.createChannel({
+    id: 'sound-alerts3',
+    name: 'Sound Alerts',
+    description: 'Notifications for detected sounds',
+    importance: AndroidImportance.HIGH,
+    vibration: true,
+    vibrationPattern: [300, 500, 700, 900, 1100, 1300, 1500, 1700, 1900, 2100],
+    ...(hasLedSupport && {
+      lights: true,
+      lightColor: '#FF0000',
+    }),
     sound: 'default',
   });
 }
