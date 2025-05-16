@@ -1,16 +1,24 @@
 import React, { useEffect, useLayoutEffect } from 'react';
-import { View, Text, Button, DeviceEventEmitter, TouchableOpacity, ScrollView, Image  } from 'react-native';
+import {
+  View,
+  Text,
+  DeviceEventEmitter,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  PermissionsAndroid,
+  Platform,
+  NativeModules,
+} from 'react-native';
 import { useState, useRef } from 'react';
-import { NativeModules } from 'react-native';
-import { PermissionsAndroid, Platform } from 'react-native';
 import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
-const { AudioRecorder } = NativeModules;
+
 import "../../../global.css"
 import DetectionDisplay from '../../components/detectionDisplay';
 import { useAuthStore } from "../../../store/authStore";
 import { useNavigation } from '@react-navigation/native';
 import { useGroupStore } from '../../../store/groupStore';
-
+import notifee from '@notifee/react-native';
 import { icons } from '../../constants';
 import {useDetectedSoundStore} from '../../../store/detectedSoundStore';
 
@@ -20,7 +28,25 @@ import RNFS from 'react-native-fs';
 
 import { Buffer } from 'buffer';
 import Sound from 'react-native-sound';
+import { AndroidImportance } from '@notifee/react-native';
 
+
+const { AudioRecorder, Flashlight } = NativeModules;
+
+const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass', 'Siren', 'Speech'];
+const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Baby cry, infant cry'];
+const NOTIF_LEVEL_2_ALLOWED_LABELS = ['Speech'];
+const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass'];
+
+
+const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
+  'siren': 1,
+  'Ambulance (siren)': 1,
+  'Police car (siren)': 1,
+  'Siren': 1,
+  'Glass': 2,
+  'Speech': 3,
+};
 
 export async function requestMicPermission() {
 
@@ -38,14 +64,7 @@ export async function requestMicPermission() {
   return true;
 }
 
-const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
-  'siren': 1,
-  'Ambulance (siren)': 1,
-  'Police car (siren)': 1,
-  'Siren': 1,
-  'Glass': 2,
-  'Speech': 3,
-};
+
 
 const LEGEND_INFO: {
   [key: number]: { label: string; colorClass: string; description: string };
@@ -69,8 +88,6 @@ const LEGEND_INFO: {
 
 
 function Home() {
-
-  const [isHandligPrediction,setIsHandlingPrediction]= useState(false);
   const { socket, connect, disconnect,isOnline } = useSocket();
   const {getGroups} = useGroupStore()
   const { addSound} = useDetectedSoundStore();
@@ -80,23 +97,19 @@ function Home() {
   const [predictions, setPredictions] = useState<any[]>([]);
 
   const [isRecording, setIsRecording] = useState(false);
-  const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass','Siren'];
   
   const predictionQueue: { label: string; confidence: number; audioBase64?: string }[] = [];
   let isProcessing = false;
+
+
   const processQueue = async () => {
-  isProcessing = true;
-
-  while (predictionQueue.length > 0) {
-    const prediction = predictionQueue.shift(); // get next item
-
-    if (prediction) {
-      await handlePrediction(prediction); // process one at a time
+    isProcessing = true;
+    while (predictionQueue.length > 0) {
+      const prediction = predictionQueue.shift();
+      if (prediction) await handlePrediction(prediction);
     }
-  }
-
-  isProcessing = false;
-};
+    isProcessing = false;
+  };
 
 
 // const playBase64Audio = async (base64Audio: string) => {
@@ -249,23 +262,87 @@ DeviceEventEmitter.addListener("onPrediction", (data) => {
 
 
 const handlePrediction = async (prediction: { label: string, confidence: number, audioBase64: string  }) => {
+
+  const { label, confidence, audioBase64 } = prediction; // Extract properties here
   const MIN_CONFIDENCE = 0.80;
 
-  if (prediction.confidence >= MIN_CONFIDENCE ) {
+  if (confidence >= MIN_CONFIDENCE ) {
+
     const currentTime = Date.now();
-    const criticalLevel = CRITICAL_SOUND_LEVELS[prediction.label] || null;
-    console.log(`Handling prediction: ${prediction.label}, criticalLevel: ${criticalLevel}`); 
+
+    const criticalLevel = CRITICAL_SOUND_LEVELS[label] || null;
+
+    console.log(`Handling prediction: ${label}, criticalLevel: ${criticalLevel}`);
 
     setPredictions(prevPredictions => [
       ...prevPredictions,
-      { label: prediction.label, confidence: prediction.confidence, timestamp: currentTime, audioBase64: prediction.audioBase64, criticalLevel: criticalLevel }
+      { label: label, confidence: confidence, timestamp: currentTime, audioBase64: audioBase64, criticalLevel: criticalLevel }
     ]);
 
-    addSound(prediction.label,prediction.confidence,prediction.audioBase64);
-  }
-};
+    addSound(label, confidence, audioBase64);
 
+      if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
+        await notifee.displayNotification({
+          title: `Detected: ${label}`,
+          body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
+          android: {
+            channelId: 'sound-alerts3',
+            importance: AndroidImportance.HIGH,
+          },
+        });
+      }
 
+      if (NOTIF_LEVEL_2_ALLOWED_LABELS.includes(label)) {
+        await notifee.displayNotification({
+          title: `Detected: ${label}`,
+          body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 2`,
+          android: {
+            channelId: 'sound-alerts1',
+            importance: AndroidImportance.LOW,
+          },
+        });
+        // await blinkFlashlight(3, 300);
+      }
+
+      if (NOTIF_LEVEL_3_ALLOWED_LABELS.includes(label)) {
+        await notifee.displayNotification({
+          title: `Detected: ${label}`,
+          body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 3`,
+          android: {
+            channelId: 'sound-alerts1',
+            importance: AndroidImportance.DEFAULT,
+          },
+        });
+        // await blinkFlashlight(5, 200);
+      }
+
+      // if (label.toLowerCase().includes('siren')) await flashLight();
+      
+    }
+  };
+
+// // Flashlight Di mugana
+//   const blinkFlashlight = async (times = 5, interval = 200) => {
+//       if (Platform.OS === 'android' && Platform.Version >= 23) {
+//         const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
+//           title: 'Camera Permission',
+//           message: 'App needs access to the camera to flash the light.',
+//           buttonPositive: 'OK',
+//         });
+    
+//         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+//           console.warn('Camera permission denied.');
+//           return;
+//         }
+//       }
+    
+//       for (let i = 0; i < times; i++) {
+//         Torch.switchState(true);  // ON
+//         await new Promise(res => setTimeout(res, interval));
+//         Torch.switchState(false); // OFF
+//         await new Promise(res => setTimeout(res, interval));
+//       }
+//     };
   
   async function startRecording() {
     if(isRecording) {

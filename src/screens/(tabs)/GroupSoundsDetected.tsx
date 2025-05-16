@@ -64,25 +64,35 @@ const GroupSoundsDetected = () => {
     }
   };
 
-    return (
-        <View className="flex-1 bg-primary p-4">
-            <Text className="text-white text-xl font-psemibold mb-4">
-                {username} 's Detected Sounds
-            </Text>
-            <FlatList
-                data={sounds}
-                keyExtractor={(item, index) => `${userId}-${index}`}
-                renderItem={({ item }) => (
+   return (
+        <View className="flex-1 bg-primary p-4">
+            <Text className="text-white text-center text-xl font-psemibold mb-4">
+                Detected Sounds
+            </Text>
+            <FlatList
+                data={sounds}
+                keyExtractor={(item, index) => `${userId}-${index}`}
+                renderItem={({ item }) => { // Modified to add a check
+                    // Add this check for undefined or null items
+                    if (!item) {
+                        console.warn(`Skipping rendering undefined or null item at index ${index}`);
+                        return null; // Don't render anything for this invalid item
+                    }
 
-
-                <DetectionDisplay  time={formatTime(item.createdAt)} confidence={(item.confidence * 100).toFixed(2)+ '%'} sound={item.label}
-                 audioBase64={item.sound} criticalLevel={CRITICAL_SOUND_LEVELS[item.label] || null}
-                />
-
-                )}
-            />
-        </View>
-    );
+                    // Only render if the item is valid
+                    return (
+                        <DetectionDisplay
+                            time={formatTime(item.createdAt)}
+                            confidence={(item.confidence * 100).toFixed(2)+ '%'}
+                            sound={item.label}
+                            audioBase64={item.sound}
+                            criticalLevel={CRITICAL_SOUND_LEVELS[item.label] || null}
+                        />
+                    );
+                }}
+            />
+        </View>
+    );
 };
 
 export default GroupSoundsDetected;

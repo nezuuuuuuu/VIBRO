@@ -26,6 +26,8 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
     companion object {
         const val NAME = "AudioRecorder"
     }
+
+    var isPlaying = false;
     val yamnet_labels = arrayOf(
         "Speech",
         "Child speech, kid speaking",
@@ -674,6 +676,11 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
 
     @ReactMethod
     fun playAudio(base64Audio: String?, promise: Promise) {
+        if(isPlaying){
+            return
+        }
+
+        isPlaying = true;
         try {
             if (base64Audio.isNullOrEmpty()) {
                 promise.reject("INVALID_INPUT", "Base64 audio string is null or empty.")
@@ -722,7 +729,9 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
                 } finally {
                     audioTrack.stop()
                     audioTrack.release()
+                    isPlaying = false;
                     promise.resolve("Audio playback finished.")
+
                 }
             }.start()
 

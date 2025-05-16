@@ -55,9 +55,9 @@ const DetectionDisplay: React.FC<DetectionDisplayProps> = ({
     <Pressable onPress={() => playAudio(audioBase64)}>
       <View className={`bg-gray-100 rounded-lg py-5 px-5 flex-row justify-around items-center mx-3 mt-3 shadow-sm ${backgroundClasses}`}>
         <Text className="text-primary font-psemibold text-base">{sound}</Text>
-        <Text className="text-primary font-psemibold text-base">|</Text> 
+{/*         <Text className="text-primary font-psemibold text-base">|</Text> 
         <Text className="text-primary font-psemibold text-base">{confidence}</Text>
-        <Text className="text-primary font-psemibold text-base">|</Text> 
+        <Text className="text-primary font-psemibold text-base">|</Text>  */}
         <Text className="text-primary font-psemibold text-base">{time}</Text>
       </View>
     </Pressable>
