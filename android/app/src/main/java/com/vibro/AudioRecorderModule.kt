@@ -13,6 +13,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.io.IOException
@@ -549,7 +550,6 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
         "Radio",
         "Field recording"
     )
-
     private var isRecording = false
     private var record: AudioRecord? = null
     private var timerTask: TimerTask? = null
@@ -574,14 +574,24 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
     }
 
     @ReactMethod
-    fun startRecording(promise: Promise) {
+    fun startRecording(numClasses: Int, labels: ReadableArray, filename: String, promise: Promise)
+    {
+
         if (isRecording) {
             promise.reject("RECORDING_ALREADY_ACTIVE", "Recording is already in progress.")
             return
         }
+        Log.d("LOCATION OF THE FILE",filename)
 
         try {
-            vibroInterpreter = VibroInterpreter(reactApplicationContext, "VIBRO.tflite", 9)
+            if(numClasses==0){
+                vibroInterpreter = VibroInterpreter(reactApplicationContext, "VIBRO.tflite", 9)
+
+            }else{
+                vibroInterpreter = VibroInterpreter(reactApplicationContext,
+                    "/models/$filename", numClasses)
+
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             promise.reject("MODEL_LOAD_ERROR", "Failed to load model: ${e.message}")
@@ -642,12 +652,24 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
 
                 // Process custom scores
                 val customPredictionArray = Arguments.createArray()
-                customResult?.forEachIndexed { index, confidence ->
-                    if(confidence.toDouble()>=.60) {
-                        val prediction = Arguments.createMap()
-                        prediction.putString("label", index.toString())
-                        prediction.putDouble("confidence", confidence.toDouble())
-                        customPredictionArray.pushMap(prediction)
+                if(numClasses==0){
+
+                    customResult?.forEachIndexed { index, confidence ->
+                        if(confidence.toDouble()>=.60) {
+                            val prediction = Arguments.createMap()
+                            prediction.putString("label", index.toString())
+                            prediction.putDouble("confidence", confidence.toDouble())
+                            customPredictionArray.pushMap(prediction)
+                        }
+                    }
+                }else {
+                    customResult?.forEachIndexed { index, confidence ->
+                        if (confidence.toDouble() >= .60) {
+                            val prediction = Arguments.createMap()
+                            prediction.putString("label", labels.getString(index))
+                            prediction.putDouble("confidence", confidence.toDouble())
+                            customPredictionArray.pushMap(prediction)
+                        }
                     }
                 }
                 eventData.putArray("customPredictions", customPredictionArray)

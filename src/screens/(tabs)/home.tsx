@@ -10,6 +10,7 @@ import DetectionDisplay from '../../components/detectionDisplay';
 import { useAuthStore } from "../../../store/authStore";
 import { useNavigation } from '@react-navigation/native';
 import { useGroupStore } from '../../../store/groupStore';
+import { useModelStore } from '../../../store/modelStore';
 
 import { icons } from '../../constants';
 import {useDetectedSoundStore} from '../../../store/detectedSoundStore';
@@ -43,6 +44,7 @@ export async function requestMicPermission() {
 }
 
 function Home() {
+      const {  fetchModelById, setActiveModel, useLabels,labels,activeModel } = useModelStore();
 
   const [isHandligPrediction,setIsHandlingPrediction]= useState(false);
   const { socket, connect, disconnect,isOnline } = useSocket();
@@ -247,12 +249,20 @@ const handlePrediction = async (prediction: { label: string, confidence: number,
 
   
   async function startRecording() {
+    console.log("start recording",activeModel)
     if(isRecording) {
     stopRecording()
       return;
     }
     setIsRecording(true);
-      const path = await AudioRecorder.startRecording();
+    if(!activeModel) {
+
+      const path = await AudioRecorder.startRecording(0, [], 'asd');
+    }
+    if(activeModel.labels.length>0){
+      const path = await AudioRecorder.startRecording(activeModel.labels.length, activeModel.labels, activeModel.name);
+
+    }
 
    
    

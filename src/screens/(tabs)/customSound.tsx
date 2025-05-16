@@ -5,13 +5,14 @@ import { icons } from '../../constants';
 import { useAuthStore } from '../../../store/authStore';
 import { useGroupStore } from '../../../store/groupStore';
 import { useCustomSoundStore } from '../../../store/customSoundStore';
-
+import { useModelStore } from '../../../store/modelStore';
 // Access your native module
 const { CustomAudioRecorderModule } = NativeModules;
 
 // Create an event emitter for native events
 
 const CustomSounds = () => {
+    const {fetchAndCreateModel} = useModelStore();
     const navigation = useNavigation();
 
     // Zustand Store Hooks
@@ -366,6 +367,13 @@ const CustomSounds = () => {
                 onPress={toggleCreateFolderModal}
             >
                 <Text className="text-white font-psemibold text-lg">Create New Folder</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+            className="bg-[#2a2a5a] p-4 rounded-lg mb-4 items-center"
+            onPress={() => fetchAndCreateModel(currentGroupId, groupPointer.groupName)}
+            >
+                <Text className="text-white font-psemibold text-lg">Train Model</Text>
             </TouchableOpacity>
 
            

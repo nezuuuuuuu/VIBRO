@@ -65,13 +65,20 @@ class CustomAudioRecorderModule(private val reactContext: ReactApplicationContex
 
             recordingThread = Thread {
                 try {
+
+                    val maxSamples = 80000  // 80000 samples for 5 sec
+                    var totalSamplesRead = 0
                     val startTime = System.currentTimeMillis()
-                    while (isRecording && System.currentTimeMillis() - startTime < maxDurationMs) {
+                    while (isRecording && totalSamplesRead < maxSamples) {
                         buffer.clear()
                         val bytesRead = audioRecord?.read(buffer, bufferSize) ?: 0
+
                         if (bytesRead > 0) {
                             buffer.get(tempData, 0, bytesRead)
                             totalAudioData.write(tempData, 0, bytesRead)
+
+                            val samplesRead = bytesRead / 2  // because 16-bit PCM = 2 bytes/sample
+                            totalSamplesRead += samplesRead
                         }
                     }
                     stopAndReleaseRecording()
