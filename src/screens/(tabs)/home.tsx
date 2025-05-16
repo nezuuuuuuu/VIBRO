@@ -1,33 +1,35 @@
-import React, { useEffect, useLayoutEffect } from 'react';
-import { View, Text, Button, DeviceEventEmitter, TouchableOpacity, ScrollView, Image  } from 'react-native';
-import { useState, useRef } from 'react';
-import { NativeModules } from 'react-native';
-import { PermissionsAndroid, Platform } from 'react-native';
-import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
-const { AudioRecorder } = NativeModules;
-import "../../../global.css"
-import DetectionDisplay from '../../components/detectionDisplay';
-import { useAuthStore } from "../../../store/authStore";
+// Merged and optimized Home.tsx
+import React, { useEffect, useLayoutEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  DeviceEventEmitter,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  PermissionsAndroid,
+  Platform,
+  NativeModules,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuthStore } from '../../../store/authStore';
 import { useGroupStore } from '../../../store/groupStore';
-
-import { icons } from '../../constants';
-import {useDetectedSoundStore} from '../../../store/detectedSoundStore';
-
-import {useSocket} from '../../../store/useSocket';
-
+import { useDetectedSoundStore } from '../../../store/detectedSoundStore';
+import { useSocket } from '../../../store/useSocket';
+import DetectionDisplay from '../../components/detectionDisplay';
+import notifee from '@notifee/react-native';
 import RNFS from 'react-native-fs';
-
+import '../../../global.css';
+import { icons } from '../../constants';
 import { Buffer } from 'buffer';
 import Sound from 'react-native-sound';
 
+const { AudioRecorder, Flashlight } = NativeModules;
+
+const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass', 'Siren', 'Speech'];
+const NOTIF_ALLOWED_LABELS = ['Speech'];
 
 export async function requestMicPermission() {
-
-
-
-  
-
   if (Platform.OS === 'android') {
     const granted = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
@@ -43,268 +45,168 @@ export async function requestMicPermission() {
 }
 
 function Home() {
-
-  const [isHandligPrediction,setIsHandlingPrediction]= useState(false);
-  const { socket, connect, disconnect,isOnline } = useSocket();
-  const {getGroups} = useGroupStore()
-  const { addSound} = useDetectedSoundStore();
-
-  const navigation = useNavigation(); 
-  const { user, token } = useAuthStore();
-  const [predictions, setPredictions] = useState<any[]>([]);
+  const navigation = useNavigation();
+  const { user } = useAuthStore();
+  const { getGroups } = useGroupStore();
+  const { addSound } = useDetectedSoundStore();
+  const { connect } = useSocket();
 
   const [isRecording, setIsRecording] = useState(false);
-  const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass','Siren'];
-  
+  const [predictions, setPredictions] = useState<any[]>([]);
+
   const predictionQueue: { label: string; confidence: number; audioBase64?: string }[] = [];
   let isProcessing = false;
+
   const processQueue = async () => {
-  isProcessing = true;
-
-  while (predictionQueue.length > 0) {
-    const prediction = predictionQueue.shift(); // get next item
-
-    if (prediction) {
-      await handlePrediction(prediction); // process one at a time
+    isProcessing = true;
+    while (predictionQueue.length > 0) {
+      const prediction = predictionQueue.shift();
+      if (prediction) await handlePrediction(prediction);
     }
-  }
+    isProcessing = false;
+  };
 
-  isProcessing = false;
-};
-
-
-const playBase64Audio = async (base64Audio: string) => {
-  try {
-    // 1. Decode base64 to binary (using Buffer correctly)
-    const audioBuffer = Buffer.from(base64Audio, 'base64');
-
-    // 2. Save it as a temporary WAV file
-    const filePath = `${RNFS.TemporaryDirectoryPath}/audio.wav`;
-    // RNFS.writeFile expects binary data, not a base64 string.  This is the key change.
-    await RNFS.writeFile(filePath, audioBuffer, 'utf8');
-
-    // 3. Play the audio
-    const playBase64Audio = async (base64Audio: string) => {
-      try {
-        // 1. Decode base64 to binary (using Buffer correctly)
-        const audioBuffer = Buffer.from(base64Audio, 'base64');
-    
-        // 2. Save it as a temporary WAV file
-        const filePath = `${RNFS.TemporaryDirectoryPath}/audio.wav`;
-        // RNFS.writeFile expects binary data, not a base64 string.
-        await RNFS.writeFile(filePath, audioBuffer);
-    
-        // 3. Play the audio
-        const sound = new Sound(filePath, '', (error) => {
-          if (error) {
-            console.error('Failed to load the sound', error);
-            return;
-          }
-          sound.play((success) => {
-            if (!success) {
-              console.error('Playback failed');
-            }
-            sound.release();
-          });
+  const playBase64Audio = async (base64Audio: string) => {
+    try {
+      const audioBuffer = Buffer.from(base64Audio, 'base64');
+      const filePath = `${RNFS.TemporaryDirectoryPath}/audio.wav`;
+      await RNFS.writeFile(filePath, audioBuffer.toString('base64'), 'base64');
+      const sound = new Sound(filePath, '', (error) => {
+        if (error) return console.error('Failed to load sound:', error);
+        sound.play((success) => {
+          if (!success) console.error('Playback failed');
+          sound.release();
         });
-      } catch (err) {
-        console.error('Error decoding or playing audio:', err);
-      }
-    };
-    
-    
-  } catch (err) {
-    console.error('Error decoding or playing audio:', err);
-  }
-};
+      });
+    } catch (err) {
+      console.error('Audio play error:', err);
+    }
+  };
 
   useLayoutEffect(() => {
-    
-
     if (user) {
       navigation.setOptions({
-        headerTitle: () => ( 
-          <Text className="font-pbold text-2xl text-white">VIBRO</Text>
-       ),
+        headerTitle: () => <Text className="font-pbold text-2xl text-white">VIBRO</Text>,
         headerRight: () => (
           <View className="flex-row items-center gap-2 mr-4">
             <Image
-                style={{ width: 20, height: 20, borderRadius: 50 }}
-                source={{ uri: `https://api.dicebear.com/7.x/bottts/png?seed=${user?.username || "guest"}` }}
-                resizeMode="cover"
-              />
+              style={{ width: 20, height: 20, borderRadius: 50 }}
+              source={{ uri: `https://api.dicebear.com/7.x/bottts/png?seed=${user?.username || 'guest'}` }}
+              resizeMode="cover"
+            />
             <Text className="text-white font-psemibold">{user.username}</Text>
           </View>
         ),
-        headerStyle: {
-          backgroundColor: '#1B1B3A',
-        },
+        headerStyle: { backgroundColor: '#1B1B3A' },
       });
     }
   }, [navigation, user]);
-  
-  
+
   const copyModelToInternalStorage = async () => {
-  try {
-    // Path to the model in the assets folder
-const assetPath = 'VIBRO.tflite';    // Path where the model will be copied to in internal storage
-    const destinationPath = `${RNFS.DocumentDirectoryPath}/VIBRO.tflite`;
-
-    // Check if the file already exists in internal storage
-    const fileExists = await RNFS.exists(destinationPath);
-    // if (fileExists) {
-    //   console.log('Model already copied to internal storage.');
-    //   return destinationPath;
-    // }
-
-    // Copy the model from assets to internal storage
-    await RNFS.copyFileAssets(assetPath, destinationPath);
-    console.log('Model copied to internal storage successfully.');
-    return destinationPath;
-  } catch (error) {
-    console.error('Failed to copy model to internal storage:', error);
-    throw error;
-  }
-};
-  useEffect(()=>{
-    copyModelToInternalStorage();
-    console.log(RNFS.DocumentDirectoryPath); // Usually maps to filesDir
-
-
-      const fetchAndConnect = async () => {
     try {
-      const result = await getGroups(); // Calls your getGroups() above
-
-      if (result && result.groups) {
-        const groupIds = result.groups.map(group => group._id);
-     
-        const userId = user._id; // Or however you're storing user info
-
-        connect(userId, groupIds); 
-
-
-      
-      }
+      const assetPath = 'VIBRO.tflite';
+      const destinationPath = `${RNFS.DocumentDirectoryPath}/VIBRO.tflite`;
+      await RNFS.copyFileAssets(assetPath, destinationPath);
+      console.log('Model copied successfully.');
+      return destinationPath;
     } catch (error) {
-      console.error("Error connecting socket:", error);
+      console.error('Model copy failed:', error);
     }
-    console.log("safeee")
   };
 
-  // Fetch groups and connect socket when the component mounts
-  fetchAndConnect();
-    
+  useEffect(() => {
+    copyModelToInternalStorage();
+    const setupSocket = async () => {
+      try {
+        const result = await getGroups();
+        if (result?.groups) {
+          const groupIds = result.groups.map((group: { _id: string }) => group._id);
+          connect(user._id, groupIds);
+        }
+      } catch (err) {
+        console.error('Socket connection error:', err);
+      }
+    };
+    setupSocket();
 
-
-DeviceEventEmitter.addListener("onPrediction", (data) => {
-  console.log("YAMNET PREDICTIONS:", data.yamnetPredictions);
-  console.log("CUSTOM PREDICTIONS:", data.customPredictions);
-
-  // If you want to work with the custom predictions:
-  const { customPredictions, yamnetPredictions, audioBase64 } = data;
-
-  // Example: Push predictions and audio data together
-  if (Array.isArray(customPredictions)) {
-    customPredictions.forEach(({ label, confidence }) => {
-      predictionQueue.push({ label, confidence, audioBase64 });
-      if (!isProcessing) processQueue();
+    DeviceEventEmitter.addListener('onPrediction', (data) => {
+      const { customPredictions = [], yamnetPredictions = [], audioBase64 } = data;
+      [...customPredictions, ...yamnetPredictions].forEach(({ label, confidence }) => {
+        predictionQueue.push({ label, confidence, audioBase64 });
+        if (!isProcessing) processQueue();
+      });
     });
-  }
+  }, []);
 
-  if (Array.isArray(yamnetPredictions)) {
-    yamnetPredictions.forEach(({ label, confidence }) => {
-      predictionQueue.push({ label, confidence, audioBase64 });
-      if (!isProcessing) processQueue();
-    });
-  }
-});
+  const handlePrediction = async ({ label, confidence, audioBase64 }: { label: string; confidence: number; audioBase64?: string }) => {
+    if (confidence >= 0.8 && ALLOWED_LABELS.includes(label)) {
+      const timestamp = Date.now();
+      setPredictions((prev) => [...prev, { label, confidence, timestamp, audioBase64 }]);
+      addSound(label, confidence, audioBase64);
 
+      if (NOTIF_ALLOWED_LABELS.includes(label)) {
+        await notifee.displayNotification({
+          title: `Detected: ${label}`,
+          body: `Confidence: ${(confidence * 100).toFixed(2)}%`,
+          android: {
+            channelId: 'sound-alerts',
+          },
+        });
+      }
 
-  },[]);
-
-
-
-const handlePrediction = async (prediction: { label: string, confidence: number, audioBase64: string  }) => {
-  const MIN_CONFIDENCE = 0.80;
-  console.log(prediction.audioBase64)
- 
-
-  if (prediction.confidence >= MIN_CONFIDENCE ) {
-    const currentTime = Date.now();
-
-
-    setPredictions(prevPredictions => [
-      ...prevPredictions,
-      { label: prediction.label, confidence: prediction.confidence, timestamp: currentTime, audioBase64: prediction.audioBase64  }
-    ]);
-   
-    addSound(prediction.label,prediction.confidence,prediction.audioBase64)
-
-    
-  }
-};
-
-
-  
-  async function startRecording() {
-    if(isRecording) {
-    stopRecording()
-      return;
+      if (label.toLowerCase().includes('siren')) await flashLight();
     }
-    setIsRecording(true);
-      const path = await AudioRecorder.startRecording();
+  };
 
-   
-   
-  }
-    async function playAudio(base64audio: string) {
-      const path = await AudioRecorder.playAudio(base64audio);
-  }
-  async function stopRecording() {
-    setIsRecording(false);
-    const path = await AudioRecorder.stopRecording(); 
-}
+  const flashLight = async () => {
+    try {
+      const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA);
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        for (let i = 0; i < 10; i++) {
+          await Flashlight.toggleFlashlight(true);
+          await new Promise(res => setTimeout(res, 200));
+          await Flashlight.toggleFlashlight(false);
+          await new Promise(res => setTimeout(res, 200));
+        }
+      }
+    } catch (err) {
+      console.error('Flashlight error:', err);
+    }
+  };
 
-
+  const toggleRecording = async () => {
+    if (isRecording) {
+      setIsRecording(false);
+      await AudioRecorder.stopRecording();
+    } else {
+      setIsRecording(true);
+      await AudioRecorder.startRecording();
+    }
+  };
 
   return (
-    <View className='bg-primary h-full' >
-         <View className=' items-center justify-center'>
-      <Text className='text-white text-lg'>Sound Detected</Text>
-          
-      <ScrollView className="h-3/4 w-full " >
-     
-                { predictions.slice().reverse().map((prediction, index) => (
-                    
-                    <DetectionDisplay key={index} time={new Date(prediction.timestamp).toLocaleTimeString()} confidence={ (prediction.confidence * 100).toFixed(2) + '%'} sound={prediction.label}
-                    audioBase64={prediction.audioBase64}
-                    />  
-                    
-              
-                  
-                ))}
-
-            </ScrollView>
-        </View>
-        <View className=' justify-center items-center mt-4'>
+    <View className="bg-primary h-full">
+      <View className="items-center justify-center">
+        <Text className="text-white text-lg">Sound Detected</Text>
+        <ScrollView className="h-3/4 w-full">
+          {predictions.slice().reverse().map((pred, idx) => (
+            <DetectionDisplay
+              key={idx}
+              time={new Date(pred.timestamp).toLocaleTimeString()}
+              confidence={(pred.confidence * 100).toFixed(2) + '%'}
+              sound={pred.label}
+              audioBase64={pred.audioBase64}
+            />
+          ))}
+        </ScrollView>
+      </View>
+      <View className="justify-center items-center mt-4">
         <View className="bg-secondary rounded-full items-center justify-center" style={{ width: 60, height: 60 }}>
-        {isRecording ? (
-
-                <TouchableOpacity onPress={stopRecording}>
-                <Image source={icons.recording} />
-                </TouchableOpacity>
-              
-                
-              ) : (  
-              <TouchableOpacity onPress={startRecording}>
-                <Image source={icons.microphone} />
-                </TouchableOpacity>
-              
-              )}
-          </View>
+          <TouchableOpacity onPress={toggleRecording}>
+            <Image source={isRecording ? icons.recording : icons.microphone} />
+          </TouchableOpacity>
         </View>
-
-
+      </View>
     </View>
   );
 }
