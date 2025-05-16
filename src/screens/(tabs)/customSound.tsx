@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, TextInput, ScrollView, Modal, Alert, Platform, PermissionsAndroid, NativeModules,DeviceEventEmitter } from 'react-native';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { View, Text, TouchableOpacity, Image, TextInput, ScrollView, Modal, Alert, Platform, PermissionsAndroid, NativeModules,DeviceEventEmitter, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { icons } from '../../constants';
 import { useAuthStore } from '../../../store/authStore';
@@ -47,6 +47,24 @@ const CustomSounds = () => {
     const MAX_RECORD_DURATION_MS = 5000; // 5 seconds
 
     // --- Effects ---
+    useLayoutEffect(() => {
+        // Ensure navigation and groupPointer are available
+        if (navigation) { // Header elements like back button are needed even without groupPointer
+            navigation.setOptions({
+                headerTitle: () => (
+                                    <Text className="font-psemibold text-xl text-white">{ "Custom Sound"}</Text>
+                                ),
+                headerStyle: {
+                    backgroundColor: '#1a1a3d',
+                    borderBottomWidth: 0, 
+                    elevation: 0, 
+                    shadowOpacity: 0, 
+                },
+                headerTintColor: 'white', 
+                headerTitleAlign: 'left', 
+            });
+        }
+    }, [navigation, groupPointer]);
 
     useEffect(() => {
         
@@ -148,7 +166,7 @@ const CustomSounds = () => {
         Alert.alert(
             'Confirm Delete',
             `Are you sure you want to delete sound "${soundName}"?`,
-            [
+            [   
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Delete',
@@ -362,7 +380,7 @@ const CustomSounds = () => {
         <View className='bg-primary p-4 flex-1'>
             {/* Create New Folder Button */}
             <TouchableOpacity
-                className="bg-[#2a2a5a] p-4 rounded-lg mb-4 items-center"
+                className="bg-secondary p-4 rounded-lg mb-8 items-center"
                 onPress={toggleCreateFolderModal}
             >
                 <Text className="text-white font-psemibold text-lg">Create New Folder</Text>
@@ -395,7 +413,7 @@ const CustomSounds = () => {
                                     <Image
                                         source={icons.deleteIcon}
                                         className="w-5 h-5 tint-red-500"
-                                        resizeMode="contain"
+                                        resizeMode="contain"    
                                     />
                                 </TouchableOpacity>
                             </TouchableOpacity>
@@ -408,35 +426,51 @@ const CustomSounds = () => {
             </ScrollView>
 
             {/* Create Folder Modal */}
+           {/* Create Folder Modal */}
             <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 visible={isCreateFolderModalVisible}
                 onRequestClose={toggleCreateFolderModal}
             >
-                <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
-                    <View className="bg-primary p-6 rounded-lg w-80">
-                        <Text className="text-white font-psemibold text-xl mb-4 text-center">Create New Folder</Text>
-                        <TextInput
-                            className="bg-[#2a2a5a] text-white p-3 rounded-md mb-4 border border-gray-600"
-                            placeholder="Folder Name"
-                            placeholderTextColor="#ccc"
-                            value={newFolderName}
-                            onChangeText={setNewFolderName}
-                        />
-                        <View className="flex-row justify-end">
-                            <TouchableOpacity className="py-2 px-4 rounded-md mr-2" onPress={toggleCreateFolderModal}>
-                                <Text className="text-gray-400">Cancel</Text>
-                            </TouchableOpacity>
+                <Pressable
+                className="flex-1 justify-center items-center bg-black/50"
+                onPress={toggleCreateFolderModal} 
+                >
+                    <Pressable className="bg-primary p-6 rounded-lg w-4/5 items-center" onPress={(e) => e.stopPropagation()}> 
+                        <Text className="text-xl font-psemibold mb-6 text-center text-white">Create New Folder</Text> 
+            
+                        <Text className="text-left w-full mb-2 text-white font-psemibold">Folder Name</Text> 
+                        <View className="w-full h-14 bg-gray-200 px-4 rounded-lg justify-center mb-4"> 
+                            <TextInput
+                                className="flex-1 text-black font-pregular" 
+                                placeholder="Enter folder name" 
+                                placeholderTextColor="#888" 
+                                value={newFolderName}
+                                onChangeText={setNewFolderName}
+                                autoCapitalize="none"
+                            />
+                        </View>
+
+                        {/* Buttons - Structure adjusted to vertical */}
+                        <View className="flex-col justify-center items-center w-full"> 
+                            {/* Create Button */}
                             <TouchableOpacity
-                                className="bg-accent py-2 px-4 rounded-md"
+                                className="bg-secondary py-4 px-6 rounded-lg mb-4 items-center w-full" // Added mb-4 and w-full, removed mr-4 and flex-1
                                 onPress={handleCreateFolder}
                             >
-                                <Text className="text-white font-psemibold">Create</Text>
+                                <Text className="text-white text-base font-psemibold">Create</Text>
+                            </TouchableOpacity>
+                            {/* Cancel Button */}
+                            <TouchableOpacity
+                                className="py-4 px-6 rounded-lg items-center w-full" // Added w-full, removed flex-1
+                                onPress={toggleCreateFolderModal}
+                            >
+                                <Text className="text-gray-400 text-base font-psemibold">Cancel</Text> 
                             </TouchableOpacity>
                         </View>
-                    </View>
-                </View>
+                    </Pressable>
+                </Pressable>
             </Modal>
 
             {/* Folder Content Modal */} 

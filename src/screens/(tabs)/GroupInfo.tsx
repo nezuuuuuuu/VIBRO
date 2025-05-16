@@ -238,7 +238,7 @@ const GroupInfo = () => {
                     <View className="flex-1 justify-center items-center bg-black/70">
                         <TouchableWithoutFeedback onPress={() => {}}>
                             <View className="bg-primary p-6 py-10 rounded-lg w-3/4">
-                                <Text className="text-white text-xl font-psemibold mb-4">Change Group Name</Text>
+                                <Text className="text-white text-center text-xl font-psemibold mb-6">Change Group Name</Text>
                                 <TextInput
                                     value={newGroupName}
                                     onChangeText={setNewGroupName}
@@ -257,7 +257,7 @@ const GroupInfo = () => {
                                     onPress={() => setChangeGroupNameModalVisible(false)}
                                     className="mt-2"
                                 >
-                                    <Text className="text-secondary font-pregular mt-2 text-center">Cancel</Text>
+                                    <Text className="text-gray-400 font-psemibold mt-2 text-center">Cancel</Text>
                                 </TouchableOpacity>
                             </View>
                         </TouchableWithoutFeedback>

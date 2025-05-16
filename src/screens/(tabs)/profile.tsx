@@ -44,10 +44,10 @@ export default function Profile() {
     <View className='bg-primary h-full' >
       <View className="w-full my-auto justify-center items-center gap-3">
         <View className="w-full my-auto justify-center items-center gap-3 flex-row">
-          <View className="w-20 h-20 rounded-full bg-white p-1 shadow-lg justify-center items-center">
             {user && user.profileImage ? (
               <Image
-                style={{ width: 50, height: 50, borderRadius: 50 }}
+                style={{ width: 60, height: 60, borderRadius: 50 }}
+                className="w-16 h-16 rounded-full bg-gray-300"
                 source={{ uri: `https://api.dicebear.com/7.x/personas/png?seed=${user?.username || "guest"}` }}
                 resizeMode="cover"
               />
@@ -56,7 +56,6 @@ export default function Profile() {
                 <Text className="text-gray-500">No Image</Text>
               </View>
             )}
-          </View>
           {user && user.username && (
             <Text className="justify-center text-center text-3xl font-pbold text-white">
               {user.username.toUpperCase()}

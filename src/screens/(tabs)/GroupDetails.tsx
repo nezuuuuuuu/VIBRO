@@ -33,7 +33,6 @@ const GroupDetails = () => {
  
     useEffect(() => {
 
-
         if (groupPointer?._id) {
             getMembers(groupPointer._id); // Fetch members only when groupPointer is ready
         }
