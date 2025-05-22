@@ -241,12 +241,12 @@ DeviceEventEmitter.addListener("onPrediction", (data) => {
   const { customPredictions, yamnetPredictions, audioBase64 } = data;
 
   // Example: Push predictions and audio data together
-  if (Array.isArray(customPredictions)) {
-    customPredictions.forEach(({ label, confidence }) => {
-      predictionQueue.push({ label, confidence, audioBase64 });
-      if (!isProcessing) processQueue();
-    });
-  }
+  // if (Array.isArray(customPredictions)) {
+  //   customPredictions.forEach(({ label, confidence }) => {
+  //     predictionQueue.push({ label, confidence, audioBase64 });
+  //     if (!isProcessing) processQueue();
+  //   });
+  // }
 
   if (Array.isArray(yamnetPredictions)) {
     yamnetPredictions.forEach(({ label, confidence }) => {
@@ -264,7 +264,7 @@ DeviceEventEmitter.addListener("onPrediction", (data) => {
 const handlePrediction = async (prediction: { label: string, confidence: number, audioBase64: string  }) => {
 
   const { label, confidence, audioBase64 } = prediction; // Extract properties here
-  const MIN_CONFIDENCE = 0.80;
+  const MIN_CONFIDENCE = 0.50;
 
   if (confidence >= MIN_CONFIDENCE ) {
 
@@ -387,7 +387,7 @@ const handlePrediction = async (prediction: { label: string, confidence: number,
 
         <ScrollView className="w-full" style={{ height: '70%' }}> 
           
-          {predictions.map((prediction, index) => {
+          {predictions.slice().reverse().map((prediction, index) => {
             return (
               <DetectionDisplay
                 key={`${prediction.timestamp}-${index}`} 

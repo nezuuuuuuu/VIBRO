@@ -209,7 +209,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         const messageData = {
             groupId,
             messageType: type,
-            message: type === 'text' ? messageContent : null,
+            message: type === 'text' ? messageContent : null, // Use 'message' field as per common API patterns
             imageUrl: type === 'image' ? imageUrl : null,
         };
 
@@ -230,20 +230,33 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
                 } catch {
                     errorData = { message: 'Could not parse error body' };
                 }
-                console.error('Send message failed:', errorData);
+                console.error('Send message failed API response:', errorData);
                 throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
 
-            console.log('Message sent via API, waiting for socket echo.');
+            // --- START: Add message to state immediately after successful API send ---
+            const sentMessage: MessagePayload = await response.json(); // Assuming the API returns the saved message object
+            console.log('Message sent successfully via API, adding to local state:', sentMessage);
+            setMessages(prevMessages => {
+                 // Double-check against potential immediate socket echo racing
+                 if (prevMessages.find(msg => msg._id === sentMessage._id)) {
+                     console.log('Message already exists in state (likely from rapid socket echo), skipping add.', sentMessage._id);
+                     return prevMessages;
+                 }
+                 return [...prevMessages, sentMessage];
+             });
+             shouldScrollToBottomRef.current = true; // Mark for scrolling
 
             if (type === 'text') {
-                setInputText('');
+                setInputText(''); // Clear input only on success
             }
-            shouldScrollToBottomRef.current = true;
+            // --- END: Add message to state immediately after successful API send ---
+
 
         } catch (err) {
             console.error('Error sending message:', err);
             Alert.alert('Error', (err as Error).message || 'Could not send message.');
+             // Optionally, handle UI feedback for failed message (e.g., mark message as failed)
         } finally {
             setIsSending(false);
         }

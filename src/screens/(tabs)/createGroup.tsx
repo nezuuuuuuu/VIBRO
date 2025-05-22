@@ -23,7 +23,7 @@ const CreateGroup = () => {
   const handleCreateGroup = () => {
     if(groupPhotoUri === null) {
       console.log("Please select a group photo");
-      return; // Prevent group creation if no photo is selected
+      // return; // Prevent group creation if no photo is selected
     }
 
     createGroup(groupName, groupPhotoUri);
