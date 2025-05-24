@@ -11,6 +11,7 @@ import java.io.FileInputStream
 class VibroInterpreter(private val context: Context, private val modelFileName: String, private val numClasses: Int) {
     private var interpreter: Interpreter
 
+
     init {
         interpreter = Interpreter(loadModelFile(modelFileName))
     }

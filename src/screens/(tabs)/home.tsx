@@ -18,6 +18,8 @@ import DetectionDisplay from '../../components/detectionDisplay';
 import { useAuthStore } from "../../../store/authStore";
 import { useNavigation } from '@react-navigation/native';
 import { useGroupStore } from '../../../store/groupStore';
+import { useModelStore } from '../../../store/modelStore';
+
 import notifee from '@notifee/react-native';
 import { icons } from '../../constants';
 import {useDetectedSoundStore} from '../../../store/detectedSoundStore';
@@ -88,6 +90,8 @@ const LEGEND_INFO: {
 
 
 function Home() {
+  const {  fetchModelById, setActiveModel, useLabels,labels,activeModel } = useModelStore();
+
   const { socket, connect, disconnect,isOnline } = useSocket();
   const {getGroups} = useGroupStore()
   const { addSound} = useDetectedSoundStore();
@@ -158,8 +162,6 @@ function Home() {
 // };
 
   useLayoutEffect(() => {
-    
-
     if (user) {
       navigation.setOptions({
         headerTitle: () => ( 
@@ -254,6 +256,12 @@ DeviceEventEmitter.addListener("onPrediction", (data) => {
       if (!isProcessing) processQueue();
     });
   }
+   if (Array.isArray(customPredictions)) {
+    customPredictions.forEach(({ label, confidence }) => {
+      predictionQueue.push({ label, confidence, audioBase64 });
+      if (!isProcessing) processQueue();
+    });
+  }
 });
 
 
@@ -264,7 +272,7 @@ DeviceEventEmitter.addListener("onPrediction", (data) => {
 const handlePrediction = async (prediction: { label: string, confidence: number, audioBase64: string  }) => {
 
   const { label, confidence, audioBase64 } = prediction; // Extract properties here
-  const MIN_CONFIDENCE = 0.50;
+  const MIN_CONFIDENCE = 0.20;
 
   if (confidence >= MIN_CONFIDENCE ) {
 
@@ -344,17 +352,35 @@ const handlePrediction = async (prediction: { label: string, confidence: number,
 //       }
 //     };
   
-  async function startRecording() {
+
+ async function startRecording() {
+    console.log("start recording",activeModel)
     if(isRecording) {
     stopRecording()
       return;
     }
+      // Request permission *before* attempting to start recording
+    const hasPermission = await requestMicPermission();
+    if (!hasPermission) {
+      console.warn("Microphone permission denied. Cannot start recording.");
+      // Optionally, show a user-friendly message or alert
+      return;
+    }
+
     setIsRecording(true);
-      const path = await AudioRecorder.startRecording();
+    if(!activeModel) {
+
+      const path = await AudioRecorder.startRecording(0, [], 'asd');
+    }
+    if(activeModel.labels.length>0){
+      const path = await AudioRecorder.startRecording(activeModel.labels.length, activeModel.labels, activeModel.name);
+
+    }
 
    
    
   }
+
     async function playAudio(base64audio: string) {
       const path = await AudioRecorder.playAudio(base64audio);
   }
