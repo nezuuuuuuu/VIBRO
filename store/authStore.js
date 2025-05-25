@@ -135,7 +135,40 @@ export const useAuthStore = create((set) => ({
             console.error("Update profile failed:", error);
              return { success: false, error: error.message };
         }
-    },
+    },setActiveStatus: async (isActive) => {
+    console.log("Setting active status to:", isActive);
+    set({ isLoading: true });
+    try {
+        const response = await fetch(`${BASE_URL}/auth/set-active`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${useAuthStore.getState().token}`,
+            },
+            body: JSON.stringify({ isActive }),
+        });
+
+        const text = await response.text();  // read as text first
+
+        // Try parsing JSON after logging
+        const responseData = JSON.parse(text);
+
+        if (!response.ok) {
+            throw new Error(responseData.message || 'Failed to update isActive status');
+        }
+
+        const updatedUser = { ...useAuthStore.getState().user, ...responseData.user };
+
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        set({ user: updatedUser, isLoading: false });
+
+        return { success: true };
+    } catch (error) {
+        set({ isLoading: false });
+        console.error('Set isActive failed:', error);
+        return { success: false, error: error.message };
+    }
+}
 
     
 }));

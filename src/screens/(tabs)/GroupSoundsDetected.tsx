@@ -54,15 +54,21 @@ const GroupSoundsDetected = () => {
                 });
             }
     }, [navigation]);
-     const formatTime = (isoTime) => {
-    try {
-      const date = new Date(isoTime);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    } catch (error) {
-      console.error("Error formatting time:", error);
-      return "N/A";
-    }
-  };
+   const formatTime = (isoTime) => {
+  try {
+    const date = new Date(isoTime);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Manila',  // Adjust this if you're in a different time zone
+    });
+  } catch (error) {
+    console.error("Error formatting time:", error);
+    return "N/A";
+  }
+};
 
    return (
         <View className="flex-1 bg-primary p-4">

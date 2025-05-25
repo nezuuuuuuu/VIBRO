@@ -9,6 +9,7 @@ import {
   PermissionsAndroid,
   Platform,
   NativeModules,
+  Switch,
 } from 'react-native';
 import { useState, useRef } from 'react';
 import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
@@ -35,8 +36,8 @@ import { AndroidImportance } from '@notifee/react-native';
 
 const { AudioRecorder, Flashlight } = NativeModules;
 
-const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Baby cry, infant cry'];
-const NOTIF_LEVEL_2_ALLOWED_LABELS = ['Speech'];
+const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren',];
+const NOTIF_LEVEL_2_ALLOWED_LABELS = ['Speech', 'Baby cry, infant cry','Crying, sobbing'];
 const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass'];
 
 
@@ -47,6 +48,8 @@ const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
   'Siren': 1,
   'Glass': 2,
   'Speech': 3,
+  'Crying, sobbing': 2,
+  'Baby cry, infant cry': 2,
 };
 
 export async function requestMicPermission() {
@@ -77,7 +80,7 @@ const LEGEND_INFO: {
   },
   2: {
     label: "Level 2",
-    colorClass: "bg-amber-400", 
+    colorClass: "bg-yellow-300", 
     description: "Medium Criticality",
   },
   3: {
@@ -101,10 +104,11 @@ function Home() {
   const { addSound} = useDetectedSoundStore();
 
   const navigation = useNavigation(); 
-  const { user, token } = useAuthStore();
+  const { user, token,setActiveStatus } = useAuthStore();
   const [predictions, setPredictions] = useState<any[]>([]);
 
   const [isRecording, setIsRecording] = useState(false);
+  const [isMonitoringOn, setIsMonitoringOn] = useState(false);
   
   const predictionQueue: { isCustom: boolean, label: string; confidence: number; audioBase64?: string }[] = [];
   let isProcessing = false;
@@ -120,52 +124,9 @@ function Home() {
   };
 
 
-// const playBase64Audio = async (base64Audio: string) => {
-//   try {
-//     // 1. Decode base64 to binary (using Buffer correctly)
-//     const audioBuffer = Buffer.from(base64Audio, 'base64');
-
-//     // 2. Save it as a temporary WAV file
-//     const filePath = `${RNFS.TemporaryDirectoryPath}/audio.wav`;
-//     // RNFS.writeFile expects binary data, not a base64 string.  This is the key change.
-//     await RNFS.writeFile(filePath, audioBuffer, 'utf8');
-
-//     // 3. Play the audio
-//     const playBase64Audio = async (base64Audio: string) => {
-//       try {
-//         // 1. Decode base64 to binary (using Buffer correctly)
-//         const audioBuffer = Buffer.from(base64Audio, 'base64');
-    
-//         // 2. Save it as a temporary WAV file
-//         const filePath = `${RNFS.TemporaryDirectoryPath}/audio.wav`;
-//         // RNFS.writeFile expects binary data, not a base64 string.
-//         await RNFS.writeFile(filePath, audioBuffer);
-    
-//         // 3. Play the audio
-//         const sound = new Sound(filePath, '', (error) => {
-//           if (error) {
-//             console.error('Failed to load the sound', error);
-//             return;
-//           }
-//           sound.play((success) => {
-//             if (!success) {
-//               console.error('Playback failed');
-//             }
-//             sound.release();
-//           });
-//         });
-//       } catch (err) {
-//         console.error('Error decoding or playing audio:', err);
-//       }
-//     };
-    
-    
-//   } catch (err) {
-//     console.error('Error decoding or playing audio:', err);
-//   }
-// };
 
   useLayoutEffect(() => {
+
     if (user) {
       navigation.setOptions({
         headerTitle: () => ( 
@@ -210,9 +171,10 @@ function Home() {
 
 
   useEffect(()=>{
+    
     copyModelToInternalStorage();
     console.log(RNFS.DocumentDirectoryPath); 
-
+    setIsMonitoringOn(user.isActive)
 
       const fetchAndConnect = async () => {
     try {
@@ -246,13 +208,6 @@ DeviceEventEmitter.addListener("onPrediction", (data) => {
   // If you want to work with the custom predictions:
   const { customPredictions, yamnetPredictions, audioBase64 } = data;
 
-  // Example: Push predictions and audio data together
-  // if (Array.isArray(customPredictions)) {
-  //   customPredictions.forEach(({ label, confidence }) => {
-  //     predictionQueue.push({ label, confidence, audioBase64 });
-  //     if (!isProcessing) processQueue();
-  //   });
-  // }
 
   if (Array.isArray(yamnetPredictions)) {
     yamnetPredictions.forEach(({ label, confidence }) => {
@@ -275,11 +230,11 @@ DeviceEventEmitter.addListener("onPrediction", (data) => {
 
 const handlePrediction = async (prediction: { isCustom: boolean, label: string, confidence: number, audioBase64: string }) => {
         const { isCustom, label, confidence, audioBase64 } = prediction;
-        const MIN_CONFIDENCE = 0.50;
+        // const MIN_CONFIDENCE = 0.50;
 
         console.log("Raw prediction received:", { label, confidence, isCustom });
 
-        if (confidence >= MIN_CONFIDENCE) {
+     
             const currentTime = Date.now();
             const criticalLevel = CRITICAL_SOUND_LEVELS[label] || null;
 
@@ -293,9 +248,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     ...prevPredictions,
                     { isCustom: isCustom, label: label, confidence: confidence, timestamp: currentTime, audioBase64: audioBase64, criticalLevel: criticalLevel }
                 ]);
-
                 addSound(label, confidence, audioBase64);
-
                 if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
@@ -337,9 +290,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
             } else {
                 console.log(`--- FILTERED OUT: "${label}" (Not Critical and Not Custom). Confidence: ${(confidence * 100).toFixed(2)}%`);
             }
-        } else {
-            console.log(`--- FILTERED OUT: "${label}" (Below MIN_CONFIDENCE: ${MIN_CONFIDENCE}). Confidence: ${(confidence * 100).toFixed(2)}%`);
-        }
+    
     };
 
 // // Flashlight Di mugana
@@ -401,6 +352,15 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
     setIsRecording(false);
     const path = await AudioRecorder.stopRecording(); 
 }
+const handleToggle = () => {
+  if (isMonitoringOn) {
+   setActiveStatus(false);
+  } else {
+    setActiveStatus(true);
+  }
+  // Toggle the state
+setIsMonitoringOn(!isMonitoringOn);
+}
 
 
 
@@ -413,11 +373,14 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
           
           {/* Legend items container */}
       <View className="ml-10 flex-row flex-wrap justify-center max-w-lg"> 
+        
         {Object.entries(LEGEND_INFO).map(([key, info]) => (
-    
+
           <View key={key} className="w-1/2 flex-row items-start py-1"> 
+           
         
             <View className="flex-shrink-0 mr-2 mt-2">
+              
               <View className={`h-3.5 w-3.5 rounded-sm ${info.colorClass} border border-gray-400`} />
             </View>
            
@@ -425,9 +388,20 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
               <Text className="text-xs font-pmedium text-white">{info.label}</Text>
               <Text className="text-xs leading-tight font-pregular text-gray-300">{info.description}</Text>
             </View>
+            
           </View>
         ))}
+        
       </View>
+      <View >
+          <Text className="text-xs text-gray-300 font-pregular">  
+           Monitoring: 
+          </Text>
+          <Switch
+                     value={isMonitoringOn}
+                        onValueChange={() => handleToggle()}
+                      />
+                </View>
         </View>
 
         <ScrollView className="w-full" style={{ height: '70%' }}> 

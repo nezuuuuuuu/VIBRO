@@ -121,7 +121,7 @@ const GroupDetails = () => {
             <Text className='text-white my-5'>Monitoring on:</Text>
             <ScrollView className='w-full rounded-lg'>
                 
-                {groupMembersPointer.map((member) => (
+                {groupMembersPointer.filter((member) => member.isActive).map((member) => (
                     // NAVIGATE TO GROUPSOUNDSDETECTED.TSX
                     <TouchableOpacity 
                         key={member._id}

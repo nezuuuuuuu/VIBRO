@@ -27,6 +27,49 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
     companion object {
         const val NAME = "AudioRecorder"
     }
+    val criticalLabels = setOf(
+        "Crying, sobbing",
+        "Police car (siren)",
+        "Ambulance (siren)",
+        "Fire engine, fire truck (siren)",
+        "Emergency vehicle",
+        "Gunshot, gunfire",
+        "Glass",
+        "Smash, crash",
+        "Smoke detector, smoke alarm"
+    )
+
+    val CustomEnvironmentalSound = arrayOf(
+        "breathing",
+        "chirping_birds",
+        "church_bells",
+        "clapping",
+        "clock_alarm",
+        "clock_tick",
+        "crackling_fire",
+        "crickets",
+        "drinking_sipping",
+        "engine",
+        "fireworks",
+        "footsteps",
+        "helicopter",
+        "hen",
+        "insects",
+        "keyboard_typing",
+        "mouse_click",
+        "pouring_water",
+        "rain",
+        "sea_waves",
+        "siren",
+        "sneezing",
+        "thunderstorm",
+        "toilet_flush",
+        "train",
+        "vacuum_cleaner",
+        "washing_machine",
+        "water_drops",
+        "wind"
+    )
     val yamnet_labels = arrayOf(
         "Speech",
         "Child speech, kid speaking",
@@ -642,29 +685,29 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
                 val yamnetPredictionArray = Arguments.createArray()
                 yamnetResult?.forEachIndexed { index, confidence ->
                     val prediction = Arguments.createMap()
-                    if(confidence.toDouble()>=.60) {
-                        prediction.putString("label", yamnet_labels[index])
-                        prediction.putDouble("confidence", confidence.toDouble())
-                        yamnetPredictionArray.pushMap(prediction)
+
+                    if (yamnet_labels[index] in criticalLabels){
+                        if(confidence.toDouble()>=.40) {
+                            prediction.putString("label", yamnet_labels[index])
+                            prediction.putDouble("confidence", confidence.toDouble())
+                            yamnetPredictionArray.pushMap(prediction)
+                        }
+                    }else{
+                        if(confidence.toDouble()>=.60) {
+                            prediction.putString("label", yamnet_labels[index])
+                            prediction.putDouble("confidence", confidence.toDouble())
+                            yamnetPredictionArray.pushMap(prediction)
+                        }
                     }
                 }
                 eventData.putArray("yamnetPredictions", yamnetPredictionArray)
 
                 // Process custom scores
                 val customPredictionArray = Arguments.createArray()
-                if(numClasses==0){
+                if(numClasses>0){
 
                     customResult?.forEachIndexed { index, confidence ->
-                        if(confidence.toDouble()>=.60) {
-                            val prediction = Arguments.createMap()
-                            prediction.putString("label", index.toString())
-                            prediction.putDouble("confidence", confidence.toDouble())
-                            customPredictionArray.pushMap(prediction)
-                        }
-                    }
-                }else {
-                    customResult?.forEachIndexed { index, confidence ->
-                        if (confidence.toDouble() >= .30) {
+                        if (confidence.toDouble() >= 0.30 && labels.getString(index) !in CustomEnvironmentalSound) {
                             val prediction = Arguments.createMap()
                             prediction.putString("label", labels.getString(index))
                             prediction.putDouble("confidence", confidence.toDouble())

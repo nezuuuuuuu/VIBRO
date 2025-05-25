@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
 import { create } from 'zustand';
-
 import io from 'socket.io-client';
-import BASE_URL from './api'; // Adjust the path as needed
 import { Alert } from 'react-native';
-
-const SOCKET_URL =  'https://mern-vibro.onrender.com'; // Replace with your server IP
-// const SOCKET_URL =  'http://192.168.254.104:3000';
+import notifee, { AndroidImportance } from '@notifee/react-native'; // You likely need this
+// import BASE_URL from './api'; // Not used here
+// const SOCKET_URL = 'https://mern-vibro.onrender.com';
+const SOCKET_URL = 'http://192.168.1.3:3000';
 
 export const useSocket = create((set, get) => ({
   socket: null,
-  onlineUsers: new Set(),isOnline: false,
+  onlineUsers: new Set(),
+  isOnline: false,
+
   updateOnlineStatus: (userId, isOnline) => {
-    console.log("ADDING ONLINE USER"+userId)
+    console.log("Updating online status for:", userId, "Status:", isOnline);
     set((state) => {
       const newSet = new Set(state.onlineUsers);
       if (isOnline) newSet.add(userId);
@@ -20,6 +20,7 @@ export const useSocket = create((set, get) => ({
       return { onlineUsers: newSet };
     });
   },
+
   connect: (userId, groupIds = []) => {
     const newSocket = io(SOCKET_URL, {
       query: {
@@ -31,51 +32,57 @@ export const useSocket = create((set, get) => ({
 
     newSocket.on('connect', () => {
       console.log('✅ Connected to socket server:', newSocket.id);
-      isOnline=true
-      set({ socket: newSocket });
+      set({ socket: newSocket, isOnline: true });
+
+      // Heartbeat
       const heartbeatInterval = setInterval(() => {
         if (newSocket && newSocket.connected) {
           newSocket.emit('heartbeat');
+        }
+      }, 15000);
+
+      // User online/offline status updates
+      newSocket.on('user-online', ({ userId }) => {
+        get().updateOnlineStatus(userId, true);
+      });
+
+      newSocket.on('user-offline', ({ userId }) => {
+        get().updateOnlineStatus(userId, false);
+      });
+
+      // Handle incoming sound events
+      newSocket.on('new-sound', async ({ userId, username, groupId, groupName, label, confidence, sound }) => {
+         const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren'];
+       
+
+        if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
+          try {
+            await notifee.displayNotification({
+              title: `From: ${username} (${groupName})`,
+              body: `Detected: ${label}\nConfidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
+              android: {
+                channelId: 'sound-alerts3',
+                importance: AndroidImportance.HIGH,
+              },
+            });
+          } catch (err) {
+            console.error('❌ Error showing notification:', err);
           }
-        }, 15000);
-
-        newSocket.on('user-online', ({ userId }) => {
-          get().updateOnlineStatus(userId, true);
-        });
-
-        newSocket.on('user-offline', ({ userId }) => {
-          get().updateOnlineStatus(userId, false);
-        });
-        set({ socket: newSocket });
-  
-
-        newSocket.on('new-sound', ({ userId }) => {
-          console.log("new sound detected from ", userId)
-        });
-        set({ socket: newSocket });
-
-
+        }
+      });
     });
 
     newSocket.on('connect_error', (err) => {
       console.error('❌ Socket connection error:', err.message);
+      set({ isOnline: false });
     });
-
-      
   },
 
-   disconnect: () => {
+  disconnect: () => {
     const socket = get().socket;
     if (socket) {
       socket.disconnect();
-      set({ socket: null });
+      set({ socket: null, isOnline: false });
     }
   },
-  
-
-
-
-
 }));
-
-

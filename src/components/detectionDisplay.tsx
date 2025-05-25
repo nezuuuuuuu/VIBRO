@@ -22,7 +22,7 @@ const LEVEL_BORDER_COLOR: { [key: number]: string } = {
 
 const BACKGROUND_COLOR: { [key: number]: string } = {
   1: 'bg-rose-400',
-  2: 'bg-amber-300',
+  2: 'bg-yellow-300',
   3: 'bg-sky-300',
 };
 
