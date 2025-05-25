@@ -35,7 +35,6 @@ import { AndroidImportance } from '@notifee/react-native';
 
 const { AudioRecorder, Flashlight } = NativeModules;
 
-const ALLOWED_LABELS = ['siren', 'Ambulance (siren)', 'Police car (siren)', 'Glass', 'Siren', 'Speech'];
 const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Baby cry, infant cry'];
 const NOTIF_LEVEL_2_ALLOWED_LABELS = ['Speech'];
 const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass'];
@@ -86,6 +85,11 @@ const LEGEND_INFO: {
     colorClass: "bg-sky-500",
     description: "Informational",
   },
+  4: {
+    label: "Custom",
+    colorClass: "bg-secondary",
+    description: "Custom Group Model",
+  },
 };
 
 
@@ -102,7 +106,7 @@ function Home() {
 
   const [isRecording, setIsRecording] = useState(false);
   
-  const predictionQueue: { label: string; confidence: number; audioBase64?: string }[] = [];
+  const predictionQueue: { isCustom: boolean, label: string; confidence: number; audioBase64?: string }[] = [];
   let isProcessing = false;
 
 
@@ -252,13 +256,13 @@ DeviceEventEmitter.addListener("onPrediction", (data) => {
 
   if (Array.isArray(yamnetPredictions)) {
     yamnetPredictions.forEach(({ label, confidence }) => {
-      predictionQueue.push({ label, confidence, audioBase64 });
+      predictionQueue.push({ isCustom : false, label, confidence, audioBase64 });
       if (!isProcessing) processQueue();
     });
   }
    if (Array.isArray(customPredictions)) {
     customPredictions.forEach(({ label, confidence }) => {
-      predictionQueue.push({ label, confidence, audioBase64 });
+      predictionQueue.push({ isCustom : true, label, confidence, audioBase64 });
       if (!isProcessing) processQueue();
     });
   }
@@ -269,65 +273,74 @@ DeviceEventEmitter.addListener("onPrediction", (data) => {
 
 
 
-const handlePrediction = async (prediction: { label: string, confidence: number, audioBase64: string  }) => {
+const handlePrediction = async (prediction: { isCustom: boolean, label: string, confidence: number, audioBase64: string }) => {
+        const { isCustom, label, confidence, audioBase64 } = prediction;
+        const MIN_CONFIDENCE = 0.50;
 
-  const { label, confidence, audioBase64 } = prediction; // Extract properties here
-  const MIN_CONFIDENCE = 0.20;
+        console.log("Raw prediction received:", { label, confidence, isCustom });
 
-  if (confidence >= MIN_CONFIDENCE ) {
+        if (confidence >= MIN_CONFIDENCE) {
+            const currentTime = Date.now();
+            const criticalLevel = CRITICAL_SOUND_LEVELS[label] || null;
 
-    const currentTime = Date.now();
+            console.log(`Calculated criticalLevel for "${label}": ${criticalLevel}`);
 
-    const criticalLevel = CRITICAL_SOUND_LEVELS[label] || null;
+            // This is the crucial condition for deciding whether to display and notify
+            if (criticalLevel !== null || isCustom) {
+                console.log(`>>> ACCEPTED PREDICTION: ${label}, criticalLevel: ${criticalLevel}, isCustom: ${isCustom}`);
 
-    console.log(`Handling prediction: ${label}, criticalLevel: ${criticalLevel}`);
+                setPredictions(prevPredictions => [
+                    ...prevPredictions,
+                    { isCustom: isCustom, label: label, confidence: confidence, timestamp: currentTime, audioBase64: audioBase64, criticalLevel: criticalLevel }
+                ]);
 
-    setPredictions(prevPredictions => [
-      ...prevPredictions,
-      { label: label, confidence: confidence, timestamp: currentTime, audioBase64: audioBase64, criticalLevel: criticalLevel }
-    ]);
+                addSound(label, confidence, audioBase64);
 
-    addSound(label, confidence, audioBase64);
-
-      if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
-        await notifee.displayNotification({
-          title: `Detected: ${label}`,
-          body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
-          android: {
-            channelId: 'sound-alerts3',
-            importance: AndroidImportance.HIGH,
-          },
-        });
-      }
-
-      if (NOTIF_LEVEL_2_ALLOWED_LABELS.includes(label)) {
-        await notifee.displayNotification({
-          title: `Detected: ${label}`,
-          body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 2`,
-          android: {
-            channelId: 'sound-alerts1',
-            importance: AndroidImportance.LOW,
-          },
-        });
-        // await blinkFlashlight(3, 300);
-      }
-
-      if (NOTIF_LEVEL_3_ALLOWED_LABELS.includes(label)) {
-        await notifee.displayNotification({
-          title: `Detected: ${label}`,
-          body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 3`,
-          android: {
-            channelId: 'sound-alerts1',
-            importance: AndroidImportance.DEFAULT,
-          },
-        });
-        // await blinkFlashlight(5, 200);
-      }
-
-      // if (label.toLowerCase().includes('siren')) await flashLight();
-      
-    }
-  };
+                if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
+                    await notifee.displayNotification({
+                        title: `Detected: ${label}`,
+                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
+                        android: {
+                            channelId: 'sound-alerts3',
+                            importance: AndroidImportance.HIGH,
+                        },
+                    });
+                } else if (NOTIF_LEVEL_2_ALLOWED_LABELS.includes(label)) {
+                    await notifee.displayNotification({
+                        title: `Detected: ${label}`,
+                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 2`,
+                        android: {
+                            channelId: 'sound-alerts1',
+                            importance: AndroidImportance.LOW,
+                        },
+                    });
+                } else if (NOTIF_LEVEL_3_ALLOWED_LABELS.includes(label)) {
+                    await notifee.displayNotification({
+                        title: `Detected: ${label}`,
+                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 3`,
+                        android: {
+                            channelId: 'sound-alerts1',
+                            importance: AndroidImportance.DEFAULT,
+                        },
+                    });
+                } else if (isCustom) {
+                    // Specific notification for custom sounds
+                    await notifee.displayNotification({
+                        title: `Detected Custom Sound: ${label}`,
+                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - Custom Model`,
+                        android: {
+                            channelId: 'sound-alerts2',
+                            importance: AndroidImportance.HIGH,
+                        },
+                    });
+                }
+            } else {
+                console.log(`--- FILTERED OUT: "${label}" (Not Critical and Not Custom). Confidence: ${(confidence * 100).toFixed(2)}%`);
+            }
+        } else {
+            console.log(`--- FILTERED OUT: "${label}" (Below MIN_CONFIDENCE: ${MIN_CONFIDENCE}). Confidence: ${(confidence * 100).toFixed(2)}%`);
+        }
+    };
 
 // // Flashlight Di mugana
 //   const blinkFlashlight = async (times = 5, interval = 200) => {
@@ -398,17 +411,23 @@ const handlePrediction = async (prediction: { label: string, confidence: number,
 
         <View className="text-center my-3 w-full">
           
-          <View className="flex-row flex-wrap items-center justify-center rounded-lg p-2 gap-x-10 gap-y-2">
-            {Object.entries(LEGEND_INFO).map(([key, info]) => (
-              <View key={key} className="flex-row items-center justify-center">
-                <View className={`mr-1.5 h-3.5 w-3.5 rounded-sm ${info.colorClass} border border-gray-400`} />
-                <View>
-                  <Text className="text-xs font-pmedium text-white">{info.label}</Text>
-                  <Text className="text-[10px] leading-tight font-pregular text-gray-300">{info.description}</Text>
-                </View>
-              </View>
-            ))}
+          {/* Legend items container */}
+      <View className="ml-10 flex-row flex-wrap justify-center max-w-lg"> 
+        {Object.entries(LEGEND_INFO).map(([key, info]) => (
+    
+          <View key={key} className="w-1/2 flex-row items-start py-1"> 
+        
+            <View className="flex-shrink-0 mr-2 mt-2">
+              <View className={`h-3.5 w-3.5 rounded-sm ${info.colorClass} border border-gray-400`} />
+            </View>
+           
+            <View className="flex-1">
+              <Text className="text-xs font-pmedium text-white">{info.label}</Text>
+              <Text className="text-xs leading-tight font-pregular text-gray-300">{info.description}</Text>
+            </View>
           </View>
+        ))}
+      </View>
         </View>
 
         <ScrollView className="w-full" style={{ height: '70%' }}> 

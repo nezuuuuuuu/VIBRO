@@ -11,6 +11,7 @@ interface DetectionDisplayProps {
   sound: string;
   audioBase64?: string;
   criticalLevel?: number | null;
+  isCustom?: boolean;
 }
 
 const LEVEL_BORDER_COLOR: { [key: number]: string } = {
@@ -40,15 +41,20 @@ const DetectionDisplay: React.FC<DetectionDisplayProps> = ({
   sound,
   audioBase64,
   criticalLevel,
+  isCustom,
 }) => {
   const borderClass = criticalLevel ? `border-2 ${LEVEL_BORDER_COLOR[criticalLevel]}` : '';
   const backgroundClass = criticalLevel ? BACKGROUND_COLOR[criticalLevel] : '';
 
-  const containerClass = `bg-gray-100 rounded-lg py-5 px-5 flex-row justify-around items-center mx-3 mt-3 shadow-sm ${backgroundClass} ${borderClass}`.trim();
+  const containerClass = `bg-gray-100 rounded-lg py-5 px-5 flex-row justify-around items-center mx-3 mt-3 shadow-sm ${backgroundClass}`.trim();
+  const customContainerClass = `bg-lightsecondary rounded-lg py-5 px-5 flex-row justify-around items-center mx-3 mt-3 shadow-sm ${backgroundClass}`.trim();
+
+  const classNameToApply = isCustom === true? containerClass : customContainerClass;
+
 
   return (
     <Pressable onPress={() => playAudio(audioBase64)}>
-      <View className={containerClass}>
+      <View className={classNameToApply}>
         <Text className="text-primary font-psemibold text-base">{sound}</Text>
         <Text className="text-primary font-psemibold text-base">{time}</Text>
       </View>

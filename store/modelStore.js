@@ -9,7 +9,7 @@ if (typeof global.Buffer === 'undefined') {
   global.Buffer = Buffer;
 }
 
-const API_BASE_URL = 'http://192.168.1.3:5000'; // Replace with your server IP
+const API_BASE_URL = 'http://172.20.1.67:5000'; // Replace with your server IP
 
 export const useModelStore = create((set) => ({
   loading: false,

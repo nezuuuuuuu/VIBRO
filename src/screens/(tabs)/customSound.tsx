@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, TextInput, ScrollView, Modal, Alert, Platform, PermissionsAndroid, NativeModules,DeviceEventEmitter } from 'react-native';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { View, Text, TouchableOpacity, Image, TextInput, ScrollView, Modal, Alert, Platform, PermissionsAndroid, NativeModules, DeviceEventEmitter, TouchableWithoutFeedback } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { icons } from '../../constants';
 import { useAuthStore } from '../../../store/authStore';
@@ -10,580 +10,709 @@ import { useModelStore } from '../../../store/modelStore';
 // Access your native module
 const { CustomAudioRecorderModule } = NativeModules;
 
-// Create an event emitter for native events
-
 const CustomSounds = () => {
-    
-    const {fetchAndCreateModel} = useModelStore();
-    const navigation = useNavigation();
+  const { fetchAndCreateModel } = useModelStore();
+  const navigation = useNavigation();
 
-    // Zustand Store Hooks
-    const { user } = useAuthStore();
-    const { groupPointer } = useGroupStore();
-    const {
-        folders,
-        isLoading,
-        error,
-        getFolders,
-        addFolder,
-        removeFolder,
-        addSound,
-        removeSound,
-        getSoundById
-    } = useCustomSoundStore();
+  // Zustand Store Hooks
+  const { user } = useAuthStore();
+  const { groupPointer } = useGroupStore();
+  const {
+    folders,
+    isLoading,
+    error,
+    getFolders,
+    addFolder,
+    removeFolder,
+    addSound,
+    removeSound,
+    getSoundById
+  } = useCustomSoundStore();
 
-    const currentGroupId = groupPointer?._id;
-    const currentUserId = user?._id;
+  const currentGroupId = groupPointer?._id;
+  const currentUserId = user?._id;
 
-    // Local UI State
-    const [isCreateFolderModalVisible, setCreateFolderModalVisible] = useState(false);
-    const [newFolderName, setNewFolderName] = useState('');
-    const [selectedFolder, setSelectedFolder] = useState(null);
-    const [isRecordModalVisible, setRecordModalVisible] = useState(false);
-    const [recordingStatus, setRecordingStatus] = useState('idle'); // 'idle', 'recording', 'finished'
-    const [recordDuration, setRecordDuration] = useState(0); // Current recording duration in ms
-    const recordIntervalRef = useRef(null); // For polling or simulating progress if no native event
-    const [recordedAudioBase64, setrecordedAudioBase64] = useState(null); // Store the recorded file 
+  // Local UI State
+  const [isCreateFolderModalVisible, setCreateFolderModalVisible] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [selectedFolder, setSelectedFolder] = useState(null);
+  const [isRecordModalVisible, setRecordModalVisible] = useState(false);
+  const [recordingStatus, setRecordingStatus] = useState('idle'); // 'idle', 'recording', 'finished'
+  const [recordDuration, setRecordDuration] = useState(0); // Current recording duration in ms
+  const recordIntervalRef = useRef(null); // For polling or simulating progress if no native event
+  const [recordedAudioBase64, setRecordedAudioBase64] = useState(null); // Store the recorded file
+  // const [isCreateNewFolderVisible, setCreateNewFolderVisible] = useState(false); // This state seems unused, consider removing
 
-    const [recordingTime, setRecordingTime] = useState(0);
+  // NEW STATE: To track which sound from the folders is currently playing
+  const [currentPlayingSoundId, setCurrentPlayingSoundId] = useState(null);
+  // Existing state for the recorded sound in the modal
+  const [playbackStatus, setPlaybackStatus] = useState('idle'); // 'idle', 'playing' for the recorded sound in the modal
 
-    const MAX_RECORD_DURATION_MS = 5000; // 5 seconds
 
-    // --- Effects ---
+  const MAX_RECORD_DURATION_MS = 5000; // 5 seconds
 
-    useEffect(() => {
-        
-        if (currentGroupId) {
-            getFolders(currentGroupId);
-        }
-    }, [currentGroupId, getFolders]);
+  // --- Effects ---
 
-    useEffect(() => {
-        if (error) {
-            Alert.alert('Error', error);
-        }
-    }, [error]);
+  // Add useLayoutEffect for header
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <Text className="font-pbold text-2xl text-white">Custom Sounds</Text>
+      ),
+      headerStyle: {
+        backgroundColor: '#1B1B3A',
+      },
+    });
+  }, [navigation]);
 
-    // Cleanup when component unmounts
-    useEffect(() => {
-        return () => {
-            // Stop any ongoing recording or playback if the component unmounts
-            if (recordingStatus === 'recording') {
-                CustomAudioRecorderModule.stopRecording()
-                    .catch(e => console.log("Error stopping recording on unmount:", e));
-            }
-            CustomAudioRecorderModule.stopPlayback()
-                .catch(e => console.log("Error stopping playback on unmount:", e));
-            if (recordIntervalRef.current) {
-                clearInterval(recordIntervalRef.current);
-            }
+  useEffect(() => {
+    if (currentGroupId) {
+      getFolders(currentGroupId);
+    }
+  }, [currentGroupId, getFolders]);
 
-        };
-    }, []);
+  useEffect(() => {
+    if (error) {
+      Alert.alert('Error', error);
+    }
+  }, [error]);
 
-    // --- Modal Toggles ---
+  // Global listener for recording finished event
+  useEffect(() => {
+    const recordingListener = DeviceEventEmitter.addListener('onRecordingFinished', (data) => {
+      console.log('Native onRecordingFinished event received:', data);
+      if (recordIntervalRef.current) {
+        clearInterval(recordIntervalRef.current);
+        recordIntervalRef.current = null;
+      }
+      setRecordedAudioBase64(data.base64);
+      setRecordingStatus('finished');
+      setRecordDuration(0); // Reset duration after recording
+    });
 
-    const toggleCreateFolderModal = () => {
-        setCreateFolderModalVisible(!isCreateFolderModalVisible);
-        setNewFolderName('');
+    const playbackListener = DeviceEventEmitter.addListener('onPlaybackFinished', () => {
+      console.log('Native onPlaybackFinished event received');
+      // IMPORTANT: Reset playback status to 'idle' when native playback finishes for the modal's recorded sound
+      setPlaybackStatus('idle');
+      // NEW: Reset the ID of the currently playing sound in the folder
+      setCurrentPlayingSoundId(null);
+    });
+
+    return () => {
+      recordingListener.remove();
+      playbackListener.remove();
+      // Stop any ongoing recording or playback if the component unmounts
+      CustomAudioRecorderModule.stopRecording()
+        .catch(e => console.log("Error stopping recording on unmount:", e));
+      CustomAudioRecorderModule.stopPlayback()
+        .catch(e => console.log("Error stopping playback on unmount:", e));
+      if (recordIntervalRef.current) {
+        clearInterval(recordIntervalRef.current);
+        recordIntervalRef.current = null;
+      }
     };
+  }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
 
-    const toggleRecordModal = () => {
-        setRecordModalVisible(!isRecordModalVisible);
-        // Reset recording state when opening/closing modal
-        setRecordingStatus('idle');
-        setRecordDuration(0);
-        if (recordIntervalRef.current) {
-            clearInterval(recordIntervalRef.current);
-            recordIntervalRef.current = null;
-        }
-        // Stop any playback that might be happening from the modal
-        CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback:", e));
-    };
+  // --- Modal Toggles ---
 
-    // --- Folder Actions ---
+  const toggleCreateFolderModal = () => {
+    setCreateFolderModalVisible(!isCreateFolderModalVisible);
+    setNewFolderName('');
+  };
 
-    const handleCreateFolder = async () => {
-        if (!newFolderName.trim()) {
-            Alert.alert('Input Error', 'Folder name cannot be empty.');
-            return;
-        }
-        if (!currentGroupId) {
-            Alert.alert('Error', 'No active group selected. Cannot create folder.');
-            return;
-        }
+  const toggleRecordModal = () => {
+    // Stop any active recording/playback before closing the modal
+    if (recordingStatus === 'recording') {
+      stopRecording(); // Ensures native recording is stopped
+    }
+    CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback:", e));
+    // NEW: Stop any playing folder sound when record modal is opened/closed
+    setCurrentPlayingSoundId(null);
 
-        const result = await addFolder(newFolderName.trim(), currentGroupId);
-        if (result.success) {
-            Alert.alert('Success', `Folder "${newFolderName}" created!`);
-            toggleCreateFolderModal();
-        } else {
-            console.error('Failed to create folder:', result.error);
-        }
-    };
+    setRecordModalVisible(!isRecordModalVisible);
+    // Reset recording state when opening/closing modal
+    setRecordingStatus('idle');
+    setRecordDuration(0);
+    setRecordedAudioBase64(null); // Clear previous recording data
+    if (recordIntervalRef.current) {
+      clearInterval(recordIntervalRef.current);
+      recordIntervalRef.current = null;
+    }
+    // IMPORTANT: Reset playback status when the record modal is closed/opened
+    setPlaybackStatus('idle');
+  };
 
-    const handleRemoveFolder = async (folderId, folderName) => {
-        Alert.alert(
-            'Confirm Delete',
-            `Are you sure you want to delete folder "${folderName}"? All sounds within it will also be deleted.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    onPress: async () => {
-                        const result = await removeFolder(folderId);
-                        if (result.success) {
-                            Alert.alert('Success', `Folder "${folderName}" removed!`);
-                            if (selectedFolder?._id === folderId) {
-                                setSelectedFolder(null);
-                            }
-                        } else {
-                            console.error('Failed to remove folder:', result.error);
-                        }
-                    },
-                    style: 'destructive'
-                }
-            ]
-        );
-    };
+  // --- Folder Actions ---
 
-    const handleRemoveSound = async (soundId, soundName) => {
-        Alert.alert(
-            'Confirm Delete',
-            `Are you sure you want to delete sound "${soundName}"?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    onPress: async () => {
-                        const result = await removeSound(soundId);
-                        if (result.success) {
-                            Alert.alert('Success', `Sound "${soundName}" removed!`);
-                            if (selectedFolder) {
-                                console.log('Selected folder:', selectedFolder);
-                                setSelectedFolder(null);
-                            }
-                            getFolders(currentGroupId); // Refresh after deletion
-                        } else {
-                            console.error('Failed to remove sound:', result.error);
-                        }
-                    },
-                    style: 'destructive'
-                }
-            ]
-        );
-    };
-
-    const openFolder = (folder) => {
-        console.log('Opening folder:', folder);
-        setSelectedFolder(folder);
-    };
-
-    const closeFolder = () => {
-        setSelectedFolder(null);
-    };
-
-    // --- Audio Recording Actions (Using Native Module) ---
-
-    const requestAndCheckAudioPermissions = async () => {
-        if (Platform.OS === 'android') {
-            try {
-                // Assuming your native module has a method to request permission
-                const granted = await CustomAudioRecorderModule.requestMicrophonePermission();
-                return granted;
-            } catch (err) {
-                console.error("Error requesting Android mic permission via native module:", err);
-                Alert.alert('Permission Error', 'Failed to get audio recording permission. Please enable in app settings.');
-                return false;
-            }
-        }
-        // iOS permissions are typically handled by Info.plist entry; no explicit JS request needed
-        return true;
-    };
-
-
-    const startRecording = async () => {
-        const hasPermission = await requestAndCheckAudioPermissions();
-        if (!hasPermission) {
-            Alert.alert('Permission Denied', 'Microphone permission is required to record audio.');
-            return;
-        }
-
-        // Define a temporary file . Your native module should handle saving it.
-        // It's good practice to let the native module decide the exact storage location
-        // but pass a filename.
-  
-        try {
-              setRecordDuration(0);
-            setrecordedAudioBase64(null);
-           
-            setRecordingStatus('recording');
-               recordIntervalRef.current = setInterval(() => {
-                setRecordDuration(prevDuration => {
-                    const newDuration = prevDuration + 100; // Increment by 100ms
-                    // Stop JS timer if max duration is reached or exceeded
-                    if (newDuration >= MAX_RECORD_DURATION_MS) {
-                        clearInterval(recordIntervalRef.current);
-                        recordIntervalRef.current = null;
-                        // Trigger native stop if not already handled by native module
-                        stopRecording();
-                        return MAX_RECORD_DURATION_MS; // Cap at max duration for display
-                    }
-                    return newDuration;
-                });
-            }, 100); // Update every 100 milliseconds
-
-
-            let audio = await CustomAudioRecorderModule.startRecording();
-         
-        // Start the timer
-         
-         
-            // Listen for the recording finished event from the native module
-           DeviceEventEmitter.addListener('onRecordingFinished', (data) => {
-                 console.log('Native startRecording response:', data.base64);
-                setrecordedAudioBase64(data.base64);
-                setRecordingStatus('finished');
-                setRecordDuration(0); // Reset duration after recording
-                 if (recordIntervalRef.current) {
-                clearInterval(recordIntervalRef.current);
-                recordIntervalRef.current = null;
-            }
-               
-            });
-
-        } catch (error) {
-            console.error('Failed to start recording via native module:', error);
-            Alert.alert('Recording Error', 'Failed to start recording. Please try again.');
-            setRecordingStatus('idle');
-            if (recordIntervalRef.current) {
-                clearInterval(recordIntervalRef.current);
-            }
-        }
-    };
-
-    const playAudio = async (customSoundId) => {
-        console.log('Playing sound with ID:', customSoundId);
-        let sound = await getSoundById(customSoundId);  // ✅ await here
-        console.log('Sound data:', sound);
-        playRecordedSound(sound.sound.sound);
-            
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      Alert.alert('Input Error', 'Folder name cannot be empty.');
+      return;
+    }
+    if (!currentGroupId) {
+      Alert.alert('Error', 'No active group selected. Cannot create folder.');
+      return;
     }
 
-    const stopRecording = async () => {
-        try {
-            if (recordIntervalRef.current) {
-                clearInterval(recordIntervalRef.current);
-                recordIntervalRef.current = null;
-            }
-           
-             await CustomAudioRecorderModule.stopRecording(); 
-         
-
-        } catch (error) {
-            console.error('Failed to stop recording via native module:', error);
-            Alert.alert('Recording Error', 'Failed to stop recording.');
-            setRecordingStatus('idle');
-        }
-    };
-
-    const playRecordedSound = async (audio : string) => {
-        if (audio.length === 0) {
-            Alert.alert('No Sound', 'No sound recorded to play.');
-            return;
-        }
-        try {
-        
-            await CustomAudioRecorderModule.playAudio(audio);
-            // Optionally, add a listener for playback completion from your native module
-            DeviceEventEmitter.addListener('onPlaybackFinished', () => {
-                console.log('Playback finished');
-            });
-        } catch (error) {
-            console.error('Failed to play sound via native module:', error);
-            Alert.alert('Playback Error', 'Failed to play recorded sound.');
-        }
-    };
-
-    const handleUploadRecordedSound = async () => {
-        if (!recordedAudioBase64) {
-            Alert.alert('No Sound', 'Please record a sound before uploading.');
-            return;
-        }
-        if (!currentGroupId || !currentUserId) {
-            Alert.alert('Error', 'User or group information missing. Cannot upload sound.');
-            return;
-        }
-
-     
-
-
-        Alert.alert(
-            "Upload Confirmation",
-            `Are you sure you want to upload this recorded sound${selectedFolder ? ` to "${selectedFolder.folderName}"` : ' without a folder'}?`,
-            [
-                { text: "Cancel", style: "cancel", onPress: () => { /* Do nothing */ } },
-                {
-                    text: "Upload",
-                    onPress: async () => {
-                        const result = await addSound( currentGroupId, currentUserId, selectedFolder._id ,`recorded_sound_${Date.now()}.wav`, recordedAudioBase64,);
-                        if (result.success) {
-                            Alert.alert('Success', `Sound "${fileName}" uploaded!`);
-                            toggleRecordModal();
-                            if (selectedFolder) {
-                                setSelectedFolder(null);
-                                getFolders(currentGroupId);
-                            } else {
-                                getFolders(currentGroupId);
-                            }
-                        } else {
-                            console.error('Failed to upload recorded sound:', result.error);
-                            Alert.alert('Upload Error', 'Failed to upload sound. Please try again.');
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    const formatDuration = (ms) => {
-        const totalSeconds = Math.floor(ms / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    };
-
-    if (isLoading) {
-        return (
-            <View className='flex-1 justify-center items-center bg-primary'>
-                <Text className='text-white text-lg'>Loading custom sounds...</Text>
-            </View>
-        );
+    const result = await addFolder(newFolderName.trim(), currentGroupId);
+    if (result.success) {
+      Alert.alert('Success', `Folder "${newFolderName}" created!`);
+      toggleCreateFolderModal();
+    } else {
+      console.error('Failed to create folder:', result.error);
+      Alert.alert('Creation Error', result.error || 'Failed to create folder.');
     }
+  };
 
-    return (
-        <View className='bg-primary p-4 flex-1'>
-            {/* Create New Folder Button */}
-            <TouchableOpacity
-                className="bg-[#2a2a5a] p-4 rounded-lg mb-4 items-center"
-                onPress={toggleCreateFolderModal}
-            >
-                <Text className="text-white font-psemibold text-lg">Create New Folder</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-            className="bg-[#2a2a5a] p-4 rounded-lg mb-4 items-center"
-            onPress={() => fetchAndCreateModel(currentGroupId, groupPointer.groupName)}
-            >
-                <Text className="text-white font-psemibold text-lg">Train Model</Text>
-            </TouchableOpacity>
-
-           
-
-            <Text className='text-white my-3 font-psemibold text-lg'>Folders:</Text>
-            <ScrollView className='w-full mb-4 flex-1'>
-                {folders.length === 0  && !isLoading ? (
-                    <Text className="text-gray-400 text-center mt-5">No folders or sounds yet. Create one or record a sound!</Text>
-                ) : (
-                    <>
-                        {/* List Folders */}
-                        {folders.map((folder) => (
-                            <TouchableOpacity
-                                key={folder._id}
-                                className='bg-[#333366] p-4 mb-2 rounded-lg flex-row justify-between items-center'
-                                onPress={() => openFolder(folder)}
-                            >
-                                <View className="flex-row items-center space-x-3 flex-1">
-                                    <Image
-                                        source={icons.folder}
-                                        className="w-6 h-6 tint-white"
-                                        resizeMode="contain"
-                                    />
-                                    <Text className="text-white font-pregular text-lg flex-shrink">{folder.folderName}</Text>
-                                </View>
-                                <TouchableOpacity onPress={() => handleRemoveFolder(folder._id, folder.folderName)} className="ml-4 p-2">
-                                    <Image
-                                        source={icons.deleteIcon}
-                                        className="w-5 h-5 tint-red-500"
-                                        resizeMode="contain"
-                                    />
-                                </TouchableOpacity>
-                            </TouchableOpacity>
-                        ))}
-
-                    
-                       
-                    </>
-                )}
-            </ScrollView>
-
-            {/* Create Folder Modal */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={isCreateFolderModalVisible}
-                onRequestClose={toggleCreateFolderModal}
-            >
-                <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
-                    <View className="bg-primary p-6 rounded-lg w-80">
-                        <Text className="text-white font-psemibold text-xl mb-4 text-center">Create New Folder</Text>
-                        <TextInput
-                            className="bg-[#2a2a5a] text-white p-3 rounded-md mb-4 border border-gray-600"
-                            placeholder="Folder Name"
-                            placeholderTextColor="#ccc"
-                            value={newFolderName}
-                            onChangeText={setNewFolderName}
-                        />
-                        <View className="flex-row justify-end">
-                            <TouchableOpacity className="py-2 px-4 rounded-md mr-2" onPress={toggleCreateFolderModal}>
-                                <Text className="text-gray-400">Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                className="bg-accent py-2 px-4 rounded-md"
-                                onPress={handleCreateFolder}
-                            >
-                                <Text className="text-white font-psemibold">Create</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Folder Content Modal */} 
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={selectedFolder !== null}
-                onRequestClose={closeFolder}
-            >
-                <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
-                    <View className="bg-primary p-6 rounded-lg w-80">
-                        <Text className="text-white font-psemibold text-xl mb-4 text-center">{selectedFolder?.folderName}</Text>
-                        <ScrollView style={{ maxHeight: 200 }}>
-                            {selectedFolder?.sounds.length > 0 ? (
-                                selectedFolder.sounds.map((sound) => (
-                                    <View key={sound._id} className="bg-[#444477] p-3 mb-2 rounded-lg flex-row justify-between items-center">
-                                        <View className="flex-row items-center space-x-3 flex-1">
-                                            <Image
-                                                source={icons.musicNote}
-                                                className="w-6 h-6 tint-white"
-                                                resizeMode="contain"
-                                            />
-                                            <Text className="text-white flex-shrink">{sound.filename} ({sound.userId?.username || 'Unknown'})</Text>
-                                        </View>
-                                        <TouchableOpacity onPress={() => handleRemoveSound(sound._id, sound.filename)} className="ml-4 p-2">
-                                            <Text>Delete</Text>
-                                        </TouchableOpacity>
-                                         <TouchableOpacity onPress={() =>  playAudio(sound._id)} className="ml-4 p-2">
-                                            <Text>Play</Text>
-                                        </TouchableOpacity>
-                                       
-                                    </View>
-                                ))
-                            ) : (
-                                <Text className="text-gray-400 text-center">No sounds in this folder yet.</Text>
-                            )}
-                        </ScrollView>
-                        <TouchableOpacity
-                            className="bg-accent py-3 px-4 rounded-md mt-4 items-center"
-                            onPress={() => {
-                                toggleRecordModal();
-                                // selectedFolder state will remain, so handleUploadRecordedSound can use its ID
-                            }}
-                        >
-                            <Text className="text-white font-psemibold text-center">Record Sound to Folder</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity className="py-3 px-4 rounded-md mt-2 items-center" onPress={closeFolder}>
-                            <Text className="text-gray-400 text-center">Close Folder</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Record Sound Modal */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={isRecordModalVisible}
-                onRequestClose={toggleRecordModal}
-            >
-                <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
-                    <View className="bg-primary p-6 rounded-lg w-80 flex items-center justify-center">
-                        <Text className="text-white font-psemibold text-xl mb-4 text-center">Record New Sound</Text>
-                        <Text className="text-gray-400 mb-3 text-center">
-                            Record a 5-second audio clip {selectedFolder ? `for "${selectedFolder.folderName}"` : 'without a folder'}.
-                        </Text>
-
-                        <Text className={`text-3xl font-pbold mb-4 ${recordDuration >= MAX_RECORD_DURATION_MS ? 'text-red-500' : 'text-white'}`}>
-                            {formatDuration(recordDuration)} / {formatDuration(MAX_RECORD_DURATION_MS)}
-                        </Text>
-
-                        {recordingStatus === 'idle' && (
-                            <TouchableOpacity
-                                className="bg-green-500 p-4 rounded-full w-20 h-20 items-center justify-center mb-4"
-                                onPress={startRecording}
-                            >
-                                <Image
-                                    source={icons.mic}
-                                    className="w-10 h-10 tint-white"
-                                    resizeMode="contain"
-                                />
-                            </TouchableOpacity>
-                        )}
-                        {recordingStatus === 'recording' && (
-                            <TouchableOpacity
-                                className="bg-red-500 p-4 rounded-full w-20 h-20 items-center justify-center mb-4 animate-pulse"
-                                onPress={stopRecording}
-                            >
-                                <Image
-                                    source={icons.stop}
-                                    className="w-10 h-10 tint-white"
-                                    resizeMode="contain"
-                                />
-                            </TouchableOpacity>
-                        )}
-                        {recordingStatus === 'finished' && (
-                            <View className="flex-row items-center justify-center mb-4">
-                                <TouchableOpacity
-                                    className="bg-blue-500 p-3 rounded-full mr-2"
-                                    onPress={playRecordedSound(recordedAudioBase64)}
-                                >
-                                    <Image
-                                        source={icons.play}
-                                        className="w-8 h-8 tint-white"
-                                        resizeMode="contain"
-                                    />
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    className="bg-gray-600 p-3 rounded-full"
-                                    onPress={() => { setRecordingStatus('idle'); setRecordDuration(0); }}
-                                >
-                                    <Image
-                                        source={icons.reload}
-                                        className="w-8 h-8 tint-white"
-                                        resizeMode="contain"
-                                    />
-                                </TouchableOpacity>
-                            </View>
-                        )}
-
-                        <View className="flex-row justify-end mt-4 w-full">
-                            <TouchableOpacity className="py-2 px-4 rounded-md mr-2" onPress={toggleRecordModal}>
-                                <Text className="text-gray-400">Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                className="bg-accent py-2 px-4 rounded-md"
-                                onPress={handleUploadRecordedSound}
-                                disabled={recordingStatus !== 'finished' }
-                            >
-                                <Text className="text-white font-psemibold">Upload</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-        </View>
+  const handleRemoveFolder = async (folderId, folderName) => {
+    Alert.alert(
+      'Confirm Delete',
+      `Are you sure you want to delete folder "${folderName}"? All sounds within it will also be deleted.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            const result = await removeFolder(folderId);
+            if (result.success) {
+              Alert.alert('Success', `Folder "${folderName}" removed!`);
+              if (selectedFolder?._id === folderId) {
+                setSelectedFolder(null); // Close folder if it was the selected one
+                // NEW: Stop playback if the deleted folder's sound was playing
+                setCurrentPlayingSoundId(null);
+                CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback on folder delete:", e));
+              }
+            } else {
+              console.error('Failed to remove folder:', result.error);
+              Alert.alert('Deletion Error', result.error || 'Failed to remove folder.');
+            }
+          },
+          style: 'destructive'
+        }
+      ]
     );
+  };
+
+  const handleRemoveSound = async (soundId, soundName) => {
+    Alert.alert(
+      'Confirm Delete',
+      `Are you sure you want to delete sound "${soundName}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            const result = await removeSound(soundId);
+            if (result.success) {
+              Alert.alert('Success', `Sound "${soundName}" removed!`);
+              // After deleting a sound, re-fetch folders to update the UI correctly
+              getFolders(currentGroupId);
+              // NEW: If the deleted sound was playing, stop it
+              if (currentPlayingSoundId === soundId) {
+                setCurrentPlayingSoundId(null);
+                CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback on sound delete:", e));
+              }
+            } else {
+              console.error('Failed to remove sound:', result.error);
+              Alert.alert('Deletion Error', result.error || 'Failed to remove sound.');
+            }
+          },
+          style: 'destructive'
+        }
+      ]
+    );
+  };
+
+  const openFolder = (folder) => {
+    console.log('Opening folder:', folder);
+    setSelectedFolder(folder);
+    // IMPORTANT: Stop playback and reset status when opening a new folder
+    CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback on folder open:", e));
+    // NEW: Also reset the specific sound playing state
+    setCurrentPlayingSoundId(null);
+  };
+
+  const closeFolder = () => {
+    setSelectedFolder(null);
+    // IMPORTANT: Stop playback and reset status when closing the folder modal
+    CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback on folder close:", e));
+    // NEW: Also reset the specific sound playing state
+    setCurrentPlayingSoundId(null);
+  };
+
+  // --- Audio Recording Actions (Using Native Module) ---
+
+  const requestAndCheckAudioPermissions = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await CustomAudioRecorderModule.requestMicrophonePermission();
+        return granted;
+      } catch (err) {
+        console.error("Error requesting Android mic permission via native module:", err);
+        Alert.alert('Permission Error', 'Failed to get audio recording permission. Please enable in app settings.');
+        return false;
+      }
+    }
+    return true; // iOS permissions are typically handled by Info.plist entry
+  };
+
+  const startRecording = async () => {
+    const hasPermission = await requestAndCheckAudioPermissions();
+    if (!hasPermission) {
+      Alert.alert('Permission Denied', 'Microphone permission is required to record audio.');
+      return;
+    }
+
+    try {
+      setRecordDuration(0);
+      setRecordedAudioBase64(null); // Clear previous base64 data
+      setRecordingStatus('recording');
+      setPlaybackStatus('idle'); // Ensure playback is idle when starting recording
+      // NEW: Ensure any playing folder sound is stopped
+      setCurrentPlayingSoundId(null);
+      await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping prior playback:", e));
+
+
+      // Start the JS timer *before* the native call, but let native dictate final stop
+      recordIntervalRef.current = setInterval(() => {
+        setRecordDuration(prevDuration => {
+          const newDuration = prevDuration + 100;
+          if (newDuration >= MAX_RECORD_DURATION_MS) {
+            // Trigger native stop if max duration is reached
+            stopRecording();
+            return MAX_RECORD_DURATION_MS; // Cap for display
+          }
+          return newDuration;
+        });
+      }, 100);
+
+      // Call native module to start recording
+      await CustomAudioRecorderModule.startRecording();
+      console.log('Native startRecording initiated.');
+
+    } catch (error) {
+      console.error('Failed to start recording via native module:', error);
+      Alert.alert('Recording Error', 'Failed to start recording. Please try again.');
+      setRecordingStatus('idle');
+      if (recordIntervalRef.current) {
+        clearInterval(recordIntervalRef.current);
+        recordIntervalRef.current = null;
+      }
+    }
+  };
+
+  const stopRecording = async () => {
+    if (recordingStatus !== 'recording') {
+      console.log('Not currently recording. Skipping stop.');
+      return; // Prevent stopping if not in recording state
+    }
+
+    try {
+      if (recordIntervalRef.current) {
+        clearInterval(recordIntervalRef.current);
+        recordIntervalRef.current = null;
+      }
+
+      await CustomAudioRecorderModule.stopRecording();
+      console.log('Native stopRecording initiated.');
+      // The state (setRecordingStatus('finished')) will be handled by the onRecordingFinished listener
+      // This helps ensure consistency when native module reports completion.
+
+    } catch (error) {
+      console.error('Failed to stop recording via native module:', error);
+      Alert.alert('Recording Error', 'Failed to stop recording. Please try again.');
+      setRecordingStatus('idle'); // Fallback to idle if error
+    }
+  };
+
+  const playAudio = async (customSoundId) => {
+    // If the same sound is already playing, stop it and reset state
+    if (currentPlayingSoundId === customSoundId) {
+      console.log('Toggling playback for the same sound. Stopping.');
+      await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback:", e));
+      setCurrentPlayingSoundId(null); // No sound is playing now
+      return;
+    }
+
+    // If a different sound is playing, stop it first
+    if (currentPlayingSoundId !== null) {
+      console.log('Stopping currently playing sound before starting a new one.');
+      await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping prior playback:", e));
+      setCurrentPlayingSoundId(null); // Ensure old sound's state is cleared
+      // Add a small delay if needed to ensure native module can stop
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    // Also stop the recorded sound if it's playing
+    if (playbackStatus === 'playing') {
+        console.log('Stopping recorded sound before playing folder sound.');
+        await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping recorded sound playback:", e));
+        setPlaybackStatus('idle');
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+
+    console.log('Playing sound with ID:', customSoundId);
+    try {
+      let sound = await getSoundById(customSoundId);
+      if (sound && sound.sound?.sound) {
+        setCurrentPlayingSoundId(customSoundId); // Set the ID of the sound that's about to play
+        await CustomAudioRecorderModule.playAudio(sound.sound.sound);
+        console.log('Native playAudio initiated.');
+      } else {
+        Alert.alert('Playback Error', 'Sound data not found or invalid.');
+        setCurrentPlayingSoundId(null); // Reset if sound data is bad
+      }
+    } catch (error) {
+      console.error('Failed to play sound via native module:', error);
+      Alert.alert('Playback Error', 'Failed to play recorded sound.');
+      setCurrentPlayingSoundId(null); // Reset on error
+    }
+  };
+
+
+  const playRecordedSound = async (audioBase64) => {
+    if (playbackStatus === 'playing') {
+      console.log('Already playing recorded audio. Stopping current playback.');
+      await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping prior playback:", e));
+      setPlaybackStatus('idle');
+      // Add a small delay if needed to ensure native module can stop
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    // NEW: Also stop any folder sounds playing
+    if (currentPlayingSoundId !== null) {
+      console.log('Stopping any folder sound before playing recorded sound.');
+      await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping prior playback:", e));
+      setCurrentPlayingSoundId(null); // Clear the folder sound playback state
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    if (!audioBase64) {
+      Alert.alert('No Sound', 'No sound recorded to play.');
+      return;
+    }
+    try {
+      setPlaybackStatus('playing');
+      await CustomAudioRecorderModule.playAudio(audioBase64);
+    } catch (error) {
+      console.error('Failed to play sound via native module:', error);
+      Alert.alert('Playback Error', 'Failed to play recorded sound.');
+      setPlaybackStatus('idle');
+    }
+  };
+
+
+  const handleUploadRecordedSound = async () => {
+    if (!recordedAudioBase64) {
+      Alert.alert('No Sound', 'Please record a sound before uploading.');
+      return;
+    }
+    if (!currentGroupId || !currentUserId) {
+      Alert.alert('Error', 'User or group information missing. Cannot upload sound.');
+      return;
+    }
+
+    // You need a way to get the file name. For recorded sounds, often you prompt the user
+    // or generate a default name. Let's create a placeholder for now.
+    const defaultFileName = `recorded_sound_${Date.now()}.wav`;
+
+    Alert.alert(
+      "Upload Confirmation",
+      `Are you sure you want to upload "${defaultFileName}"${selectedFolder ? ` to "${selectedFolder.folderName}"` : ' without a folder'}?`,
+      [
+        { text: "Cancel", style: "cancel", onPress: () => { /* Do nothing */ } },
+        {
+          text: "Upload",
+          onPress: async () => {
+            const folderIdToUse = selectedFolder ? selectedFolder._id : null; // Handle case where no folder is selected
+            const result = await addSound(currentGroupId, currentUserId, folderIdToUse, defaultFileName, recordedAudioBase64);
+            if (result.success) {
+              Alert.alert('Success', `Sound "${defaultFileName}" uploaded!`);
+              toggleRecordModal(); // Close the record modal
+              // Refresh folders to show the new sound in the correct folder
+              getFolders(currentGroupId);
+              // Clear recorded audio and status
+              setRecordedAudioBase64(null);
+              setRecordingStatus('idle');
+              setPlaybackStatus('idle'); // Reset playback status after upload
+              // NEW: Ensure no folder sound is marked as playing
+              setCurrentPlayingSoundId(null);
+            } else {
+              console.error('Failed to upload recorded sound:', result.error);
+              Alert.alert('Upload Error', result.error || 'Failed to upload sound. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const formatDuration = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  if (isLoading) {
+    return (
+      <View className='flex-1 justify-center items-center bg-primary'>
+        <Text className='text-white font-pregular text-lg'>Loading custom sounds...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className='bg-primary p-4 flex-1'>
+      {/* Create New Folder Button */}
+      <TouchableOpacity
+        className="border-2 border-secondary p-4 rounded-lg mb-4 items-center"
+        onPress={toggleCreateFolderModal}
+      >
+        <Text className="text-lightsecondary font-psemibold text-lg">Create New Folder</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        className="bg-secondary p-4 rounded-lg mb-4 items-center"
+        onPress={() => fetchAndCreateModel(currentGroupId, groupPointer.groupName)}
+      >
+        <Text className="text-white font-psemibold text-lg">Train Model</Text>
+      </TouchableOpacity>
+
+      <Text className='text-white my-3 font-psemibold text-lg'>Folders:</Text>
+      <ScrollView className='w-full mb-4 flex-1'>
+        {folders.length === 0 && !isLoading ? (
+          <Text className="text-gray-400 text-center mt-5">No folders or sounds yet. Create one or record a sound!</Text>
+        ) : (
+          <>
+            {/* List Folders */}
+            {folders.map((folder) => (
+              <TouchableOpacity
+                key={folder._id}
+                className='bg-[#333366] p-4 mb-2 rounded-lg flex-row justify-between items-center'
+                onPress={() => openFolder(folder)}
+              >
+                <View className="flex-row items-center space-x-3 flex-1">
+                  <Image
+                    source={icons.folder}
+                    className="w-6 h-6 tint-white mr-2"
+                    resizeMode="contain"
+                  />
+                  <Text className="text-white font-pregular text-lg flex-shrink">{folder.folderName}</Text>
+                </View>
+                <TouchableOpacity onPress={() => handleRemoveFolder(folder._id, folder.folderName)} className="ml-4 p-2">
+                  <Image
+                    source={icons.trash}
+                    className="w-6 h-6 tint-red-500"
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
+      </ScrollView>
+
+      {/* Create Folder Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isCreateFolderModalVisible}
+        onRequestClose={toggleCreateFolderModal}
+      >
+        <TouchableWithoutFeedback onPress={toggleCreateFolderModal}>
+          <View className="flex-1 justify-center items-center bg-black/70">
+            <TouchableWithoutFeedback onPress={() => { /* Prevent closing when tapping inside */ }}>
+              <View className="bg-primary p-6 py-10 rounded-lg w-3/4">
+                <Text className="text-white text-center text-xl font-psemibold mb-6">Create New Folder</Text>
+                <TextInput
+                  className="bg-white text-primary p-4 font-pregular rounded-md mb-4"
+                  placeholder="Enter folder name"
+                  placeholderTextColor="#ccc"
+                  value={newFolderName}
+                  onChangeText={setNewFolderName}
+                />
+                <TouchableOpacity
+                  onPress={handleCreateFolder}
+                  className="bg-secondary p-4 rounded-lg w-full items-center mb-4"
+                >
+                  <Text className="text-white text-base font-psemibold">Create</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={toggleCreateFolderModal}
+                  className="mt-2"
+                >
+                  <Text className="text-gray-400 font-psemibold mt-2 text-center">Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Folder Content Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={selectedFolder !== null}
+        onRequestClose={closeFolder}
+      >
+        <TouchableWithoutFeedback onPress={closeFolder}>
+          <View className="flex-1 justify-center items-center bg-black/50">
+            <TouchableWithoutFeedback onPress={() => { /* Prevent closing when tapping inside */ }}>
+              <View className="bg-primary p-6 py-10 rounded-lg w-3/4">
+                <Text className="text-white text-center text-xl font-psemibold mb-6">{selectedFolder?.folderName}</Text>
+                <ScrollView style={{ maxHeight: 200 }} className="mb-4">
+                  {selectedFolder?.sounds.length > 0 ? (
+                    selectedFolder.sounds.map((sound) => (
+                      <View key={sound._id} className="bg-[#444477] p-3 mb-2 rounded-lg flex-row justify-between items-center">
+                        <View className="flex-row items-center space-x-3 flex-1">
+                          <Image
+                            source={icons.musicNote}
+                            className="w-6 h-6 tint-white"
+                            resizeMode="contain"
+                          />
+                          <Text className="text-white flex-shrink">{sound.filename} ({sound.userId?.username || 'Unknown'})</Text>
+                        </View>
+                        <TouchableOpacity onPress={() => handleRemoveSound(sound._id, sound.filename)} className="ml-4 p-2">
+                          <Image
+                            source={icons.trash} // Changed from deleteIcon to trash as per icons.trash
+                            className="w-8 h-8 tint-red-500" // Adjusted size
+                            resizeMode="contain"
+                          />
+                        </TouchableOpacity>
+                        {/* NEW: Play/Pause button for individual sounds */}
+                        <TouchableOpacity
+                          onPress={() => playAudio(sound._id)}
+                          className={`ml-4 p-2 rounded-full ${currentPlayingSoundId === sound._id ? 'bg-gray-500' : 'bg-secondary'}`} // Dim and set background based on currentPlayingSoundId
+                        >
+                          <Image
+                            source={currentPlayingSoundId === sound._id ? icons.pause : icons.play} // Show pause/play icon based on currentPlayingSoundId
+                            className="w-8 h-8 tint-white"
+                            resizeMode="contain"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    ))
+                  ) : (
+                    <Text className="text-gray-400 font-pregular text-center">No sounds in this folder yet.</Text>
+                  )}
+                </ScrollView>
+                <TouchableOpacity
+                  className="bg-secondary py-4 rounded-lg w-full items-center mb-4"
+                  onPress={() => { toggleRecordModal(); }}
+                >
+                  <Text className="text-white font-psemibold text-base">Record Sound to Folder</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="mt-2" onPress={closeFolder}>
+                  <Text className="text-gray-400 font-psemibold mt-2 text-center">Close Folder</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      /* Record Sound Modal */
+        <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isRecordModalVisible}
+        onRequestClose={toggleRecordModal}
+        >
+        <View className="flex-1 justify-center items-center bg-black/50">
+            <View className="bg-primary p-6 rounded-lg w-80 flex items-center justify-center">
+            <Text className="text-white font-psemibold text-xl mb-4 text-center">Record New Sound</Text>
+            <Text className="text-gray-400 mb-3 text-center">
+                Record a 5-second audio clip {selectedFolder ? `for "${selectedFolder.folderName}"` : 'without a folder'}.
+            </Text>
+
+            <Text className={`text-3xl font-pbold mb-4 ${recordDuration >= MAX_RECORD_DURATION_MS ? 'text-red-500' : 'text-white'}`}>
+                {formatDuration(recordDuration)} / {formatDuration(MAX_RECORD_DURATION_MS)}
+            </Text>
+
+            {recordingStatus === 'idle' && (
+                <TouchableOpacity
+                className="bg-secondary p-4 rounded-full w-20 h-20 items-center justify-center mb-4"
+                onPress={startRecording}
+                >
+                <Image
+                    source={icons.microphone}
+                    className="w-10 h-10 tint-white"
+                    resizeMode="contain"
+                />
+                </TouchableOpacity>
+            )}
+            {recordingStatus === 'recording' && (
+                <TouchableOpacity
+                className="bg-red-500 p-4 rounded-full w-20 h-20 items-center justify-center mb-4 animate-pulse"
+                onPress={stopRecording}
+                >
+                <Image
+                    source={icons.recording}
+                    className="w-10 h-10 tint-white"
+                    resizeMode="contain"
+                />
+                </TouchableOpacity>
+            )}
+            {recordingStatus === 'finished' && (
+                <View className="flex-row items-center justify-center mb-4">
+                <TouchableOpacity
+                    // This button will now toggle play/pause
+                    className={`p-3 rounded-full mr-2 ${playbackStatus === 'playing' ? 'bg-gray-500' : 'bg-secondary'}`}
+                    onPress={async () => { // Make this an async function
+                    if (playbackStatus === 'playing') {
+                        console.log('Stopping recorded audio.');
+                        await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback:", e));
+                        setPlaybackStatus('idle'); // Set status to idle after stopping
+                    } else {
+                        console.log('Starting recorded audio playback.');
+                        playRecordedSound(recordedAudioBase64); // Call the function to start playback
+                    }
+                    }}
+                >
+                    <Image
+                    source={playbackStatus === 'playing' ? icons.pause : icons.play}
+                    className="w-8 h-8 tint-white"
+                    resizeMode="contain"
+                    />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    className="bg-gray-600 p-3 rounded-full"
+                    onPress={() => {
+                    setRecordingStatus('idle');
+                    setRecordDuration(0);
+                    setRecordedAudioBase64(null);
+                    setPlaybackStatus('idle'); // Reset playback status when replaying or clearing
+                    }}
+                >
+                    <Image
+                    source={icons.replay}
+                    className="w-8 h-8 tint-white"
+                    resizeMode="contain"
+                    />
+                </TouchableOpacity>
+                </View>
+            )}
+
+            <View className="flex-row justify-end mt-4 w-full">
+                <TouchableOpacity className="py-2 px-4 rounded-md mr-2" onPress={toggleRecordModal}>
+                <Text className="text-gray-400">Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                className={`py-2 px-4 rounded-md ${recordingStatus !== 'finished' || playbackStatus === 'playing' ? 'bg-gray-500' : 'bg-secondary'}`}
+                onPress={handleUploadRecordedSound}
+                disabled={recordingStatus !== 'finished' || playbackStatus === 'playing'}
+                >
+                <Text className="text-white font-psemibold">Upload</Text>
+                </TouchableOpacity>
+            </View>
+            </View>
+        </View>
+        </Modal>
+    </View>
+  );
 };
 
 export default CustomSounds;

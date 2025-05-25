@@ -89,7 +89,9 @@ const GroupStackNavigator = () => {
       <GroupStack.Screen
        name="CustomSounds"
         component={CustomSounds}
-         options={{ headerShown: true }} />
+         options={{ 
+          headerShown: true,
+          }} />
 
     </GroupStack.Navigator>
   );
