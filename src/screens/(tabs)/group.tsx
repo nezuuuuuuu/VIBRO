@@ -143,7 +143,7 @@ const Groups = () => {
   };
 
   return (
-    <View className="flex-1 bg-primary p-4">
+    <View className="h-full flex-1 bg-primary p-4">
       <ScrollView className="flex-1">
         {isLoading && groups.length === 0 && (
             <Text className="text-white text-center mt-8">Loading groups...</Text>
@@ -168,7 +168,7 @@ const Groups = () => {
           >
             <View className="flex-row items-center space-x-4">
               <Image
-                source={{ uri: `https://api.dicebear.com/7.x/personas/png?seed=${group?.groupName || group?._id || "guest"}` }}
+                source={{ uri: `https://api.dicebear.com/9.x/shapes/png?seed=${group?.groupName || group?._id || "guest"}` }}
                 className="w-12 h-12 rounded-full bg-gray-300"
                 resizeMode="cover"
               />

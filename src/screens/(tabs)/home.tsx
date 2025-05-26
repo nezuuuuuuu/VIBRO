@@ -32,6 +32,7 @@ import RNFS from 'react-native-fs';
 import { Buffer } from 'buffer';
 import Sound from 'react-native-sound';
 import { AndroidImportance } from '@notifee/react-native';
+import Index from '../(welcome)';
 
 
 const { AudioRecorder, Flashlight } = NativeModules;
@@ -39,6 +40,8 @@ const { AudioRecorder, Flashlight } = NativeModules;
 const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren',];
 const NOTIF_LEVEL_2_ALLOWED_LABELS = ['Speech', 'Baby cry, infant cry','Crying, sobbing'];
 const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass'];
+const ACTIVE_SWITCH_COLOR = '#8A2BE2';
+const INACTIVE_SWITCH_COLOR = '#767577';
 
 
 const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
@@ -47,7 +50,7 @@ const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
   'Police car (siren)': 1,
   'Siren': 1,
   'Glass': 2,
-  'Speech': 3,
+  'Speech': 2,
   'Crying, sobbing': 2,
   'Baby cry, infant cry': 2,
 };
@@ -133,7 +136,7 @@ function Home() {
           <Text className="font-pbold text-2xl text-white">VIBRO</Text>
        ),
         headerRight: () => (
-          <View className="flex-row items-center gap-2 mr-4">
+          <View className="flex-row items-center gap-2 mr-6">
               <Image
                   className="w-12 h-12 rounded-full bg-gray-300"
                   style={{ width: 30, height: 30, borderRadius: 50 }}
@@ -393,14 +396,24 @@ setIsMonitoringOn(!isMonitoringOn);
         ))}
         
       </View>
-      <View >
-          <Text className="text-xs text-gray-300 font-pregular">  
-           Monitoring: 
-          </Text>
-          <Switch
-                     value={isMonitoringOn}
-                        onValueChange={() => handleToggle()}
-                      />
+                <View className="p-4">
+                  <View className="flex flex-row items-center justify-between py-2">
+                    <View className="flex-1 mr-4">
+                      <Text className="text-base font-pmedium text-gray-200">
+                        Enable Custom Model Monitoring
+                      </Text>
+                      <Text className="text-xs font-pregular text-gray-400 mt-1">
+                        When enabled, monitoring will utilize your custom-trained model.
+                      </Text>
+                    </View>
+                    <Switch
+                      onValueChange={() => handleToggle()}
+                      trackColor={{ false: INACTIVE_SWITCH_COLOR, true: ACTIVE_SWITCH_COLOR }}
+                      thumbColor={isMonitoringOn ? ACTIVE_SWITCH_COLOR : "#f4f3f4"} 
+                      value={isMonitoringOn}
+                      ios_backgroundColor={INACTIVE_SWITCH_COLOR} //
+                    />
+                  </View>
                 </View>
         </View>
 

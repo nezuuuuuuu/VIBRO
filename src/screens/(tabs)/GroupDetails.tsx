@@ -118,7 +118,7 @@ const GroupDetails = () => {
 
     return (
         <View className='bg-primary p-4 flex-1'>
-            <Text className='text-white my-5'>Monitoring on:</Text>
+            <Text className='text-white font-pregular my-5'>Monitoring on:</Text>
             <ScrollView className='w-full rounded-lg'>
                 
                 {groupMembersPointer.filter((member) => member.isActive).map((member) => (
