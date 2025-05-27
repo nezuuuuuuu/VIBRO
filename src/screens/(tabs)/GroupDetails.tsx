@@ -117,6 +117,7 @@ const GroupDetails = () => {
         }
     }, [navigation,groupPointer,groupMembersPointer,currentUserId, token]);
 
+    // CONNECT TO SOCKET
     return (
         <View className='bg-primary p-4 flex-1'>
             <Text className='text-white my-5'>Monitoring on:</Text>
