@@ -16,6 +16,7 @@ const GroupDetails = () => {
         const currentUserId = user?._id;
         const route = useRoute();
     
+    // USEEFFECT
     useEffect(() => {
          
         if (socket) {
