@@ -10,6 +10,8 @@ import {
   Platform,
   NativeModules,
   Switch,
+  Vibration,
+  StatusBar,
 } from 'react-native';
 import { useState, useRef } from 'react';
 import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
@@ -50,7 +52,7 @@ const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
   'Police car (siren)': 1,
   'Siren': 1,
   'Glass': 2,
-  'Speech': 2,
+  'Speech': 3,
   'Crying, sobbing': 2,
   'Baby cry, infant cry': 2,
 };
@@ -204,30 +206,48 @@ function Home() {
     
 
 
-DeviceEventEmitter.addListener("onPrediction", (data) => {
-  console.log("YAMNET PREDICTIONS:", data.yamnetPredictions);
-  console.log("CUSTOM PREDICTIONS:", data.customPredictions);
+ DeviceEventEmitter.addListener("onPrediction", (data) => {
+      console.log("YAMNET PREDICTIONS:", data.yamnetPredictions);
+      console.log("CUSTOM PREDICTIONS:", data.customPredictions);
 
-  // If you want to work with the custom predictions:
-  const { customPredictions, yamnetPredictions, audioBase64 } = data;
+      const { customPredictions, yamnetPredictions, audioBase64 } = data;
 
+      // Create a Set to track unique labels that have been added to the queue
+      // This helps prevent duplicates if one event provides multiple very similar labels
+      const processedLabels = new Set();
 
-  if (Array.isArray(yamnetPredictions)) {
-    yamnetPredictions.forEach(({ label, confidence }) => {
-      predictionQueue.push({ isCustom : false, label, confidence, audioBase64 });
-      if (!isProcessing) processQueue();
+      if (Array.isArray(yamnetPredictions)) {
+        yamnetPredictions.forEach(({ label, confidence }) => {
+          if (!processedLabels.has(label)) { // Check if this label has already been processed
+            predictionQueue.push({ isCustom: false, label, confidence, audioBase64 });
+            processedLabels.add(label); // Add label to the set
+          }
+        });
+      }
+
+      if (Array.isArray(customPredictions)) {
+        customPredictions.forEach(({ label, confidence }) => {
+          // For custom predictions, also ensure uniqueness, possibly prefixing to differentiate
+          const uniqueCustomLabel = `custom_${label}`;
+          if (!processedLabels.has(uniqueCustomLabel)) {
+            predictionQueue.push({ isCustom: true, label, confidence, audioBase64 });
+            processedLabels.add(uniqueCustomLabel);
+          }
+        });
+      }
+
+      // Start processing the queue only if there are new items and it's not already running
+      if (predictionQueue.length > 0 && !isProcessing) {
+        processQueue();
+      }
     });
-  }
-   if (Array.isArray(customPredictions)) {
-    customPredictions.forEach(({ label, confidence }) => {
-      predictionQueue.push({ isCustom : true, label, confidence, audioBase64 });
-      if (!isProcessing) processQueue();
-    });
-  }
-});
 
+    // Clean up the event listener when the component unmounts
+    return () => {
+      DeviceEventEmitter.removeAllListeners("onPrediction");
+    };
 
-  },[]);
+  }, []);
 
 
 
@@ -252,7 +272,9 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     { isCustom: isCustom, label: label, confidence: confidence, timestamp: currentTime, audioBase64: audioBase64, criticalLevel: criticalLevel }
                 ]);
                 addSound(label, confidence, audioBase64);
+                // --- VIBRATION LOGIC ADDED HERE ---
                 if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
+                    Vibration.vibrate([0, 500, 200, 500]); // Vibrate for 500ms, pause 200ms, vibrate 500ms (High urgency)
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
@@ -262,6 +284,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                         },
                     });
                 } else if (NOTIF_LEVEL_2_ALLOWED_LABELS.includes(label)) {
+                    Vibration.vibrate(500); // Vibrate for 500ms (Medium urgency)
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 2`,
@@ -271,6 +294,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                         },
                     });
                 } else if (NOTIF_LEVEL_3_ALLOWED_LABELS.includes(label)) {
+                    Vibration.vibrate(200); // Vibrate for 200ms (Low urgency)
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 3`,
@@ -280,7 +304,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                         },
                     });
                 } else if (isCustom) {
-                    // Specific notification for custom sounds
+                    Vibration.vibrate([0, 1000]); // Vibrate for 1000ms (Distinct for custom sounds)
                     await notifee.displayNotification({
                         title: `Detected Custom Sound: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - Custom Model`,
@@ -400,16 +424,16 @@ setIsMonitoringOn(!isMonitoringOn);
                   <View className="flex flex-row items-center justify-between py-2">
                     <View className="flex-1 mr-4">
                       <Text className="text-base font-pmedium text-gray-200">
-                        Enable Custom Model Monitoring
+                        Enable Group Monitoring
                       </Text>
                       <Text className="text-xs font-pregular text-gray-400 mt-1">
-                        When enabled, monitoring will utilize your custom-trained model.
+                        When enabled, detected sounds will be visible to your group members.
                       </Text>
                     </View>
                     <Switch
                       onValueChange={() => handleToggle()}
                       trackColor={{ false: INACTIVE_SWITCH_COLOR, true: ACTIVE_SWITCH_COLOR }}
-                      thumbColor={isMonitoringOn ? ACTIVE_SWITCH_COLOR : "#f4f3f4"} 
+                      thumbColor={isMonitoringOn ? "#f4f3f4" : "#f4f3f4"} 
                       value={isMonitoringOn}
                       ios_backgroundColor={INACTIVE_SWITCH_COLOR} //
                     />
@@ -443,6 +467,7 @@ setIsMonitoringOn(!isMonitoringOn);
             <Image source={isRecording ? icons.recording : icons.microphone} className="h-8 w-8" resizeMode='contain' />
         </TouchableOpacity>
       </View>
+      <StatusBar className='bg-primary' />
     </View>
   );
 }

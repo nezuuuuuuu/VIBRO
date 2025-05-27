@@ -223,19 +223,19 @@ const Sound = () => {
             </Text>
           )}
         </View>
-        <View className="flex-row items-center"> {/* Container for switch and delete icon */}
+        <View className="flex-row items-center"> 
           <Switch
             trackColor={{ false: INACTIVE_SWITCH_COLOR, true: ACTIVE_SWITCH_COLOR }}
             thumbColor={item.selected ? "#f4f3f4" : "#f4f3f4"}
             ios_backgroundColor={INACTIVE_SWITCH_COLOR}
             onValueChange={() => handleToggle(index)}
             value={item.selected}
-            style={{ marginRight: 10 }} // Add some space between switch and delete icon
+            style={{ marginRight: 10 }} 
           />
           <TouchableOpacity onPress={() => handleDeleteModel(item.id, item.modelName || item.name)}>
             <Image
               source={icons.trash}
-              className="w-6 h-6 tint-gray-400" // Adjusted tint for visibility and to be less red
+              className="w-6 h-6 tint-gray-400" 
               resizeMode="contain"
             />
           </TouchableOpacity>

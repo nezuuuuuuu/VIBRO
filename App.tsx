@@ -5,7 +5,7 @@ import Welcome from './src/screens/(welcome)/index';
 import AuthScreen from './src/screens/(auth)';
 import Tabs from './src/components/mainNavigator';
 import { useAuthStore } from "./store/authStore";
-import { View, ActivityIndicator, Platform, Image } from 'react-native';
+import { View, ActivityIndicator, Platform, Image, StatusBar } from 'react-native';
 import Signup from './src/screens/(auth)/signup';
 import Login from './src/screens/(auth)';
 import notifee, { AndroidColor, AndroidImportance } from '@notifee/react-native';
@@ -98,6 +98,7 @@ export default function App() {
           <Stack.Screen name="Tabs" component={Tabs} />
         )}
       </Stack.Navigator>
+        <StatusBar className='bg-primary' />
     </NavigationContainer>
   );
 }

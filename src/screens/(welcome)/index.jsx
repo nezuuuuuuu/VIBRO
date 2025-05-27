@@ -1,4 +1,4 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View, StatusBar } from "react-native";
 // import { StatusBar } from 'expo-status-bar';
 // import {Link} from "expo-router"
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -48,7 +48,7 @@ export default function Index({navigation}) {
                 {/* </Link> */}
             </View>
           
-            {/* <StatusBar style="auto"/> */}
+            <StatusBar className='bg-primary' style="light" translucent={true} />
         </SafeAreaView>
 
     );

@@ -9,7 +9,8 @@ import {ActivityIndicator,
         Platform,
         Alert,
         Link,
-        Image} 
+        Image,
+        StatusBar} 
 from 'react-native'
 
 import React, { useState } from 'react';
@@ -110,6 +111,8 @@ export default function Login({navigation}) {
 
 
             </View>
+            <StatusBar className='bg-primary' style="light" translucent={true} />
        </KeyboardAvoidingView>
+       
     );
 }

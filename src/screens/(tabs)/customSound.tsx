@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, TextInput, ScrollView, Modal, Alert, Platform, PermissionsAndroid, NativeModules, DeviceEventEmitter, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TouchableOpacity, Image, TextInput, ScrollView, Modal, Alert, Platform, PermissionsAndroid, NativeModules, DeviceEventEmitter, TouchableWithoutFeedback, ActivityIndicator } from 'react-native'; // Import ActivityIndicator
 import { useNavigation } from '@react-navigation/native';
 import { icons } from '../../constants';
 import { useAuthStore } from '../../../store/authStore';
@@ -10,7 +10,7 @@ import { useModelStore } from '../../../store/modelStore';
 const { CustomAudioRecorderModule } = NativeModules;
 
 const CustomSounds = () => {
-  const { fetchAndCreateModel } = useModelStore();
+  const { fetchAndCreateModel, isTrainingModel } = useModelStore(); // Get isTrainingModel state
   const navigation = useNavigation();
 
   const { user } = useAuthStore();
@@ -40,7 +40,6 @@ const CustomSounds = () => {
   const [recordedAudioBase64, setRecordedAudioBase64] = useState(null);
   const [currentPlayingSoundId, setCurrentPlayingSoundId] = useState(null);
   const [playbackStatus, setPlaybackStatus] = useState('idle');
-
 
   const MAX_RECORD_DURATION_MS = 5000;
 
@@ -74,7 +73,7 @@ const CustomSounds = () => {
         clearInterval(recordIntervalRef.current);
         recordIntervalRef.current = null;
       }
-      setRecordedAudioBase664(data.base64);
+      setRecordedAudioBase64(data.base64);
       setRecordingStatus('finished');
       setRecordDuration(0);
     });
@@ -406,10 +405,12 @@ const CustomSounds = () => {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Main loading state for the whole component
   if (isLoading) {
     return (
       <View className='flex-1 justify-center items-center bg-primary'>
-        <Text className='text-white font-pregular text-lg'>Loading custom sounds...</Text>
+        <ActivityIndicator size="large" color="#8A2BE2" />
+        <Text className='mt-10 text-white font-pregular text-lg'>Loading custom sounds...</Text>
       </View>
     );
   }
@@ -419,16 +420,38 @@ const CustomSounds = () => {
       <TouchableOpacity
         className="border-2 border-secondary p-4 rounded-lg mb-4 items-center"
         onPress={toggleCreateFolderModal}
+        disabled={isTrainingModel} // Disable button when model is training
       >
         <Text className="text-lightsecondary font-psemibold text-lg">Create New Folder</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        className="bg-secondary p-4 rounded-lg mb-4 items-center"
+        className={`p-4 rounded-lg mb-4 items-center ${isTrainingModel ? 'bg-gray-500' : 'bg-secondary'}`}
         onPress={() => fetchAndCreateModel(currentGroupId, groupPointer.groupName)}
+        disabled={isTrainingModel} // Disable button during training
       >
-        <Text className="text-white font-psemibold text-lg">Train Model</Text>
+        {isTrainingModel ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text className="text-white font-psemibold text-lg">Train Model</Text>
+        )}
       </TouchableOpacity>
+
+      {/* Loading overlay for model training */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isTrainingModel}
+        onRequestClose={() => {}} // Disable closing by back button
+      >
+        <View className="flex-1 justify-center items-center bg-black/70">
+          <View className="bg-primary p-6 rounded-lg flex items-center justify-center">
+            <ActivityIndicator size="large" color="#8A2BE2" />
+            <Text className="text-white font-psemibold text-xl mt-4">Training Model...</Text>
+            <Text className="text-gray-400 font-pregular text-sm mt-2 text-center">This may take a moment.</Text>
+          </View>
+        </View>
+      </Modal>
 
       <Text className='text-white my-3 font-psemibold text-lg'>Folders:</Text>
       <ScrollView className='w-full mb-4 flex-1'>
@@ -441,6 +464,7 @@ const CustomSounds = () => {
                 key={folder._id}
                 className='bg-[#333366] p-4 mb-2 rounded-lg flex-row justify-between items-center'
                 onPress={() => openFolder(folder)}
+                disabled={isTrainingModel} // Disable folder interaction during training
               >
                 <View className="flex-row items-center space-x-3 flex-1">
                   <Image
@@ -450,7 +474,7 @@ const CustomSounds = () => {
                   />
                   <Text className="text-white font-pregular text-lg flex-shrink">{folder.folderName}</Text>
                 </View>
-                <TouchableOpacity onPress={() => handleRemoveFolder(folder._id, folder.folderName)} className="ml-4 p-2">
+                <TouchableOpacity onPress={() => handleRemoveFolder(folder._id, folder.folderName)} className="ml-4 p-2" disabled={isTrainingModel}>
                   <Image
                     source={icons.trash}
                     className="w-6 h-6 tint-red-500"
