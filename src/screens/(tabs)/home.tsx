@@ -12,22 +12,17 @@ import {
 } from 'react-native';
 import { useState, useRef } from 'react';
 import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
-
 import "../../../global.css"
 import DetectionDisplay from '../../components/detectionDisplay';
 import { useAuthStore } from "../../../store/authStore";
 import { useNavigation } from '@react-navigation/native';
 import { useGroupStore } from '../../../store/groupStore';
 import { useModelStore } from '../../../store/modelStore';
-
 import notifee from '@notifee/react-native';
 import { icons } from '../../constants';
 import {useDetectedSoundStore} from '../../../store/detectedSoundStore';
-
 import {useSocket} from '../../../store/useSocket';
-
 import RNFS from 'react-native-fs';
-
 import { Buffer } from 'buffer';
 import Sound from 'react-native-sound';
 import { AndroidImportance } from '@notifee/react-native';
