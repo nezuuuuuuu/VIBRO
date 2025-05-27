@@ -35,6 +35,7 @@ import { Buffer } from 'buffer';
 import Sound from 'react-native-sound';
 import { AndroidImportance } from '@notifee/react-native';
 import Index from '../(welcome)';
+import Profile from '../(tabs)/profile';
 
 
 const { AudioRecorder, Flashlight } = NativeModules;
@@ -138,15 +139,18 @@ function Home() {
           <Text className="font-pbold text-2xl text-white">VIBRO</Text>
        ),
         headerRight: () => (
-          <View className="flex-row items-center gap-2 mr-6">
-              <Image
-                  className="w-12 h-12 rounded-full bg-gray-300"
-                  style={{ width: 30, height: 30, borderRadius: 50 }}
-                  source={{ uri: `https://api.dicebear.com/9.x/personas/png?seed=${user?.username || "guest"}` }}
-                  resizeMode="cover"
-                />
-            <Text className="text-white font-psemibold">{user.username}</Text>
-          </View>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Profile')} 
+            className="flex-row items-center gap-2 mr-6"
+          >
+            <Image
+              className="w-12 h-12 rounded-full bg-gray-300"
+              style={{ width: 30, height: 30, borderRadius: 50 }}
+              source={{ uri: `https://api.dicebear.com/9.x/personas/png?seed=${user?.username || "guest"}` }}
+              resizeMode="cover"
+            />
+            <Text className="text-white font-psemibold">{user?.username || "Guest"}</Text>
+          </TouchableOpacity>
         ),
         headerStyle: {
           backgroundColor: '#1B1B3A',

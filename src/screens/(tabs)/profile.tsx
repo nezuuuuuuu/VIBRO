@@ -1,4 +1,4 @@
-import { Text, TouchableOpacity, View, Image } from "react-native";
+import { Text, TouchableOpacity, View, Image, Alert } from "react-native";
 import React, { useEffect, useLayoutEffect } from 'react';
 import { useAuthStore } from "../../../store/authStore";
 import { CommonActions, useNavigation } from '@react-navigation/native';
@@ -8,15 +8,35 @@ export default function Profile() {
   const navigation = useNavigation();
   const { user, logout } = useAuthStore();
 
-  const handleLogout = async () => {
-    await logout();
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [{ name: 'Welcome' }],
-      })
+ const handleLogout = () => {
+    Alert.alert(
+      "Confirm Logout",
+      "Are you sure you want to log out?",
+      [
+        {
+          text: "Cancel",
+          onPress: () => console.log("Logout Cancelled"),
+          style: "cancel"
+        },
+        {
+          text: "Log Out",
+          onPress: async () => {
+            await logout(); 
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Welcome' }], 
+              })
+            );
+          },
+          style: "destructive"
+        }
+      ],
+      { cancelable: true }
     );
   };
+
+  
 
    useLayoutEffect(() => {
     if (user) {
