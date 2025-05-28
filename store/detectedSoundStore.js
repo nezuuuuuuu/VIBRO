@@ -66,6 +66,11 @@ export const useDetectedSoundStore = create((set) => ({
             return { success: false, error: error.message };
         }
     },
+    clearSound: async () => {
+        set({ isLoading: true, error: null });
+        set({ sounds: null, isLoading: false });
+        
+    },
 
     clearSounds: () => set({ sounds: [] }),
 }));

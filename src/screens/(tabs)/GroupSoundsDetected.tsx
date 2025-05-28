@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useEffect  } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { icons } from '../../constants';
 import { useGroupStore } from '../../../store/groupStore';
@@ -8,7 +8,7 @@ import { useSocket } from '../../../store/useSocket';
 import DetectionDisplay from '../../components/detectionDisplay';
 
 const GroupSoundsDetected = () => {
-    const { fetchUserSounds,sounds} = useDetectedSoundStore();
+    const { fetchUserSounds,sounds,clearSound} = useDetectedSoundStore();
     const {socket} =useSocket()
 
     const route = useRoute();
@@ -17,6 +17,7 @@ const GroupSoundsDetected = () => {
     const navigation = useNavigation();
 
     useEffect(() => {
+        clearSound()
         fetchUserSounds(userId);
 
         socket.on('new-sound', ({ userId: newSoundUserId }) => {
@@ -69,12 +70,24 @@ const GroupSoundsDetected = () => {
     return "N/A";
   }
 };
+if (sounds == null) {
+    return (
+      <View className='flex-1 justify-center items-center bg-primary'>
+        <ActivityIndicator size="large" color="#8A2BE2" />
+        <Text className='mt-10 text-white font-pregular text-lg'>Loading detected sounds...</Text>
+      </View>
+    );
+  }
+  
 
    return (
+  
         <View className="flex-1 bg-primary p-4">
             <Text className="text-white text-center text-xl font-psemibold mb-4">
                 Detected Sounds
             </Text>
+
+            
             <FlatList
                 data={sounds}
                 keyExtractor={(item, index) => `${userId}-${index}`}
