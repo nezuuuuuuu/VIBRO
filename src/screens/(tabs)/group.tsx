@@ -146,15 +146,15 @@ const Groups = () => {
     <View className="h-full flex-1 bg-primary p-4">
       <ScrollView className="flex-1">
         {isLoading && groups.length === 0 && (
-            <Text className="text-white text-center mt-8">Loading groups...</Text>
+            <Text className="text-white font-pregular text-center mt-8">Loading groups...</Text>
         )}
 
         {!isLoading && filteredGroups.length === 0 && searchQuery === '' && groups.length === 0 && (
-            <Text className="text-white text-center mt-8">No groups found. Join or create one!</Text>
+            <Text className="text-white font-pregular text-center mt-8">No groups found. Join or create one!</Text>
         )}
 
         {!isLoading && filteredGroups.length === 0 && searchQuery !== '' && (
-            <Text className="text-white text-center mt-8">No groups found matching "{searchQuery}".</Text>
+            <Text className="text-white font-pregular text-center mt-8">No groups found matching "{searchQuery}".</Text>
         )}
 
         {filteredGroups.map((group) => (

@@ -108,16 +108,23 @@ const GroupInfo = () => {
         }
     };
 
-    const renderMemberItem = ({ item }) => (
+   const renderMemberItem = ({ item }) => {
+    console.log("Frontend Render: Item being rendered:", item.username, "isAdmin:", item.isAdmin); // Log for each item
+    return (
         <View className="flex-row items-center p-4 mb-2 rounded-lg bg-primary">
             <Image
                 source={{ uri: `https://api.dicebear.com/7.x/personas/png?seed=${item?.username || 'guest'}` }}
                 className="w-10 h-10 rounded-full bg-gray-300 mr-4"
                 resizeMode="cover"
             />
-            <Text className="text-white font-pregular text-lg">{item.username}</Text>
+            <Text className="text-white font-pregular text-lg">
+                {item.username}
+                {/* Conditional rendering for admin status */}
+                {item.isAdmin && <Text className="text-secondary text-sm ml-2 font-pbold">(Admin)</Text>}
+            </Text>
         </View>
     );
+    };
 
     return (
         <View className='bg-primary p-4 flex-1'>
@@ -194,6 +201,7 @@ const GroupInfo = () => {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+
 
             {/* See Members Modal */}
             <Modal
