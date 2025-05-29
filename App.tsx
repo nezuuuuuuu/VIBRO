@@ -5,7 +5,7 @@ import Welcome from './src/screens/(welcome)/index';
 import AuthScreen from './src/screens/(auth)';
 import Tabs from './src/components/mainNavigator';
 import { useAuthStore } from "./store/authStore";
-import { View, ActivityIndicator, Platform, Image, StatusBar } from 'react-native';
+import { View, ActivityIndicator, Platform, Image, StatusBar, Alert } from 'react-native';
 import Signup from './src/screens/(auth)/signup';
 import Login from './src/screens/(auth)';
 import notifee, { AndroidColor, AndroidImportance } from '@notifee/react-native';
@@ -56,6 +56,20 @@ if (Platform.OS === 'android') {
     }),
     sound: 'default',
   });
+
+  notifee.createChannel({
+    id: 'chat-alerts-v2',
+    name: 'Chat Alerts',
+    description: 'Notifications for new messages',
+    importance: AndroidImportance.HIGH,
+    vibration: true,
+    vibrationPattern: [ 100,700],
+    ...(hasLedSupport && {
+      lights: true,
+      lightColor: '#FF0000',
+    }),
+    sound: 'default',
+  });
 }
 
 
@@ -65,6 +79,7 @@ export default function App() {
 
   const { checkAuth, user, token } = useAuthStore();
   const [loading, setLoading] = useState(true);
+  const [isOfflineMode, setIsOfflineMode] = useState(false); 
 
   useEffect(() => {
 
@@ -77,6 +92,7 @@ export default function App() {
  
   }, []);
 
+  
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center">
@@ -87,17 +103,17 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!user || !token ? (
-          <>
-            <Stack.Screen name="Welcome" component={Welcome} />
-            <Stack.Screen name="Login" component={Login} />
-            <Stack.Screen name="Signup" component={Signup} />
-          </>
-        ) : (
-          <Stack.Screen name="Tabs" component={Tabs} />
-        )}
-      </Stack.Navigator>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {!user || !token ? (
+            <>
+              <Stack.Screen name="Welcome" component={Welcome} />
+              <Stack.Screen name="Login" component={Login} />
+              <Stack.Screen name="Signup" component={Signup} />
+            </>
+          ) : (
+            <Stack.Screen name="Tabs" component={Tabs} />
+          )}
+        </Stack.Navigator>
         <StatusBar className='bg-primary' />
     </NavigationContainer>
   );

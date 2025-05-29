@@ -36,38 +36,29 @@ import Sound from 'react-native-sound';
 import { AndroidImportance } from '@notifee/react-native';
 import Index from '../(welcome)';
 import Profile from '../(tabs)/profile';
+import { useAppStore } from '../../../store/appStore';
 
 
 const { AudioRecorder, Flashlight } = NativeModules;
 
-const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Emergency vehicle',"Fire alarm", "Police car (siren)", "Ambulance (siren)", "Fire engine, fire truck (siren)",];
+const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)'];
 const NOTIF_LEVEL_2_ALLOWED_LABELS = [ 'Glass','Baby cry, infant cry','Crying, sobbing'];
-const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Speech','Music','Water','Water tap, faucet','Raindrop','Rain','Dog'];
+const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass','Speech','Music'];
 const ACTIVE_SWITCH_COLOR = '#8A2BE2';
 const INACTIVE_SWITCH_COLOR = '#767577';
 
 
 const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
-  
-  'Emergency vehicle':1,
-  'Fire alarm': 1,
-  'Police car (siren)': 1,
-  'Ambulance (siren)': 1,
+  'siren': 1,
+  'Ambulance (siren)': 1,
+  'Police car (siren)': 1,
+  'Siren': 1,
   'Fire engine, fire truck (siren)': 1,
-
+  'Glass': 2,
+  'Speech': 3,
+  'Music': 3,
   'Crying, sobbing': 2,
   'Baby cry, infant cry': 2,
-  'Glass': 2,
-
-
-  'Speech': 3,
-  'Music': 3,
-  'Water tap, faucet': 3,
-  'Raindrop': 3,
-  'Water': 3,
-  'Rain': 3,
-  'Dog': 3,
-
 };
 
 export async function requestMicPermission() {
@@ -120,6 +111,7 @@ function Home() {
   const { socket, connect, disconnect,isOnline } = useSocket();
   const {getGroups} = useGroupStore()
   const { addSound} = useDetectedSoundStore();
+  const { isOfflineMode, isLoadingOfflineModeToggle, toggleOfflineMode } = useAppStore();
 
   const navigation = useNavigation(); 
   const { user, token,setActiveStatus } = useAuthStore();
@@ -198,18 +190,15 @@ function Home() {
     setIsMonitoringOn(user.isActive)
 
       const fetchAndConnect = async () => {
-    try {
-      const result = await getGroups();
-
-      if (result && result.groups) {
-        const groupIds = result.groups.map(group => group._id);
-     
-        const userId = user._id; 
-
-        connect(userId, groupIds); 
-
-
-      
+     try {
+      // Connect only if not in offline mode initially (or when component mounts)
+      if (!isOfflineMode) { // Use isOfflineMode from the store
+        const result = await getGroups();
+        if (result && result.groups) {
+          const groupIds = result.groups.map(group => group._id);
+          const userId = user._id; 
+          connect(userId, groupIds); 
+        }
       }
     } catch (error) {
       console.error("Error connecting socket:", error);
@@ -218,7 +207,9 @@ function Home() {
   };
 
   // Fetch groups and connect socket when the component mounts
-  fetchAndConnect();
+  if(!isOfflineMode && socket === null) { 
+    fetchAndConnect();
+  }
     
 
 
@@ -263,7 +254,7 @@ function Home() {
       DeviceEventEmitter.removeAllListeners("onPrediction");
     };
 
-  }, []);
+  }, [isOfflineMode]);
 
 
 
@@ -287,7 +278,9 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     ...prevPredictions,
                     { isCustom: isCustom, label: label, confidence: confidence, timestamp: currentTime, audioBase64: audioBase64, criticalLevel: criticalLevel }
                 ]);
-                addSound(label, confidence, audioBase64);
+                if(socket || socket.connected) {
+                  addSound(label, confidence, audioBase64);
+                }
                 // --- VIBRATION LOGIC ADDED HERE ---
                 if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
                     Vibration.vibrate([0, 500, 200, 500]); // Vibrate for 500ms, pause 200ms, vibrate 500ms (High urgency)

@@ -70,7 +70,30 @@ export const useSocket = create((set, get) => ({
           }
         }
       });
+
+      newSocket.on('notifyNewMessage',  async ({groupName, senderId,senderUsername}) => {
+        try {
+          if(senderId != userId) {
+          console.log('New message notification:', groupName, senderUsername);
+           await notifee.displayNotification({
+          title: `New message in ${groupName}`,
+          body: `${senderUsername} sent a message`,
+          android: {
+             channelId: 'chat-alerts-v2',
+            importance: AndroidImportance.HIGH,
+
+          },
+        });
+        }
+        } catch (err) {
+          console.error('❌ Error showing notification:', err);
+        }
+      });
+
+      
     });
+
+    
 
     newSocket.on('connect_error', (err) => {
       console.error('❌ Socket connection error:', err.message);

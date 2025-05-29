@@ -89,17 +89,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         if (socket) {
             console.log('ChatScreen using global socket:', socket.id);
 
-            const onSocketConnect = () => {
-                 console.log('ChatScreen: Global socket re-connected, joining group', groupId);
-                 socket.emit('joinGroup', groupId);
-            };
-
-            if (socket.connected) {
-                 socket.emit('joinGroup', groupId);
-                 console.log(`ChatScreen emitted joinGroup ${groupId} with socket ${socket.id} (initially connected)`);
-            }
-
-            socket.on('connect', onSocketConnect);
+           
 
             const handleNewMessage = (newMessage: MessagePayload) => {
                 console.log('ChatScreen received newMessage for its group:', newMessage);
@@ -118,17 +108,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
 
             return () => {
                 console.log(`ChatScreen cleanup for group ${groupId} with socket ${socket.id}`);
-                socket.off('connect', onSocketConnect);
-
-                if (socket.connected) {
-                     socket.emit('leaveGroup', groupId);
-                     console.log(`ChatScreen emitted leaveGroup ${groupId} with socket ${socket.id}`);
-                } else {
-                      console.log(`ChatScreen socket not connected, skipping leaveGroup emit`);
-                }
-
+                     
                 socket.off('newMessage', handleNewMessage);
-                console.log('ChatScreen newMessage listener removed');
+               
             };
         }
 
@@ -325,7 +307,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
                 />
                 <View className="flex-row items-center py-2 px-2.5 border-t border-gray-300 bg-white">
                     <TextInput
-                        className={`flex-1 min-h-[40px] max-h-[120px] bg-gray-100 rounded-2xl px-4 text-base mr-2.5 ${Platform.OS === 'ios' ? 'py-2.5' : 'py-1.5'}`}
+                        className={`flex-1 min-h-[40px] max-h-[120px] bg-gray-100 rounded-2xl px-4 text-base mr-2.5 text-black ${Platform.OS === 'ios' ? 'py-2.5' : 'py-1.5'}`}
                         value={inputText}
                         onChangeText={setInputText}
                         placeholder="Type a message..."

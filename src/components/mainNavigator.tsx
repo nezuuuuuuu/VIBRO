@@ -1,12 +1,13 @@
+// src/components/mainNavigator.js
 import React from 'react';
-import { Image } from 'react-native';
+import { Image, Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack'; // Import Stack Navigator
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Home from '../screens/(tabs)/home';
 import Group from '../screens/(tabs)/group';
 import CreateGroup from '../screens/(tabs)/createGroup';
 import Sound from '../screens/(tabs)/sound';
-import ProfileScreen from '../screens/(tabs)/profile'; 
+import ProfileScreen from '../screens/(tabs)/profile';
 import EditProfile from '../screens/(tabs)/editprofile';
 import GroupDetails from '../screens/(tabs)/GroupDetails';
 import GroupSoundsDetected from '../screens/(tabs)/GroupSoundsDetected';
@@ -16,15 +17,16 @@ import { icons } from '../constants';
 import "../../global.css";
 import CustomSounds from '../screens/(tabs)/customSound';
 
+
+import { useAppStore } from '../../store/appStore'; 
+
 const Tab = createBottomTabNavigator();
-const ProfileStack = createNativeStackNavigator(); 
+const ProfileStack = createNativeStackNavigator();
 const GroupStack = createNativeStackNavigator();
 
-// Create a nested Stack Navigator for the Profile screen and its related screens
 const ProfileStackNavigator = () => {
   return (
     <ProfileStack.Navigator screenOptions={{
-        // Default header style for this stack, can be overridden per screen
         headerStyle: {
           backgroundColor: 'bg-primary',
         },
@@ -32,7 +34,7 @@ const ProfileStackNavigator = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
-        headerBackTitleVisible: false, // Common to hide back button title on iOS
+        headerBackTitleVisible: false,
       }}
     >
       <ProfileStack.Screen name="ProfileScreen" component={ProfileScreen} />
@@ -43,10 +45,8 @@ const ProfileStackNavigator = () => {
 
 const GroupStackNavigator = () => {
   return (
-    // Default screenOptions for the GroupStack
     <GroupStack.Navigator
       screenOptions={{
-        // Default header style for this stack, can be overridden per screen
         headerStyle: {
           backgroundColor: 'bg-primary',
         },
@@ -59,49 +59,49 @@ const GroupStackNavigator = () => {
       <GroupStack.Screen
         name="GroupsList"
         component={Group}
-        options={{ title: 'My Groups' }} 
+        options={{ title: 'My Groups' }}
       />
       <GroupStack.Screen
         name="CreateGroup"
         component={CreateGroup}
-        options={{ headerShown: false }} 
+        options={{ headerShown: false }}
       />
       <GroupStack.Screen
         name="GroupDetails"
         component={GroupDetails}
-        // options={{ headerShown: true }} // GroupDetails sets its own header via useLayoutEffect
       />
       <GroupStack.Screen
         name="GroupSoundsDetected"
         component={GroupSoundsDetected}
-        options={{ title: 'Sound Detections' }} 
+        options={{ title: 'Sound Detections' }}
       />
       <GroupStack.Screen
         name="GroupInfo"
         component={GroupInfo}
-        options={{ title: 'Group Information' }} 
+        options={{ title: 'Group Information' }}
       />
-      <GroupStack.Screen 
+      <GroupStack.Screen
         name="ChatScreen"
         component ={ChatScreen}
         options={({ title: 'Chat Screen'})}
       />
       <GroupStack.Screen
        name="CustomSounds"
-        component={CustomSounds}
-         options={{ 
+       component={CustomSounds}
+         options={{
           headerShown: true,
           }} />
-
     </GroupStack.Navigator>
   );
 };
 
 const MainNavigator = () => {
+  const { isOfflineMode } = useAppStore();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: true, // Hide header for tabs, nested stacks can control it
+        headerShown: true,
         tabBarIcon: ({ focused, color, size }) => {
           let iconSource;
 
@@ -115,7 +115,7 @@ const MainNavigator = () => {
             case 'Group':
               iconSource = icons.group;
               break;
-            case 'Profile': 
+            case 'Profile':
               iconSource = icons.profile;
               break;
             default:
@@ -144,14 +144,41 @@ const MainNavigator = () => {
           height: 84,
           justifyContent: 'center',
         },
-        tabBarItemStyle: {  
+        tabBarItemStyle: {
           top: 20,
         },
       })}
     >
       <Tab.Screen name="Home" component={Home} />
-      <Tab.Screen name="Group" component={GroupStackNavigator} options={{ tabBarLabel: 'Group', headerShown: false}}/>
-      <Tab.Screen name="Sound" component={Sound} />
+      <Tab.Screen
+        name="Group"
+        component={GroupStackNavigator}
+        options={{
+          tabBarLabel: 'Group',
+          headerShown: false,
+        }}
+        listeners={{
+          tabPress: (e) => {
+            if (isOfflineMode) { 
+              e.preventDefault();
+              Alert.alert("Offline Mode", "Group features are not available when offline.");
+            }
+          },
+        }}
+      />
+
+      <Tab.Screen
+        name="Sound"
+        component={Sound}
+        listeners={{
+          tabPress: (e) => {
+            if (isOfflineMode) { 
+              e.preventDefault();
+              Alert.alert("Offline Mode", "Sound features are not available when offline."); 
+            }
+          },
+        }}
+      />
       <Tab.Screen name="Profile" component={ProfileStackNavigator} options={{ tabBarLabel: 'Profile', headerShown: false }} />
     </Tab.Navigator>
   );
