@@ -1,0 +1,7 @@
+//this is to reset everything node and android
+rm -rf android/.gradle
+rm -rf android/app/.cxx
+rm -rf android/app/build
+rm -rf node_modules
+rm -rf android/build
+rm -rf .gradle

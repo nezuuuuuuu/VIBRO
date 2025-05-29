@@ -40,9 +40,9 @@ import Profile from '../(tabs)/profile';
 
 const { AudioRecorder, Flashlight } = NativeModules;
 
-const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren',];
-const NOTIF_LEVEL_2_ALLOWED_LABELS = ['Speech', 'Baby cry, infant cry','Crying, sobbing'];
-const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass'];
+const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)'];
+const NOTIF_LEVEL_2_ALLOWED_LABELS = [ 'Glass','Baby cry, infant cry','Crying, sobbing'];
+const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass','Speech','Music'];
 const ACTIVE_SWITCH_COLOR = '#8A2BE2';
 const INACTIVE_SWITCH_COLOR = '#767577';
 
@@ -52,8 +52,10 @@ const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
   'Ambulance (siren)': 1,
   'Police car (siren)': 1,
   'Siren': 1,
+  'Fire engine, fire truck (siren)': 1,
   'Glass': 2,
   'Speech': 3,
+  'Music': 3,
   'Crying, sobbing': 2,
   'Baby cry, infant cry': 2,
 };
@@ -293,18 +295,18 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                         title: `Detected: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 2`,
                         android: {
-                            channelId: 'sound-alerts1',
-                            importance: AndroidImportance.LOW,
+                            channelId: 'sound-alerts3',
+                            importance: AndroidImportance.MIN,
                         },
                     });
                 } else if (NOTIF_LEVEL_3_ALLOWED_LABELS.includes(label)) {
-                    Vibration.vibrate(200); // Vibrate for 200ms (Low urgency)
+                    // Vibration.vibrate(200); // Vibrate for 200ms (Low urgency)
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 3`,
                         android: {
                             channelId: 'sound-alerts1',
-                            importance: AndroidImportance.DEFAULT,
+                            importance: AndroidImportance.LOW,
                         },
                     });
                 } else if (isCustom) {
