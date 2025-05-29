@@ -32,7 +32,7 @@ const CreateGroup = () => {
     console.log('Group Photo URI:', groupPhotoUri);
     // You would typically send this data to your backend API
     // After successful creation, you might want to navigate the user somewhere
-    // navigation.goBack(); // Example: Go back to the previous screen
+    navigation.goBack(); // Example: Go back to the previous screen
   };
 
   const handleCancel = () => {

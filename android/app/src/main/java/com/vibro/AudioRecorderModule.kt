@@ -68,7 +68,8 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
         "vacuum_cleaner",
         "washing_machine",
         "water_drops",
-        "wind"
+        "wind",
+        "speech"
     )
     val yamnet_labels = arrayOf(
         "Speech",

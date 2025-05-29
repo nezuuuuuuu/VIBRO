@@ -21,12 +21,12 @@ export const useCustomSoundStore = create((set, get) => ({
                 },
                 body: JSON.stringify({ folderName, groupId }),
             });
-
+            
             const data = await response.json();
 
             if (!response.ok) throw new Error(data.message || 'Failed to add folder');
 
-         
+            set({ isLoading: false });
             return { success: true, folder: data };
         } catch (error) {
             set({ isLoading: false, error: error.message });

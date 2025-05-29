@@ -4,7 +4,7 @@ import { Alert } from 'react-native';
 import notifee, { AndroidImportance } from '@notifee/react-native'; // You likely need this
 // import BASE_URL from './api'; // Not used here
 const SOCKET_URL = 'https://mern-vibro.onrender.com';
-// const SOCKET_URL = 'http://192.168.1.3:3000';
+// const SOCKET_URL = 'http://192.168.1.104:3000';
 
 export const useSocket = create((set, get) => ({
   socket: null,

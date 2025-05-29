@@ -134,6 +134,7 @@ const CustomSounds = () => {
     const result = await addFolder(newFolderName.trim(), currentGroupId);
     if (result.success) {
       Alert.alert('Success', `Folder "${newFolderName}" created!`);
+      getFolders(currentGroupId);
       toggleCreateFolderModal();
     } else {
       console.error('Failed to create folder:', result.error);
