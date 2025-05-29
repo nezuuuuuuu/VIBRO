@@ -532,55 +532,86 @@ const CustomSounds = () => {
       >
         <TouchableWithoutFeedback onPress={closeFolder}>
           <View className="flex-1 justify-center items-center bg-black/50">
-            <TouchableWithoutFeedback onPress={() => { }}>
-              <View className="bg-primary p-6 py-10 rounded-lg w-3/4">
-                <Text className="text-white text-center text-xl font-psemibold mb-6">{selectedFolder?.folderName}</Text>
-                <ScrollView style={{ maxHeight: 200 }} className="mb-4">
-                  {selectedFolder?.sounds.length > 0 ? (
-                    selectedFolder.sounds.map((sound) => (
-                      <View key={sound._id} className="bg-[#444477] p-3 mb-2 rounded-lg flex-row justify-between items-center">
-                        <View className="flex-row items-center space-x-3 flex-1">
-                          <Image
-                            source={icons.musicNote}
-                            className="w-6 h-6 tint-white"
-                            resizeMode="contain"
-                          />
-                          <Text className="text-white flex-shrink">{sound.filename} ({sound.userId?.username || 'Unknown'})</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => handleRemoveSound(sound._id, sound.filename)} className="ml-4 p-2">
-                          <Image
-                            source={icons.trash}
-                            className="w-8 h-8 tint-red-500"
-                            resizeMode="contain"
-                          />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => playAudio(sound._id)}
-                          className={`ml-4 p-2 rounded-full ${currentPlayingSoundId === sound._id ? 'bg-gray-500' : 'bg-secondary'}`}
-                        >
-                          <Image
-                            source={currentPlayingSoundId === sound._id ? icons.pause : icons.play}
-                            className="w-8 h-8 tint-white"
-                            resizeMode="contain"
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    ))
-                  ) : (
-                    <Text className="text-gray-400 font-pregular text-center">No sounds in this folder yet.</Text>
-                  )}
-                </ScrollView>
-                <TouchableOpacity
-                  className="bg-secondary py-4 rounded-lg w-full items-center mb-4"
-                  onPress={() => { toggleRecordModal(); }}
-                >
-                  <Text className="text-white font-psemibold text-base">Record Sound to Folder</Text>
-                </TouchableOpacity>
-                <TouchableOpacity className="mt-2" onPress={closeFolder}>
-                  <Text className="text-gray-400 font-psemibold mt-2 text-center">Close Folder</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
+            {/* REMOVE the inner TouchableWithoutFeedback here */}
+            <View
+              className="bg-primary p-6 py-10 rounded-lg w-3/4"
+              onStartShouldSetResponder={() => true} // Add this to prevent modal closing when tapping content
+            >
+              <Text className="text-white text-center text-xl font-psemibold mb-6">
+                {selectedFolder?.folderName}
+              </Text>
+              <ScrollView style={{ maxHeight: 200 }} className="mb-4">
+              {selectedFolder?.sounds.length > 0 ? (
+                selectedFolder.sounds.map((sound) => (
+                  <View
+                    key={sound._id}
+                    className="bg-[#444477] p-3 mb-2 rounded-lg flex-row justify-between items-center"
+                    // Add this prop to ensure the View itself can become a responder
+                    // This allows touches starting on this view to be handled by its parents (like ScrollView)
+                    onStartShouldSetResponder={() => true}
+                  >
+                    <View className="flex-row items-center space-x-3 flex-1">
+                      <Image
+                        source={icons.musicnote}
+                        className="w-6 h-6 tint-white"
+                        resizeMode="contain"
+                      />
+                      <Text className="text-white flex-shrink">
+                        {sound.filename} ({sound.userId?.username || 'Unknown'})
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleRemoveSound(sound._id, sound.filename)}
+                      className="ml-4 p-2"
+                    >
+                      <Image
+                        source={icons.trash}
+                        className="w-8 h-8 tint-red-500"
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => playAudio(sound._id)}
+                      className={`ml-4 p-2 rounded-full ${
+                        currentPlayingSoundId === sound._id
+                          ? 'bg-gray-500'
+                          : 'bg-secondary'
+                      }`}
+                    >
+                      <Image
+                        source={
+                          currentPlayingSoundId === sound._id
+                            ? icons.pause
+                            : icons.play
+                        }
+                        className="w-8 h-8 tint-white"
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              ) : (
+                <Text className="text-gray-400 font-pregular text-center">
+                  No sounds in this folder yet.
+                </Text>
+              )}
+            </ScrollView>
+              <TouchableOpacity
+                className="bg-secondary py-4 rounded-lg w-full items-center mb-4"
+                onPress={() => {
+                  toggleRecordModal();
+                }}
+              >
+                <Text className="text-white font-psemibold text-base">
+                  Record Sound to Folder
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity className="mt-2" onPress={closeFolder}>
+                <Text className="text-gray-400 font-psemibold mt-2 text-center">
+                  Close Folder
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
