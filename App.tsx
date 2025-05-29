@@ -44,6 +44,20 @@ if (Platform.OS === 'android') {
   });
 
   notifee.createChannel({
+    id: 'chat-alerts-v2',
+    name: 'Chat Alerts',
+    description: 'Notifications for new messages',
+    importance: AndroidImportance.HIGH,
+    vibration: true,
+    vibrationPattern: [ 100,700],
+    ...(hasLedSupport && {
+      lights: true,
+      lightColor: '#FF0000',
+    }),
+    sound: 'default',
+  });
+
+  notifee.createChannel({
     id: 'sound-alerts3',
     name: 'Sound Alerts',
     description: 'Notifications for detected sounds',

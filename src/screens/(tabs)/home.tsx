@@ -205,8 +205,9 @@ function Home() {
         const groupIds = result.groups.map(group => group._id);
      
         const userId = user._id; 
-
+        if(socket==null) {
         connect(userId, groupIds); 
+        }
 
 
       
