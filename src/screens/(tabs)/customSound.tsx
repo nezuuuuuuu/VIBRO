@@ -40,6 +40,7 @@ const CustomSounds = () => {
   const [recordedAudioBase64, setRecordedAudioBase64] = useState(null);
   const [currentPlayingSoundId, setCurrentPlayingSoundId] = useState(null);
   const [playbackStatus, setPlaybackStatus] = useState('idle');
+  const [loadingSoundId, setLoadingSoundId] = useState(null);
 
   const MAX_RECORD_DURATION_MS = 5000;
 
@@ -207,6 +208,7 @@ const CustomSounds = () => {
 
   const closeFolder = () => {
     setSelectedFolder(null);
+    
     CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback on folder close:", e));
     setCurrentPlayingSoundId(null);
   };
@@ -288,10 +290,16 @@ const CustomSounds = () => {
   };
 
   const playAudio = async (customSoundId) => {
+    setLoadingSoundId(customSoundId);
+    setCurrentPlayingSoundId(null);
+    console.log('Attempting to play sound with ID:', customSoundId);
+
     if (currentPlayingSoundId === customSoundId) {
       console.log('Toggling playback for the same sound. Stopping.');
       await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback:", e));
       setCurrentPlayingSoundId(null);
+      setLoadingSoundId(null);
+      setPlaybackStatus('idle');
       return;
     }
 
@@ -317,16 +325,23 @@ const CustomSounds = () => {
         setCurrentPlayingSoundId(customSoundId);
         await CustomAudioRecorderModule.playAudio(sound.sound.sound);
         console.log('Native playAudio initiated.');
+        setLoadingSoundId(null); 
       } else {
         Alert.alert('Playback Error', 'Sound data not found or invalid.');
         setCurrentPlayingSoundId(null);
+        setLoadingSoundId(null); 
       }
     } catch (error) {
+      setLoadingSoundId(null);
       console.error('Failed to play sound via native module:', error);
       Alert.alert('Playback Error', 'Failed to play recorded sound.');
       setCurrentPlayingSoundId(null);
     }
+    setLoadingSoundId(null);
+    setPlaybackStatus('playing');
+
   };
+  
 
 
   const playRecordedSound = async (audioBase64) => {
@@ -407,7 +422,7 @@ const CustomSounds = () => {
   };
 
   // Main loading state for the whole component
-  if (isLoading) {
+  if (isLoading && selectedFolder == null) {
     return (
       <View className='flex-1 justify-center items-center bg-primary'>
         <ActivityIndicator size="large" color="#8A2BE2" />
@@ -572,21 +587,24 @@ const CustomSounds = () => {
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => playAudio(sound._id)}
-                      className={`ml-4 p-2 rounded-full ${
+                      className={`ml-2 p-2 rounded-full ${
                         currentPlayingSoundId === sound._id
                           ? 'bg-gray-500'
                           : 'bg-secondary'
                       }`}
+                      disabled={loadingSoundId === sound._id}
                     >
-                      <Image
-                        source={
-                          currentPlayingSoundId === sound._id
-                            ? icons.pause
-                            : icons.play
-                        }
-                        className="w-8 h-8 tint-white"
-                        resizeMode="contain"
-                      />
+                      {loadingSoundId === sound._id && currentPlayingSoundId !== sound._id ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" /> // Show loader only if loading and not already playing
+                      ) : (
+                        <Image
+                          source={
+                            currentPlayingSoundId === sound._id ? icons.pause : icons.play
+                          }
+                          className="w-8 h-8 tint-white"
+                          resizeMode="contain"
+                        />
+                      )}
                     </TouchableOpacity>
                   </View>
                 ))

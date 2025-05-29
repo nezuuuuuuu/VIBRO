@@ -29,14 +29,13 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
     }
     val criticalLabels = setOf(
         "Crying, sobbing",
-        "Police car (siren)",
-        "Ambulance (siren)",
-        "Fire engine, fire truck (siren)",
+        "Emergency vehicle",
         "Emergency vehicle",
         "Gunshot, gunfire",
         "Glass",
         "Smash, crash",
-        "Smoke detector, smoke alarm"
+        "Smoke detector, smoke alarm",
+        "Fire alarm"
     )
 
     val CustomEnvironmentalSound = arrayOf(
@@ -389,9 +388,9 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
         "Ice cream truck, ice cream van",
         "Bus",
         "Emergency vehicle",
-        "Police car (siren)",
+        "Emergency vehicle",
         "Ambulance (siren)",
-        "Fire engine, fire truck (siren)",
+        "Emergency vehicle (police, ambulance, firetruck)",
         "Motorcycle",
         "Traffic noise, roadway noise",
         "Rail transport",
@@ -462,7 +461,7 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
         "Dial tone",
         "Busy signal",
         "Alarm clock",
-        "Siren",
+        "Emergency vehicle (police, ambulance, firetruck)",
         "Civil defense siren",
         "Buzzer",
         "Smoke detector, smoke alarm",
@@ -675,7 +674,7 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
                 // Add new audio to the end of rolling buffer
                 System.arraycopy(tempBuffer, 0, rollingBuffer, rollingBuffer.size - stepSize, stepSize)
 
-                // Classify the current 5-second buffer
+                // Classify the current n-second buffer
                 val results = vibroInterpreter?.classify(rollingBuffer) ?: return
                 val yamnetResult = results.first
                 val customResult = results.second
