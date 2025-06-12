@@ -192,14 +192,13 @@ function Home() {
       const fetchAndConnect = async () => {
      try {
       // Connect only if not in offline mode initially (or when component mounts)
-      if (!isOfflineMode) { // Use isOfflineMode from the store
         const result = await getGroups();
         if (result && result.groups) {
           const groupIds = result.groups.map(group => group._id);
           const userId = user._id; 
           connect(userId, groupIds); 
         }
-      }
+
     } catch (error) {
       console.error("Error connecting socket:", error);
     }
@@ -221,39 +220,26 @@ function Home() {
 
       // Create a Set to track unique labels that have been added to the queue
       // This helps prevent duplicates if one event provides multiple very similar labels
-      const processedLabels = new Set();
+      // const processedLabels = new Set();
 
-      if (Array.isArray(yamnetPredictions)) {
-        yamnetPredictions.forEach(({ label, confidence }) => {
-          if (!processedLabels.has(label)) { // Check if this label has already been processed
-            predictionQueue.push({ isCustom: false, label, confidence, audioBase64 });
-            processedLabels.add(label); // Add label to the set
-          }
-        });
+    if (Array.isArray(yamnetPredictions)) {
+      yamnetPredictions.forEach(({ label, confidence }) => {
+        predictionQueue.push({ isCustom : false, label, confidence, audioBase64 });
+        if (!isProcessing) processQueue();
+      });
+    }
+    if (Array.isArray(customPredictions)) {
+      customPredictions.forEach(({ label, confidence }) => {
+        predictionQueue.push({ isCustom : true, label, confidence, audioBase64 });
+        if (!isProcessing) processQueue();
+      });
       }
 
-      if (Array.isArray(customPredictions)) {
-        customPredictions.forEach(({ label, confidence }) => {
-          // For custom predictions, also ensure uniqueness, possibly prefixing to differentiate
-          const uniqueCustomLabel = `custom_${label}`;
-          if (!processedLabels.has(uniqueCustomLabel)) {
-            predictionQueue.push({ isCustom: true, label, confidence, audioBase64 });
-            processedLabels.add(uniqueCustomLabel);
-          }
-        });
-      }
-
-      // Start processing the queue only if there are new items and it's not already running
-      if (predictionQueue.length > 0 && !isProcessing) {
-        processQueue();
-      }
+      
     });
 
     // Clean up the event listener when the component unmounts
-    return () => {
-      DeviceEventEmitter.removeAllListeners("onPrediction");
-    };
-
+    
   }, [isOfflineMode]);
 
 
