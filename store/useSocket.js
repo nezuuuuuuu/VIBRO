@@ -59,7 +59,8 @@ export const useSocket = create((set, get) => ({
           try {
             await notifee.displayNotification({
               title: `From: ${username} (${groupName})`,
-              body: `Detected: ${label}\nConfidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
+              // body: `Detected: ${label}\nConfidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
+              body: `Detected: ${label}\n - LEVEL 1`,
               android: {
                 channelId: 'sound-alerts3',
                 importance: AndroidImportance.HIGH,

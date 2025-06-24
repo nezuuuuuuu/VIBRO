@@ -688,7 +688,7 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
                     val prediction = Arguments.createMap()
 
                     if (yamnet_labels[index] in criticalLabels){
-                        if(confidence.toDouble()>=.40) {
+                        if(confidence.toDouble()>=.20) {
                             prediction.putString("label", yamnet_labels[index])
                             prediction.putDouble("confidence", confidence.toDouble())
                             yamnetPredictionArray.pushMap(prediction)
@@ -708,7 +708,7 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
                 if(numClasses>0){
 
                     customResult?.forEachIndexed { index, confidence ->
-                        if (confidence.toDouble() >= 0.90 && labels.getString(index) !in CustomEnvironmentalSound) {
+                        if (confidence.toDouble() >= 0.40 && labels.getString(index) !in CustomEnvironmentalSound) {
                             val prediction = Arguments.createMap()
                             prediction.putString("label", labels.getString(index))
                             prediction.putDouble("confidence", confidence.toDouble())

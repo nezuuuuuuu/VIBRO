@@ -41,7 +41,7 @@ import { useAppStore } from '../../../store/appStore';
 
 const { AudioRecorder, Flashlight } = NativeModules;
 
-const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)','Fire alarm'];
+const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Emergency vehicle (police, ambulance, firetruck)','Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)','Fire alarm'];
 const NOTIF_LEVEL_2_ALLOWED_LABELS = [ 'Glass','Baby cry, infant cry','Crying, sobbing'];
 const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass','Speech','Music'];
 const ACTIVE_SWITCH_COLOR = '#8A2BE2';
@@ -54,6 +54,7 @@ const BACKGROUND_LABELS = ['Background','Silence'];
 const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
   
   'siren': 1,
+  'Emergency vehicle (police, ambulance, firetruck)': 1,
   'Ambulance (siren)': 1,
   'Police car (siren)': 1,
   'Siren': 1,
@@ -286,7 +287,8 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     Vibration.vibrate([0, 500, 200, 500]); // Vibrate for 500ms, pause 200ms, vibrate 500ms (High urgency)
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
-                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
+                        // body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
+                        body: `LEVEL 1`,
                         android: {
                             channelId: 'sound-alerts3',
                             importance: AndroidImportance.HIGH,
@@ -296,7 +298,8 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     Vibration.vibrate(500); // Vibrate for 500ms (Medium urgency)
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
-                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 2`,
+                        // body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 2`,
+                        body: `LEVEL 2`,
                         android: {
                             channelId: 'sound-alerts3',
                             importance: AndroidImportance.MIN,
@@ -306,7 +309,8 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     // Vibration.vibrate(200); // Vibrate for 200ms (Low urgency)
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
-                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 3`,
+                        // body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 3`,
+                        body: `LEVEL 3`,
                         android: {
                             channelId: 'sound-alerts1',
                             importance: AndroidImportance.LOW,
@@ -316,7 +320,8 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     Vibration.vibrate([0, 1000]); // Vibrate for 1000ms (Distinct for custom sounds)
                     await notifee.displayNotification({
                         title: `Detected Custom Sound: ${label}`,
-                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - Custom Model`,
+                        // body: `Confidence: ${(confidence * 100).toFixed(2)}% - Custom Model`,
+                        body: `Custom Model`,
                         android: {
                             channelId: 'sound-alerts2',
                             importance: AndroidImportance.HIGH,

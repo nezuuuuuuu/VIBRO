@@ -52,10 +52,18 @@ const DetectionDisplay: React.FC<DetectionDisplayProps> = ({
   const classNameToApply = isCustom === true? containerClass : customContainerClass;
 
 
+  
   return (
-    <Pressable onPress={() => playAudio(audioBase64)}>
-      <View className={classNameToApply}>
-        <Text className="text-primary font-psemibold text-base">{sound}</Text>
+   <Pressable onPress={() => playAudio(audioBase64)}>
+      <View className={`${classNameToApply} flex-row justify-between items-center`}>
+        {sound === 'Emergency vehicle (police, ambulance, firetruck)' ? (
+          <View>
+            <Text className="text-primary font-psemibold text-center text-base">Emergency vehicle</Text>
+            <Text className="text-primary font-psemibold text-base">(police, ambulance, firetruck)</Text>
+          </View>
+        ) : (
+          <Text className="text-primary font-psemibold text-base">{sound}</Text>
+        )}
         <Text className="text-primary font-psemibold text-base">{time}</Text>
       </View>
     </Pressable>
