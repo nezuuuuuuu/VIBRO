@@ -41,21 +41,26 @@ import { useAppStore } from '../../../store/appStore';
 
 const { AudioRecorder, Flashlight } = NativeModules;
 
-const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)'];
+const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)','Fire alarm'];
 const NOTIF_LEVEL_2_ALLOWED_LABELS = [ 'Glass','Baby cry, infant cry','Crying, sobbing'];
 const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass','Speech','Music'];
 const ACTIVE_SWITCH_COLOR = '#8A2BE2';
 const INACTIVE_SWITCH_COLOR = '#767577';
 
 
+const BACKGROUND_LABELS = ['Background','Silence'];
+
+ 
 const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
-  'siren': 1,
-  'Ambulance (siren)': 1,
-  'Police car (siren)': 1,
-  'Siren': 1,
+  
+  'siren': 1,
+  'Ambulance (siren)': 1,
+  'Police car (siren)': 1,
+  'Siren': 1,
   'Fire engine, fire truck (siren)': 1,
-  'Glass': 2,
-  'Speech': 3,
+  'Fire alarm': 1,
+  'Glass': 2,
+  'Speech': 3,
   'Music': 3,
   'Crying, sobbing': 2,
   'Baby cry, infant cry': 2,
@@ -118,7 +123,7 @@ function Home() {
   const [predictions, setPredictions] = useState<any[]>([]);
 
   const [isRecording, setIsRecording] = useState(false);
-  const [isMonitoringOn, setIsMonitoringOn] = useState(false);
+  const [isMonitoringOn, setIsMonitoringOn] = useState(user.isActive); // Initialize with user's active status
   
   const predictionQueue: { isCustom: boolean, label: string; confidence: number; audioBase64?: string }[] = [];
   let isProcessing = false;
@@ -158,6 +163,7 @@ function Home() {
         ),
         headerStyle: {
           backgroundColor: '#1B1B3A',
+          
         },
       });
     }
@@ -187,11 +193,13 @@ function Home() {
     
     copyModelToInternalStorage();
     console.log(RNFS.DocumentDirectoryPath); 
-    setIsMonitoringOn(user.isActive)
+    // This line initializes isMonitoringOn with user.isActive, which is correct.
+    // No need to set it again outside of its initial state.
+    // setIsMonitoringOn(user.isActive) 
 
       const fetchAndConnect = async () => {
-     try {
-      // Connect only if not in offline mode initially (or when component mounts)
+      try {
+       // Connect only if not in offline mode initially (or when component mounts)
         const result = await getGroups();
         if (result && result.groups) {
           const groupIds = result.groups.map(group => group._id);
@@ -211,37 +219,42 @@ function Home() {
   }
     
 
-
- DeviceEventEmitter.addListener("onPrediction", (data) => {
+  // Event listener for predictions
+  DeviceEventEmitter.addListener("onPrediction", (data) => {
       console.log("YAMNET PREDICTIONS:", data.yamnetPredictions);
       console.log("CUSTOM PREDICTIONS:", data.customPredictions);
 
       const { customPredictions, yamnetPredictions, audioBase64 } = data;
 
-      // Create a Set to track unique labels that have been added to the queue
-      // This helps prevent duplicates if one event provides multiple very similar labels
-      // const processedLabels = new Set();
-
-    if (Array.isArray(yamnetPredictions)) {
-      yamnetPredictions.forEach(({ label, confidence }) => {
-        predictionQueue.push({ isCustom : false, label, confidence, audioBase64 });
-        if (!isProcessing) processQueue();
-      });
-    }
-    if (Array.isArray(customPredictions)) {
-      customPredictions.forEach(({ label, confidence }) => {
-        predictionQueue.push({ isCustom : true, label, confidence, audioBase64 });
-        if (!isProcessing) processQueue();
-      });
+      // Process Yamnet predictions
+      if (Array.isArray(yamnetPredictions)) {
+        yamnetPredictions.forEach(({ label, confidence }) => {
+          predictionQueue.push({ isCustom : false, label, confidence, audioBase64 });
+          if (!isProcessing) processQueue();
+        });
       }
 
-      
+      // Process custom predictions
+      if (Array.isArray(customPredictions)) {
+        customPredictions.forEach(({ label, confidence }) => {
+          // FIX: Use .includes() for array check
+          if(BACKGROUND_LABELS.includes(label)){
+            console.log(`Filtered out background label: ${label}`);
+          }
+          else{
+            predictionQueue.push({ isCustom : true, label, confidence, audioBase64 });
+            if (!isProcessing) processQueue();
+          }
+        });
+      }
     });
 
     // Clean up the event listener when the component unmounts
-    
-  }, [isOfflineMode]);
-
+    // You should return a cleanup function from useEffect
+    return () => {
+      DeviceEventEmitter.removeAllListeners("onPrediction");
+    };
+  }, [isOfflineMode, user]); // Added user to dependency array as setIsMonitoringOn depends on it
 
 
 const handlePrediction = async (prediction: { isCustom: boolean, label: string, confidence: number, audioBase64: string }) => {
@@ -250,7 +263,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
 
         console.log("Raw prediction received:", { label, confidence, isCustom });
 
-     
+      
             const currentTime = Date.now();
             const criticalLevel = CRITICAL_SOUND_LEVELS[label] || null;
 
@@ -264,7 +277,8 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     ...prevPredictions,
                     { isCustom: isCustom, label: label, confidence: confidence, timestamp: currentTime, audioBase64: audioBase64, criticalLevel: criticalLevel }
                 ]);
-                if(socket || socket.connected) {
+                // Only send sound to socket if monitoring is on and socket is connected
+                if(isMonitoringOn && socket && socket.connected) {
                   addSound(label, confidence, audioBase64);
                 }
                 // --- VIBRATION LOGIC ADDED HERE ---
@@ -316,7 +330,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
     };
 
 // // Flashlight Di mugana
-//   const blinkFlashlight = async (times = 5, interval = 200) => {
+//  const blinkFlashlight = async (times = 5, interval = 200) => {
 //       if (Platform.OS === 'android' && Platform.Version >= 23) {
 //         const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
 //           title: 'Camera Permission',
@@ -363,8 +377,8 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
 
     }
 
-   
-   
+    
+    
   }
 
     async function playAudio(base64audio: string) {
@@ -376,7 +390,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
 }
 const handleToggle = () => {
   if (isMonitoringOn) {
-   setActiveStatus(false);
+    setActiveStatus(false);
   } else {
     setActiveStatus(true);
   }
@@ -386,85 +400,85 @@ setIsMonitoringOn(!isMonitoringOn);
 
 
 
-   return (
-    <View className='h-full bg-primary' >
-      <View className='items-center px-4'> 
-        <Text className='mt-4 text-xl font-psemibold text-white'>Sounds Detected</Text>
+    return (
+     <View className='h-full bg-primary' >
+       <View className='items-center px-4'> 
+         <Text className='mt-4 text-xl font-psemibold text-white'>Sounds Detected</Text>
 
-        <View className="text-center my-3 w-full">
-          
-          {/* Legend items container */}
-      <View className="ml-10 flex-row flex-wrap justify-center max-w-lg"> 
-        
-        {Object.entries(LEGEND_INFO).map(([key, info]) => (
-
-          <View key={key} className="w-1/2 flex-row items-start py-1"> 
+         <View className="text-center my-3 w-full">
            
-        
-            <View className="flex-shrink-0 mr-2 mt-2">
-              
-              <View className={`h-3.5 w-3.5 rounded-sm ${info.colorClass} border border-gray-400`} />
-            </View>
+           {/* Legend items container */}
+       <View className="ml-10 flex-row flex-wrap justify-center max-w-lg"> 
+         
+         {Object.entries(LEGEND_INFO).map(([key, info]) => (
+
+           <View key={key} className="w-1/2 flex-row items-start py-1"> 
+             
+         
+             <View className="flex-shrink-0 mr-2 mt-2">
+               
+               <View className={`h-3.5 w-3.5 rounded-sm ${info.colorClass} border border-gray-400`} />
+             </View>
+             
+             <View className="flex-1">
+               <Text className="text-xs font-pmedium text-white">{info.label}</Text>
+               <Text className="text-xs leading-tight font-pregular text-gray-300">{info.description}</Text>
+             </View>
+             
+           </View>
+         ))}
+         
+       </View>
+                 <View className="p-4">
+                   <View className="flex flex-row items-center justify-between py-2">
+                     <View className="flex-1 mr-4">
+                       <Text className="text-base font-pmedium text-gray-200">
+                         Enable Group Monitoring
+                       </Text>
+                       <Text className="text-xs font-pregular text-gray-400 mt-1">
+                         When enabled, detected sounds will be visible to your group members.
+                       </Text>
+                     </View>
+                     <Switch
+                       onValueChange={() => handleToggle()}
+                       trackColor={{ false: INACTIVE_SWITCH_COLOR, true: ACTIVE_SWITCH_COLOR }}
+                       thumbColor={isMonitoringOn ? "#f4f3f4" : "#f4f3f4"} 
+                       value={isMonitoringOn}
+                       ios_backgroundColor={INACTIVE_SWITCH_COLOR} //
+                     />
+                   </View>
+                 </View>
+         </View>
+
+         <ScrollView className="w-full" style={{ height: '70%' }}> 
            
-            <View className="flex-1">
-              <Text className="text-xs font-pmedium text-white">{info.label}</Text>
-              <Text className="text-xs leading-tight font-pregular text-gray-300">{info.description}</Text>
-            </View>
-            
-          </View>
-        ))}
-        
-      </View>
-                <View className="p-4">
-                  <View className="flex flex-row items-center justify-between py-2">
-                    <View className="flex-1 mr-4">
-                      <Text className="text-base font-pmedium text-gray-200">
-                        Enable Group Monitoring
-                      </Text>
-                      <Text className="text-xs font-pregular text-gray-400 mt-1">
-                        When enabled, detected sounds will be visible to your group members.
-                      </Text>
-                    </View>
-                    <Switch
-                      onValueChange={() => handleToggle()}
-                      trackColor={{ false: INACTIVE_SWITCH_COLOR, true: ACTIVE_SWITCH_COLOR }}
-                      thumbColor={isMonitoringOn ? "#f4f3f4" : "#f4f3f4"} 
-                      value={isMonitoringOn}
-                      ios_backgroundColor={INACTIVE_SWITCH_COLOR} //
-                    />
-                  </View>
-                </View>
-        </View>
+           {predictions.slice().reverse().map((prediction, index) => {
+             return (
+               <DetectionDisplay
+                 key={`${prediction.timestamp}-${index}`} 
+                 time={new Date(prediction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit'})}
+                 confidence={`${(prediction.confidence * 100).toFixed(1)}%`}
+                 sound={prediction.label}
+                 audioBase64={prediction.audioBase64}
+                 criticalLevel={prediction.criticalLevel}
+               />
+             );
+           })}
+         </ScrollView>
+       </View>
 
-        <ScrollView className="w-full" style={{ height: '70%' }}> 
-          
-          {predictions.slice().reverse().map((prediction, index) => {
-            return (
-              <DetectionDisplay
-                key={`${prediction.timestamp}-${index}`} 
-                time={new Date(prediction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit'})}
-                confidence={`${(prediction.confidence * 100).toFixed(1)}%`}
-                sound={prediction.label}
-                audioBase64={prediction.audioBase64}
-                criticalLevel={prediction.criticalLevel}
-              />
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      <View className='absolute bottom-6 left-0 right-0 flex-row items-center justify-center'>
-        <TouchableOpacity
-            onPress={startRecording}
-            className={`h-16 w-16 items-center justify-center rounded-full ${isRecording ? 'bg-red-500' : 'bg-secondary'}`}
-            activeOpacity={0.7}
-        >
-            <Image source={isRecording ? icons.recording : icons.microphone} className="h-8 w-8" resizeMode='contain' />
-        </TouchableOpacity>
-      </View>
-      <StatusBar className='bg-primary' />
-    </View>
-  );
+       <View className='absolute bottom-6 left-0 right-0 flex-row items-center justify-center'>
+         <TouchableOpacity
+             onPress={startRecording}
+             className={`h-16 w-16 items-center justify-center rounded-full ${isRecording ? 'bg-red-500' : 'bg-secondary'}`}
+             activeOpacity={0.7}
+         >
+             <Image source={isRecording ? icons.recording : icons.microphone} className="h-8 w-8" resizeMode='contain' />
+         </TouchableOpacity>
+       </View>
+       <StatusBar className='bg-primary' />
+     </View>
+   );
 }
 
 export default Home;

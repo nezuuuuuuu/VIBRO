@@ -68,7 +68,8 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
         "washing_machine",
         "water_drops",
         "wind",
-        "speech"
+        "speech",
+        "Background"
     )
     val yamnet_labels = arrayOf(
         "Speech",
@@ -707,7 +708,7 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
                 if(numClasses>0){
 
                     customResult?.forEachIndexed { index, confidence ->
-                        if (confidence.toDouble() >= 0.30 && labels.getString(index) !in CustomEnvironmentalSound) {
+                        if (confidence.toDouble() >= 0.90 && labels.getString(index) !in CustomEnvironmentalSound) {
                             val prediction = Arguments.createMap()
                             prediction.putString("label", labels.getString(index))
                             prediction.putDouble("confidence", confidence.toDouble())
