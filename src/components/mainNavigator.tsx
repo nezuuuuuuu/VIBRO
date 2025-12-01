@@ -13,7 +13,7 @@ import GroupDetails from '../screens/(tabs)/GroupDetails';
 import GroupSoundsDetected from '../screens/(tabs)/GroupSoundsDetected';
 import GroupInfo from '../screens/(tabs)/GroupInfo';
 import ChatScreen from '../screens/(tabs)/chatScreen';
-import MorphingBlob from '../screens/(tabs)/morphingBlob';
+// import MorphingBlob from '../screens/(tabs)/morphingBlob';
 import { icons } from '../constants';
 import "../../global.css";
 import CustomSounds from '../screens/(tabs)/customSound';
@@ -169,11 +169,11 @@ const MainNavigator = () => {
         }}
       />
      
-        <Tab.Screen
+        {/* <Tab.Screen
         name="morhpingBlob"
         component={MorphingBlob}
         
-      />
+      /> */}
 
       <Tab.Screen
         name="Sound"
