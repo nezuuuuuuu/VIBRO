@@ -1,5 +1,5 @@
-import React, { memo, useEffect, useLayoutEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, TextInput, ScrollView } from 'react-native';
+import React, { memo, useEffect, useLayoutEffect, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Image, TextInput, ScrollView, RefreshControl } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { icons } from '../../constants';
 import { useGroupStore } from '../../../store/groupStore';
@@ -15,6 +15,22 @@ const GroupDetails = () => {
         const { user, token, isLoadingAuth } = useAuthStore();
         const currentUserId = user?._id;
         const route = useRoute();
+        const [isRefreshing, setIsRefreshing] = useState(false); 
+
+
+        const loadMembers = async () => {
+            setIsRefreshing(true); 
+            // 🟢 SIGN: Ensure the core data fetching runs first. 
+            // We use try/finally to guarantee the spinner stops.
+            try {
+                    await getMembers(groupPointer._id);
+                
+            } catch (error) {
+                console.error("Refresh failed:", error);
+            } finally {
+                setIsRefreshing(false); // 🟢 SIGN: Hide spinner
+            }
+        };
     
     useEffect(() => {
          
@@ -37,6 +53,12 @@ const GroupDetails = () => {
             getMembers(groupPointer._id); // Fetch members only when groupPointer is ready
         }
     }, [groupPointer]);
+
+     const onRefresh = useCallback(async () => {
+        // This function is executed when the user pulls down
+        await loadMembers();
+      }, [groupPointer, getMembers]); // 🟢 SIGN: Added dependencies for useCallback (best practice)
+
     useLayoutEffect(() => {
         
          if (navigation && groupPointer && !isLoadingAuth) {
@@ -119,7 +141,18 @@ const GroupDetails = () => {
     return (
         <View className='bg-primary p-4 flex-1'>
             <Text className='text-white font-pregular my-5'>Monitoring on:</Text>
-            <ScrollView className='w-full rounded-lg'>
+            <ScrollView 
+                className='w-full rounded-lg'
+                // 🟢 SIGN: Added RefreshControl component
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing} // State to control the spinner
+                        onRefresh={onRefresh}     // Function to call on pull-down
+                        tintColor='#8A2BE2'       // Custom color for iOS
+                        colors={['#8A2BE2']}      // Custom color for Android
+                    />
+                }
+            >
                 
                 {groupMembersPointer.filter((member) => member.isActive).map((member) => (
                     // NAVIGATE TO GROUPSOUNDSDETECTED.TSX

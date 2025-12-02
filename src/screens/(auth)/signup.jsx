@@ -98,7 +98,7 @@ export default function Signup({navigation}) {
                 <View class="relative w-full">
                     {/* password */}
                     <TextInput
-                        className="text-white border-2 px-4 py-5 text-xl border-[#C0C0C0] rounded-xl placeholder:text-white placeholder:font-pregular"
+                        className="text-white border px-4 py-5 text-xl border-[#C0C0C0] rounded-xl placeholder:text-white placeholder:font-pregular"
                         placeholder="Password"
                         secureTextEntry={!showPassword} 
                         autoCapitalize="none"

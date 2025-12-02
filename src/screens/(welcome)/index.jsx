@@ -41,7 +41,7 @@ export default function Index({navigation}) {
 
                 {/* <Link href="/(auth)" asChild> */}
                     <TouchableOpacity className="p-6" onPress={() => navigation.navigate("Login")}> 
-                        <Text className="text-secondary font-psemibold text-xl w-full"> 
+                        <Text className="text-lightsecondary font-psemibold text-xl w-full"> 
                             Log In
                         </Text>
                     </TouchableOpacity>

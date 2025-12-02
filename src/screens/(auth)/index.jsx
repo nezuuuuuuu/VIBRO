@@ -17,6 +17,7 @@ import React, { useState } from 'react';
 import { icons } from '../../constants';
 import "../../../global.css";
 import { useAuthStore } from "../../../store/authStore";
+import BASE_URL  from "../../../store/api";
 // import { useRouter, useSegments} from 'expo-router';
 
 
@@ -30,6 +31,7 @@ export default function Login({navigation}) {
     // const segments = useSegments();
 
     const handleLogin = async () => {
+        console.log("HAHAHAHAHAHA", BASE_URL);
         const result = await login(email, password);
         if(!result.success) Alert.alert("Error", result.error);
         else if (result.success) {
@@ -51,7 +53,7 @@ export default function Login({navigation}) {
                  {/* INPUT FIELDS */}
                  <View className='flex flex-col mt-4 gap-y-4'>
                     <TextInput
-                        className='text-white border-2 px-4 py-5 text-xl border-[#C0C0C0] rounded-xl placeholder:text-white placeholder:font-pregular'
+                        className='text-white border px-4 py-5 text-xl border-[#C0C0C0] rounded-xl placeholder:text-white placeholder:font-pregular'
                         placeholder="Email"
                         keyboardType="email-address"
                         autoCapitalize="none"
@@ -63,7 +65,7 @@ export default function Login({navigation}) {
                     <View class="relative w-full">
                     {/* password */}
                     <TextInput
-                        className="text-white border-2 px-4 py-5 text-xl border-[#C0C0C0] rounded-xl placeholder:text-white placeholder:font-pregular"
+                        className="text-white border px-4 py-5 text-xl border-[#C0C0C0] rounded-xl placeholder:text-white placeholder:font-pregular"
                         placeholder="Password"
                         secureTextEntry={!showPassword} 
                         autoCapitalize="none"

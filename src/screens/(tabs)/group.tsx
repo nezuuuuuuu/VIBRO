@@ -1,5 +1,5 @@
-import React, { useEffect, useLayoutEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Pressable, Image, TextInput, Alert } from 'react-native';
+import React, { useEffect, useLayoutEffect, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Pressable, Image, TextInput, Alert, RefreshControl } from 'react-native';
 import "../../../global.css";
 import { useNavigation } from '@react-navigation/native';
 import { icons } from '../../constants';
@@ -16,6 +16,21 @@ const Groups = () => {
   const [filteredGroups, setFilteredGroups] = useState([]);
   const [groupCode, setGroupCode] = useState('');
   const [groupCodePlaceholder, setGroupCodePlaceholder] = useState('Enter group code');
+
+  // 1. New state for RefreshControl loading indicator
+  const [isRefreshing, setIsRefreshing] = useState(false); 
+
+  // --- Data Fetching Logic ---
+
+  // Refactored to a single function for initial load and refresh
+  const loadGroups = async () => {
+      // Your getGroups handles its own isLoading state, 
+      // but we need a local state for the RefreshControl spinner
+      setIsRefreshing(true); 
+      // The getGroups call will update the global groups state
+      await getGroups();
+      setIsRefreshing(false);
+  }
 
   useEffect(() => {
     const fetchInitialGroups = async () => {
@@ -38,6 +53,12 @@ const Groups = () => {
     }
   }, [searchQuery, groups]);
 
+
+  // 2. Define the callback function for pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    // This function is executed when the user pulls down
+    await loadGroups();
+  }, []);
 
   useLayoutEffect(() => {
     if (navigation) {
@@ -144,8 +165,18 @@ const Groups = () => {
 
   return (
     <View className="h-full flex-1 bg-primary p-4">
-      <ScrollView className="flex-1">
-        {isLoading && groups.length === 0 && (
+      <ScrollView 
+            className="flex-1"
+            refreshControl={
+              <RefreshControl
+                  refreshing={isRefreshing} // State to control the spinner
+                  onRefresh={onRefresh}     // Function to call on pull-down
+                  tintColor='#8A2BE2'       // Custom color for iOS
+                  colors={['#8A2BE2']}      // Custom color for Android
+              />
+          }
+      >
+        {(isLoading || isRefreshing) && groups.length === 0 && (
             <Text className="text-white font-pregular text-center mt-8">Loading groups...</Text>
         )}
 
