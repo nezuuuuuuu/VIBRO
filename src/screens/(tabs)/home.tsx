@@ -41,7 +41,7 @@ import { useAppStore } from '../../../store/appStore';
 
 const { AudioRecorder, Flashlight } = NativeModules;
 
-const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)','Fire alarm'];
+const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)','Fire alarm', 'Emergency vehicle'];
 const NOTIF_LEVEL_2_ALLOWED_LABELS = [ 'Glass','Baby cry, infant cry','Crying, sobbing'];
 const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass','Speech','Music'];
 const ACTIVE_SWITCH_COLOR = '#8A2BE2';
@@ -64,6 +64,7 @@ const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
   'Music': 3,
   'Crying, sobbing': 2,
   'Baby cry, infant cry': 2,
+  'Emergency vehicle': 1
 };
 
 export async function requestMicPermission() {
@@ -403,7 +404,7 @@ setIsMonitoringOn(!isMonitoringOn);
     return (
      <View className='h-full bg-primary' >
        <View className='items-center px-4'> 
-         <Text className='mt-4 text-xl font-psemibold text-white'>Sounds Detected</Text>
+         <Text className='mt-4 text-2xl font-pbold text-white'>Sounds Detected</Text>
 
          <View className="text-center my-3 w-full">
            
@@ -429,7 +430,7 @@ setIsMonitoringOn(!isMonitoringOn);
          ))}
          
        </View>
-                 <View className="p-4">
+                 {/* <View className="p-4">
                    <View className="flex flex-row items-center justify-between py-2">
                      <View className="flex-1 mr-4">
                        <Text className="text-base font-pmedium text-gray-200">
@@ -447,7 +448,7 @@ setIsMonitoringOn(!isMonitoringOn);
                        ios_backgroundColor={INACTIVE_SWITCH_COLOR} //
                      />
                    </View>
-                 </View>
+                 </View> */}
          </View>
 
          <ScrollView className="w-full" style={{ height: '70%' }}> 

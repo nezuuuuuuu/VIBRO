@@ -200,10 +200,11 @@ const CustomSounds = () => {
   };
 
   const openFolder = (folder) => {
-    console.log('Opening folder:', folder);
-    setSelectedFolder(folder);
-    CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback on folder open:", e));
-    setCurrentPlayingSoundId(null);
+    navigation.navigate('CustomFolder',{folder});
+    // console.log('Opening folder:', folder);
+    // setSelectedFolder(folder);
+    // CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback on folder open:", e));
+    // setCurrentPlayingSoundId(null);
   };
 
   const closeFolder = () => {
@@ -342,8 +343,6 @@ const CustomSounds = () => {
 
   };
   
-
-
   const playRecordedSound = async (audioBase64) => {
     if (playbackStatus === 'playing') {
       console.log('Already playing recorded audio. Stopping current playback.');

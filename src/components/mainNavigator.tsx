@@ -20,6 +20,7 @@ import CustomSounds from '../screens/(tabs)/customSound';
 
 
 import { useAppStore } from '../../store/appStore'; 
+import CustomFolder from '../screens/(tabs)/customFolder';
 
 const Tab = createBottomTabNavigator();
 const ProfileStack = createNativeStackNavigator();
@@ -93,6 +94,12 @@ const GroupStackNavigator = () => {
          options={{
           headerShown: true,
           }} />
+
+      <GroupStack.Screen
+        name="CustomFolder"
+        component={CustomFolder}
+        options={({ title: 'Custom Folder'})}
+      />
     </GroupStack.Navigator>
   );
 };
