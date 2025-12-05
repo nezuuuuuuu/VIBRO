@@ -10,7 +10,7 @@ import { useModelStore } from '../../../store/modelStore';
 const { CustomAudioRecorderModule } = NativeModules;
 
 const CustomSounds = () => {
-  const { fetchAndCreateModel, isTrainingModel } = useModelStore(); // Get isTrainingModel state
+  const { fetchAndCreateModel, isTrainingModel,downloadModel } = useModelStore(); // Get isTrainingModel state
   const navigation = useNavigation();
 
   const { user } = useAuthStore();
@@ -451,6 +451,32 @@ const CustomSounds = () => {
           <Text className="text-white font-psemibold text-lg">Train Model</Text>
         )}
       </TouchableOpacity>
+      <Text className="text-lightsecondary font-psemibold text-lg">Your Model:</Text>
+      
+     {groupPointer?.groupModelUrl !== "" &&
+ groupPointer?.groupModelUrl !== "PENDING" ? (
+  
+  <TouchableOpacity
+    className={`p-4 rounded-lg mb-4 items-center ${
+      isTrainingModel ? 'bg-gray-500' : 'bg-secondary'
+    }`}
+    onPress={() => downloadModel(currentGroupId, groupPointer.groupModelUrl)}
+    disabled={isTrainingModel}
+  >
+    {isTrainingModel ? (
+      <ActivityIndicator size="small" color="#fff" />
+    ) : (
+      <Text className="text-white font-psemibold text-lg">
+        Download Model
+      </Text>
+    )}
+  </TouchableOpacity>
+
+) : (
+  <Text className="text-gray-400 text-center mb-4">
+    Model Not Ready
+  </Text>
+)}
 
       {/* Loading overlay for model training */}
       <Modal
