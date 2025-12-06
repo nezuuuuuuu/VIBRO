@@ -12,7 +12,7 @@ export default function Profile() {
   const navigation = useNavigation();
   const { user, logout, setActiveStatus } = useAuthStore();
   const { isOfflineMode, toggleOfflineMode } = useAppStore();
-  const [isMonitoringOn, setIsMonitoringOn] = useState(user.isActive);
+  const [isMonitoringOn, setIsMonitoringOn] = useState(user.isMonitoringOn);
 
 
   useEffect(() => {

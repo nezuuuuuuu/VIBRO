@@ -154,7 +154,11 @@ const MainNavigator = () => {
           justifyContent: 'center',
         },
         tabBarItemStyle: {
-          top: 20,
+          height: '100%', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          paddingHorizontal: 0,
+          paddingVertical: 20,
         },
       })}
     >

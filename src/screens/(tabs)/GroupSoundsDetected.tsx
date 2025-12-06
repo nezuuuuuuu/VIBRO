@@ -13,6 +13,7 @@ const GroupSoundsDetected = () => {
 
     const route = useRoute();
     const {userId, username} = route.params
+    const { groupPointer } = useGroupStore();
 
     const navigation = useNavigation();
 
@@ -42,9 +43,15 @@ const GroupSoundsDetected = () => {
 
             if (navigation) {
                 navigation.setOptions({
-                    headerTitle: () => (
-                        <Text className="font-psemibold text-2xl text-white">{username}</Text>
-                    ),
+                    headerTitle: () => (
+                          <View className="flex-col items-left">
+                            <Text className="font-pregular text-sm text-gray-200">
+                              {groupPointer?.groupName}
+                            </Text>
+                            
+                            <Text className="font-psemibold text-2xl text-white">{username}</Text>
+                          </View>
+                      ),
                     headerStyle: {
                         backgroundColor: '#1a1a3d',
                     },
@@ -54,7 +61,7 @@ const GroupSoundsDetected = () => {
                     },
                 });
             }
-    }, [navigation]);
+    }, [navigation, groupPointer]);
    const formatTime = (isoTime) => {
   try {
     const date = new Date(isoTime);

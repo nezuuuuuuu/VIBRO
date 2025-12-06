@@ -52,11 +52,15 @@ export const useCustomSoundStore = create((set, get) => ({
             if (!response.ok) throw new Error(data.message || 'Failed to remove folder');
 
             // Remove the folder and its associated sounds from the state
-            set((state) => ({
-                folders: state.folders.filter(folder => folder._id !== folderId),
-                soundsWithoutFolder: state.soundsWithoutFolder.filter(sound => sound.folderId !== folderId), // In case sounds were moved out of a folder
-                isLoading: false,
-            }));
+            set((state) => {
+                // SAFETY CHECK: If folders is undefined, default to empty array []
+                const currentFolders = state.folders || []; 
+                return {
+                    folders: currentFolders.filter((folder) => folder._id !== folderId),
+                    isLoading: false,
+                };
+            });
+            
             return { success: true };
         } catch (error) {
             set({ isLoading: false, error: error.message });
