@@ -41,6 +41,7 @@ const CustomSounds = () => {
   const [currentPlayingSoundId, setCurrentPlayingSoundId] = useState(null);
   const [playbackStatus, setPlaybackStatus] = useState('idle');
   const [loadingSoundId, setLoadingSoundId] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const MAX_RECORD_DURATION_MS = 5000;
 
@@ -460,11 +461,35 @@ const CustomSounds = () => {
     );
   }
 
+    const handleDownloadModel = async () => {
+        try {
+          setIsDownloading(true);
+          await downloadModel(currentGroupId, groupPointer.groupModelUrl);
+          Alert.alert('Success', 'Model downloaded successfully! Check your Custom Sound Models Tab.');
+        } catch (error) {
+          console.error("Download failed", error);
+          Alert.alert('Error', 'Failed to download model.');
+        } finally {
+          setIsDownloading(false); // Stop loading (success or fail)
+        }
+      };
+
+    const handleTrainModel = async () => {
+      try {
+        await fetchAndCreateModel(currentGroupId, groupPointer.groupName);
+        Alert.alert('Success', 'Model training complete! Ready for Download!');
+        
+      } catch (error) {
+        console.error("Training failed", error);
+        Alert.alert('Error', 'Failed to train model. Please try again.');
+      }
+    };
+
   return (
     <View className='bg-primary p-4 flex-1'>
       <TouchableOpacity
         className={`p-4 rounded-lg mb-4 items-center ${isTrainingModel ? 'bg-gray-500' : 'bg-secondary'}`}
-        onPress={() => fetchAndCreateModel(currentGroupId, groupPointer.groupName)}
+        onPress={handleTrainModel}
         disabled={isTrainingModel} // Disable button during training
       >
         {isTrainingModel ? (
@@ -485,13 +510,18 @@ const CustomSounds = () => {
       // Download Model button (Active State)
       <TouchableOpacity
         className={`p-4 rounded-lg mb-4 items-center ${
-          isTrainingModel ? 'bg-gray-500' : 'bg-secondary'
+          isTrainingModel || isDownloading ? 'bg-gray-500' : 'bg-secondary'
         }`}
-        onPress={() => downloadModel(currentGroupId, groupPointer.groupModelUrl)}
-        disabled={isTrainingModel}
+        onPress={handleDownloadModel}
+        disabled={isTrainingModel || isDownloading}
       >
-        {isTrainingModel ? (
-          <ActivityIndicator size="small" color="#fff" />
+        {isTrainingModel || isDownloading ? (
+          <View className="flex-row items-center gap-2">
+            <ActivityIndicator size="small" color="#fff" />
+            <Text className="text-gray-200 font-pmedium">
+              {isDownloading ? "Downloading..." : "Training..."}
+            </Text>
+          </View>
         ) : (
           <Text className="text-white font-psemibold text-lg">
             Download Model
