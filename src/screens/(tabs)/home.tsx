@@ -146,7 +146,7 @@ function Home() {
     if (user) {
       navigation.setOptions({
         headerTitle: () => ( 
-          <Text className="font-pbold text-2xl text-white">VIBRO</Text>
+          <Text className="font-pbold text-3xl text-white">VIBRO</Text>
        ),
         headerRight: () => (
           <TouchableOpacity
