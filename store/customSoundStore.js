@@ -109,38 +109,43 @@ export const useCustomSoundStore = create((set, get) => ({
         }
     },
 
-    removeSound: async (soundId) => {
-        set({ isLoading: true, error: null });
-        try {
-            const token = await AsyncStorage.getItem('token');
-            const response = await fetch(`${BASE_URL}/customSound/removeSound`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({ soundId }),
-            });
+   removeSound: async (soundId) => {
+    set({ isLoading: true, error: null });
+    try {
+        const token = await AsyncStorage.getItem('token');
+        const response = await fetch(`${BASE_URL}/customSound/removeSound`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ soundId }),
+        });
+        console.log('TOKEN', token);
 
-            const data = await response.json();
+        const data = await response.json();
 
-            if (!response.ok) throw new Error(data.message || 'Failed to remove sound');
+        if (!response.ok) throw new Error(data.message || 'Failed to remove sound');
 
-            // Remove the sound from the state
-            set((state) => ({
-                folders: state.folders.map(folder => ({
-                    ...folder,
-                    sounds: folder.sounds.filter(sound => sound._id !== soundId)
-                })),
-                soundsWithoutFolder: state.soundsWithoutFolder.filter(sound => sound._id !== soundId),
-                isLoading: false,
-            }));
-            return { success: true };
-        } catch (error) {
-            set({ isLoading: false, error: error.message });
-            return { success: false, error: error.message };
-        }
-    },
+        // Remove the sound from the state
+        set((state) => ({
+            // 1. SAFETY CHECK: Ensure state.folders is an array
+            folders: (state.folders || []).map(folder => ({
+                ...folder,
+                // 2. SAFETY CHECK: Ensure folder.sounds is an array
+                sounds: (folder.sounds || []).filter(sound => sound._id !== soundId)
+            })),
+            // 3. SAFETY CHECK: Ensure state.soundsWithoutFolder is an array
+            soundsWithoutFolder: (state.soundsWithoutFolder || []).filter(sound => sound._id !== soundId),
+            isLoading: false,
+        }));
+        
+        return { success: true };
+    } catch (error) {
+        set({ isLoading: false, error: error.message });
+        return { success: false, error: error.message };
+    }
+},
    getFolders: async (groupId) => {
     set({ isLoading: true, error: null });
     try {

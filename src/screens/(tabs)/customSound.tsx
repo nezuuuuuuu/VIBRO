@@ -687,7 +687,7 @@ const CustomSounds = () => {
                         resizeMode="contain"
                       />
                       <Text className="text-white flex-shrink">
-                        {sound.filename} ({sound.userId?.username || 'Unknown'})
+                        {sound.filename} {sound.userId?.username || 'Unknown'}
                       </Text>
                     </View>
                     <TouchableOpacity

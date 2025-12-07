@@ -10,6 +10,7 @@ export const useGroupStore = create((set, get) => ({
     groups: [],
     groupPointer: null ,
     groupMembersPointer: [],
+    contributions: [], 
 
    
     getGroupId: () => {
@@ -227,8 +228,6 @@ export const useGroupStore = create((set, get) => ({
             return { success: false, error: error.message || "An unexpected error occurred." };
         }
     },
-
-
     leaveGroup: async (groupId) => {
         set({ isLoading: true });
         try {
@@ -279,4 +278,55 @@ export const useGroupStore = create((set, get) => ({
             return { success: false, error: error.message || "An unexpected error occurred." };
         }
     },
+
+
+getContributions: async (groupId) => {
+        // 1. Initial State Update
+        set({ isLoading: true, error: null });
+
+        if (!groupId) {
+            set({ isLoading: false });
+            return { success: false, error: "Group ID is missing." };
+        }
+
+        try {
+            const token = await AsyncStorage.getItem('token');
+            
+            // 2. API Call to the new backend endpoint
+            // BASE_URL/customSound/contributions/:groupId
+            const response = await fetch(`${BASE_URL}/group/contributions/${groupId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            const data = await response.json();
+
+            // 3. Error Handling
+            if (!response.ok) {
+                const errorMessage = data.message || `Server responded with status ${response.status} while fetching contributions.`;
+                throw new Error(errorMessage);
+            }
+
+            // 4. Success Case: Update State
+            // The backend returns { contributions: [...] }
+            set({
+                contributions: data.contributions, // Update the new state property
+                isLoading: false,
+            });
+            console.log("Fetched contributions:", data.contributions);
+
+            return { success: true, contributions: data.contributions };
+
+        } catch (error) {
+            console.error("Error fetching contributions:", error);
+            // Update state with error and stop loading
+            set({ 
+                isLoading: false, 
+                error: error.message || "Failed to fetch group contributions."
+            });
+            return { success: false, error: error.message || "An unexpected error occurred." };
+        }
+    },
 }));
