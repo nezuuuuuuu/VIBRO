@@ -151,7 +151,7 @@ function Home() {
         headerRight: () => (
           <TouchableOpacity
             onPress={() => navigation.navigate('Profile')} 
-            className="flex-row items-center gap-2 mr-6"
+            className="flex-row items-center gap-2 py-2 px-3 mr-6 bg-secondary/5 p-1 rounded-lg"
           >
             <Image
               className="w-12 h-12 rounded-full bg-gray-300"

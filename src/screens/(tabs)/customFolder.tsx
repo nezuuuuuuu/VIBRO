@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, Alert, Platform, NativeModules, DeviceEventEmitter, ActivityIndicator, Modal, FlatList } from 'react-native';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Image, Alert, Platform, NativeModules, DeviceEventEmitter, ActivityIndicator, Modal, FlatList, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { icons } from '../../constants';
 import { useAuthStore } from '../../../store/authStore';
@@ -17,7 +17,7 @@ const CustomFolder = ({ route }) => {
     const { isTrainingModel } = useModelStore(); 
     const navigation = useNavigation();
     const { user } = useAuthStore();
-    const { groupPointer } = useGroupStore();
+    const { getGroups, groupPointer } = useGroupStore();
     
     const {
         folders, // 2. Get the LIVE list of folders from the store
@@ -48,7 +48,26 @@ const CustomFolder = ({ route }) => {
     const [loadingSoundId, setLoadingSoundId] = useState(null);
     const [playbackDuration, setPlaybackDuration] = useState(0); 
     const playbackIntervalRef = useRef(null);
+
+     const [isRefreshing, setIsRefreshing] = useState(false); 
     
+
+    const loadSounds = async () => {
+      // Your getGroups handles its own isLoading state, 
+      // but we need a local state for the RefreshControl spinner
+      setIsRefreshing(true); 
+      await getGroups();
+      if (currentGroupId) { 
+          await getSoundById(currentGroupId);
+        }
+      setIsRefreshing(false);
+  }
+
+    const onRefresh = useCallback(async () => {
+        // This function is executed when the user pulls down
+        await loadSounds();
+      }, []);
+
     // --- Utility Functions ---
     const formatDuration = (ms) => {
         const seconds = (ms / 1000).toFixed(0); 
@@ -381,6 +400,14 @@ const CustomFolder = ({ route }) => {
         <View className="flex-1 p-4 bg-primary">
             {/* FIX: Replaced Map with FlatList for Scrolling */}
             <FlatList
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing} // State to control the spinner
+                        onRefresh={onRefresh}     // Function to call on pull-down
+                        tintColor='#8A2BE2'       // Custom color for iOS
+                        colors={['#8A2BE2']}      // Custom color for Android
+                    />
+                }
                 data={soundsToDisplay}
                 keyExtractor={(item) => item._id}
                 renderItem={renderSoundItem}

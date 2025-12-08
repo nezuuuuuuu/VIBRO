@@ -7,49 +7,6 @@ import { useGroupStore } from '../../../store/groupStore';
 import { useAuthStore } from '../../../store/authStore';
 import { useSocket } from '../../../store/useSocket'; // Import the socket hook
 
-// --- Contributions Data and Components ---
-
-// Sample data for the top 3 contributions
-
-// Reusable component for a single contribution card
-// --- ContributionsSection and Card Components ---
-const ContributionCard = memo(({ name, sounds, onPress }) => (
-    <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={onPress}>
-        <View style={styles.infoContainer}>
-            <Text style={styles.nameText}>{name}</Text>
-            <Text style={styles.metricText}>{sounds} Sounds</Text>
-        </View>
-    </TouchableOpacity>
-));
-
-const ContributionsSection = ({ contributionsData, navigation }) => {
-    const handleViewAll = () => {
-        console.log('Navigate to All Contributions screen...');
-        // Example: navigation.navigate('AllContributions');
-    };
-
-    return (
-        <View style={styles.contributionsContainer}>
-            <Text style={styles.contributionsTitle}>🏅 Top Contributions</Text>
-
-            <View style={styles.listContainer}>
-                {contributionsData?.map((item, index) => (
-                    <ContributionCard
-                        key={item._id || index.toString()}
-                        name={item.name}
-                        sounds={item.sounds}
-                        onPress={() => console.log(`Viewing contribution details for ${item.name}`)}
-                    />
-                ))}
-            </View>
-
-            {/* <TouchableOpacity style={styles.viewAllButton} onPress={handleViewAll}>
-                <Text style={styles.viewAllButtonText}>View All Contributions</Text>
-            </TouchableOpacity> */}
-        </View>
-    );
-};
-
 
 // --- Main Screen Component ---
 
@@ -92,7 +49,7 @@ const GroupDetails = () => {
     useEffect(() => {
         if (groupPointer?._id) {
             getMembers(groupPointer._id); // Fetch members only when groupPointer is ready
-            getContributions(groupPointer?._id);
+            // getContributions(groupPointer?._id);
         }
     }, [groupPointer,getMembers]);
 
@@ -186,10 +143,6 @@ const GroupDetails = () => {
                     />
                 }
             >
-                {/* 1. Contributions Section */}
-                <Text className='text-white font-pregular my-3 px-4'>Contributions:</Text>
-                {/* 🟢 INTEGRATED COMPONENT HERE */}
-                <ContributionsSection contributionsData={contributions} navigation={navigation} />
 
                 {/* 2. Monitoring On Section */}
                 <Text className='text-white font-pregular my-5 px-4'>Monitoring on:</Text>
