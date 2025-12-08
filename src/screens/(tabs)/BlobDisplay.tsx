@@ -16,8 +16,6 @@ import {
 import { useState, useRef } from 'react';
 import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
 import MorphingCircle from "../../components/morphingCircle"; 
-import PredictedCircles from "../../components/predictedCircles"; 
-
 
 import "../../../global.css"
 import DetectionDisplay from '../../components/detectionDisplay';
@@ -38,7 +36,7 @@ import { Buffer } from 'buffer';
 import Sound from 'react-native-sound';
 import { AndroidImportance } from '@notifee/react-native';
 import Index from '../(welcome)';
-import Profile from '../(tabs)/profile';
+import Profile from './profile';
 import { useAppStore } from '../../../store/appStore';
 
 
@@ -408,7 +406,7 @@ setIsMonitoringOn(!isMonitoringOn);
      <View className='h-full bg-primary' >
        <View className='items-center px-4'> 
          <Text className='mt-4 text-2xl font-pbold text-white'>Sounds Detected</Text>
-               {/* <MorphingCircle /> */}
+               <MorphingCircle />
 
 
          <View className="text-center my-3 w-full">
@@ -456,37 +454,21 @@ setIsMonitoringOn(!isMonitoringOn);
                  </View> */}
          </View>
 
-         <View className="w-full" style={{ height: '70%', width: '90%' }}> 
-          <PredictedCircles predictions={predictions} />
-
+         <ScrollView className="w-full" style={{ height: '70%' }}> 
            
-           {/* {predictions.slice().reverse().map((prediction, index) => {
+           {predictions.slice().reverse().map((prediction, index) => {
              return (
-              //  <DetectionDisplay
-              //    key={`${prediction.timestamp}-${index}`} 
-              //    time={new Date(prediction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit'})}
-              //    confidence={`${(prediction.confidence * 100).toFixed(1)}%`}
-              //    sound={prediction.label}
-              //    audioBase64={prediction.audioBase64}
-              //    criticalLevel={prediction.criticalLevel}
-              //  />
-              
-              //    <MorphingCircle 
-              //    key={prediction.label}
-              //   size={300}
-              //   colors={["#0f0606ff", "#000000ff"]}
-              // />
-              <MorphingCircle
-              key={prediction.label}
-              size={300}
-              colors={["#ff6a00", "#ee0979"]}
-              text={prediction.label}
-              textColor="#fff"
-              textSize={40}
-            />
+               <DetectionDisplay
+                 key={`${prediction.timestamp}-${index}`} 
+                 time={new Date(prediction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit'})}
+                 confidence={`${(prediction.confidence * 100).toFixed(1)}%`}
+                 sound={prediction.label}
+                 audioBase64={prediction.audioBase64}
+                 criticalLevel={prediction.criticalLevel}
+               />
              );
-           })} */}
-         </View>
+           })}
+         </ScrollView>
        </View>
 
        <View className='absolute bottom-6 left-0 right-0 flex-row items-center justify-center'>
