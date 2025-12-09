@@ -52,7 +52,7 @@ export const useSocket = create((set, get) => ({
 
       // Handle incoming sound events
       newSocket.on('new-sound', async ({ userId, username, groupId, groupName, label, confidence, sound }) => {
-         const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren'];
+         const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren','Emergency vehicle'];
        
 
         if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {

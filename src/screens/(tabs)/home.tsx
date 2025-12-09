@@ -282,9 +282,9 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     { isCustom: isCustom, label: label, confidence: confidence, timestamp: currentTime, audioBase64: audioBase64, criticalLevel: criticalLevel }
                 ]);
                 // Only send sound to socket if monitoring is on and socket is connected
-                if(isMonitoringOn && socket && socket.connected) {
+                // if(isMonitoringOn && socket && socket.connected) {
                   addSound(label, confidence, audioBase64);
-                }
+                // }
                 // --- VIBRATION LOGIC ADDED HERE ---
                 if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
                     Vibration.vibrate([0, 500, 200, 500]); // Vibrate for 500ms, pause 200ms, vibrate 500ms (High urgency)
