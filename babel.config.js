@@ -3,4 +3,8 @@ module.exports = {
   plugins: [
     "react-native-reanimated/plugin", // MUST be last
   ],
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> origin/Dec8-Jm

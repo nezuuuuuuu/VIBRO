@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, TextInput, ScrollView, Modal, Alert, Platform, PermissionsAndroid, NativeModules, DeviceEventEmitter, TouchableWithoutFeedback, ActivityIndicator } from 'react-native'; // Import ActivityIndicator
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Image, TextInput, ScrollView, Modal, Alert, Platform, PermissionsAndroid, NativeModules, DeviceEventEmitter, TouchableWithoutFeedback, ActivityIndicator, RefreshControl } from 'react-native'; // Import ActivityIndicator
 import { useNavigation } from '@react-navigation/native';
 import { icons } from '../../constants';
 import { useAuthStore } from '../../../store/authStore';
 import { useGroupStore } from '../../../store/groupStore';
 import { useCustomSoundStore } from '../../../store/customSoundStore';
 import { useModelStore } from '../../../store/modelStore';
+import { getgroups } from 'process';
 
 const { CustomAudioRecorderModule } = NativeModules;
 
@@ -14,7 +15,7 @@ const CustomSounds = () => {
   const navigation = useNavigation();
 
   const { user } = useAuthStore();
-  const { groupPointer } = useGroupStore();
+  const { getGroups, groupPointer } = useGroupStore();
   const {
     folders,
     isLoading,
@@ -42,8 +43,20 @@ const CustomSounds = () => {
   const [playbackStatus, setPlaybackStatus] = useState('idle');
   const [loadingSoundId, setLoadingSoundId] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false); 
 
   const MAX_RECORD_DURATION_MS = 5000;
+
+   const loadFolders = async () => {
+      // Your getGroups handles its own isLoading state, 
+      // but we need a local state for the RefreshControl spinner
+      setIsRefreshing(true); 
+      await getGroups();
+      if (currentGroupId) { 
+          await getFolders(currentGroupId);
+        }
+      setIsRefreshing(false);
+  }
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -109,6 +122,12 @@ const CustomSounds = () => {
       }
     };
   }, []);
+
+  const onRefresh = useCallback(async () => {
+      // This function is executed when the user pulls down
+      await loadFolders();
+    }, []);
+  
 
   const toggleCreateFolderModal = () => {
     setCreateFolderModalVisible(!isCreateFolderModalVisible);
@@ -565,7 +584,16 @@ const CustomSounds = () => {
       </Modal>
 
       <Text className='text-white my-3 font-psemibold text-lg'>Sound Folders:</Text>
-     <ScrollView className='w-full mb-4 flex-1'>
+     <ScrollView className='w-full mb-4 flex-1'
+        refreshControl={
+                      <RefreshControl
+                          refreshing={isRefreshing} // State to control the spinner
+                          onRefresh={onRefresh}     // Function to call on pull-down
+                          tintColor='#8A2BE2'       // Custom color for iOS
+                          colors={['#8A2BE2']}      // Custom color for Android
+                      />
+                  }
+        >
         {/* Check if there are no folders and not loading */}
         {folders.length === 0 && !isLoading ? (
           <Text className="text-gray-400 text-center mt-5">No folders or sounds yet. Create one or record a sound!</Text>

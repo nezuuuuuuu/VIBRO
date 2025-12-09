@@ -47,6 +47,39 @@ export const useAuthStore = create((set) => ({
 
     },
 
+    verifyOtp: async (email, otp) => {
+        set({ isLoading: true });
+        try {
+            console.log("Attempting to verify OTP for email:", email); // Debug step 1
+
+            const response = await fetch(`${BASE_URL}/auth/verify-otp`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, otp }),
+            });
+            
+            const data = await response.json();
+
+            if (response.ok) {
+                set({ isLoading: false }); 
+                console.log("Verification Success! User created, ready for login.");
+                return { success: true };
+            } else {
+                // API returned an error (e.g., 400 Bad Request)
+                sset({ isLoading: false });
+                console.error("Verification API Error:", data.message);
+                return { success: false, error: data.message };
+            }
+        } catch (error) {
+            // Network failure or JSON parsing error
+            set({ isLoading: false });
+            console.error("Network or Unexpected Error during verification:", error); // Debug step 4
+            return { success: false, error: "Network error or server unreachable." };
+        }
+    },
+
     login: async (email, password) => {
         set({ isLoading: true });
         try {
