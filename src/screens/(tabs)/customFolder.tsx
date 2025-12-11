@@ -397,6 +397,7 @@ const CustomFolder = ({ route }) => {
         </View>
     );
 
+    // TANLOI COMMENT HWEHHEHE
     return (
         <View className="flex-1 p-4 bg-primary">
             {/* FIX: Replaced Map with FlatList for Scrolling */}
