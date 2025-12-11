@@ -64,36 +64,28 @@ This guide assumes you have **Node.js** (v20+), **npm/Yarn**, and the necessary 
 
 1.  **Clone the Repository:**
     ```sh
-    git clone https://github.com/nezuuuuuuu/VIBRO.git
-    cd https://github.com/nezuuuuuuu/VIBRO.git
+    git https://github.com/jeecoo/mern_vibro.git
     ```
 2.  **Navigate to Backend Directory:**
     ```sh
-    cd backend # (or whatever your backend folder is named)
+    cd mern_vibro # (or whatever your frontend folder is named)
     ```
 3.  **Install Dependencies:**
     ```sh
     # Using npm
     npm install
-
-    # OR using Yarn
-    yarn install
     ```
 4.  **Database Setup:**
     * Ensure your **MongoDB** database server is running.
 5.  **Environment Variables:**
-    * Create a file named `.env` in the `backend` directory.
+    * Create a file named `.env` in the `mern_vibro` directory.
     * Add the necessary configurations (e.g., database connection string, JWT secret).
     ```env
     # Example .env content
-    DATABASE_URL="postgres://user:password@localhost:5432/[your-db-name]"
-    JWT_SECRET="YOUR_SUPER_SECRET_KEY"
+    API_URL=https://mern-vibro.onrender.com
+    MONGO_URI=mongodb+srv://johnmarkeconar7:HEWlz7E3htnP6dKt@cluster0.wxvsc4q.mongodb.net/vibro_db?retryWrites=true&w=majority&appName=Cluster0
+    JWT_SECRET=o8NIjj49astZsNzl/2TdpYmWoiRg4f6gxFNSxjBCttY=
     PORT=3000
-    ```
-6.  **Run Migrations (if applicable):**
-    ```sh
-    # Example command for running migrations
-    npm run migrate
     ```
 7.  **Start the Backend Server:**
     ```sh
@@ -107,7 +99,11 @@ This guide assumes you have **Node.js** (v20+), **npm/Yarn**, and the necessary 
 
 ### 3. Frontend Setup and Deployment
 
-1.  **Navigate to Frontend Directory:**
+1.  **Clone the Repository:**
+    ```sh
+    git https://github.com/nezuuuuuuu/VIBRO.git
+    ```
+2.  **Navigate to Frontend Directory:**
     ```sh
     cd ../frontend # (or whatever your frontend folder is named)
     ```
@@ -115,15 +111,12 @@ This guide assumes you have **Node.js** (v20+), **npm/Yarn**, and the necessary 
     ```sh
     # Using npm
     npm install
-
-    # OR using Yarn
-    yarn install
     ```
 3.  **Configure API URL:**
-    * Open your configuration file (e.g., `src/config/api.ts`).
-    * Ensure the `API_URL` points to your running backend server:
+    * Open your configuration file (e.g., `src/store/api.js`).
+    * Ensure the BASE_URL` points to your running backend server:
         ```typescript
-        export const API_URL = 'http://localhost:3000/api/v1';
+        const BASE_URL = "http://3.106.248.74:3000/api";
         ```
 
 4.  **Start Metro (JavaScript Bundler):**
@@ -131,9 +124,6 @@ This guide assumes you have **Node.js** (v20+), **npm/Yarn**, and the necessary 
     ```sh
     # Using npm
     npm start
-
-    # OR using Yarn
-    yarn start
     ```
 
 5.  **Build and Run Your App (in a separate terminal):**
@@ -142,12 +132,9 @@ This guide assumes you have **Node.js** (v20+), **npm/Yarn**, and the necessary 
     ```sh
     # Using npm
     npm run android
-
-    # OR using Yarn
-    yarn android
     ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+If everything is set up correctly, you should see your new app running in the Android Emulator or your connected device.
 
 ---
 
@@ -161,37 +148,6 @@ These credentials are for testing and demonstration purposes only.
 
 ---
 
-## 📝 Modify and Troubleshoot
-
-### Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux)
-
 ## Congratulations! :tada:
 
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+You've successfully run the VIBRO app! :partying_face:
