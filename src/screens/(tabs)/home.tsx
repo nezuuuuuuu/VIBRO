@@ -119,7 +119,7 @@ function Home() {
 
   const { socket, connect, disconnect,isOnline } = useSocket();
   const {getGroups} = useGroupStore()
-  const { addSound} = useDetectedSoundStore();
+  const { addSound,isMonitoringOn} = useDetectedSoundStore();
   const { isOfflineMode, isLoadingOfflineModeToggle, toggleOfflineMode } = useAppStore();
 
   const navigation = useNavigation(); 
@@ -127,7 +127,6 @@ function Home() {
   const [predictions, setPredictions] = useState<any[]>([]);
 
   const [isRecording, setIsRecording] = useState(false);
-  const [isMonitoringOn, setIsMonitoringOn] = useState(user.isActive); // Initialize with user's active status
   
   const predictionQueue: { isCustom: boolean, label: string; confidence: number; audioBase64?: string }[] = [];
   let isProcessing = false;
@@ -282,9 +281,9 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     { isCustom: isCustom, label: label, confidence: confidence, timestamp: currentTime, audioBase64: audioBase64, criticalLevel: criticalLevel }
                 ]);
                 // Only send sound to socket if monitoring is on and socket is connected
-                // if(isMonitoringOn && socket && socket.connected) {
+                if(isMonitoringOn && socket && socket.connected) {
                   addSound(label, confidence, audioBase64);
-                // }
+                }
                 // --- VIBRATION LOGIC ADDED HERE ---
                 if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
                     Vibration.vibrate([0, 500, 200, 500]); // Vibrate for 500ms, pause 200ms, vibrate 500ms (High urgency)
@@ -392,15 +391,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
     setIsRecording(false);
     const path = await AudioRecorder.stopRecording(); 
 }
-const handleToggle = () => {
-  if (isMonitoringOn) {
-    setActiveStatus(false);
-  } else {
-    setActiveStatus(true);
-  }
-  // Toggle the state
-setIsMonitoringOn(!isMonitoringOn);
-}
+
 
 
 

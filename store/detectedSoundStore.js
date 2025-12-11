@@ -7,6 +7,9 @@ export const useDetectedSoundStore = create((set) => ({
     sounds: [],
     isLoading: false,
     error: null,
+   isMonitoringOn: false,
+   setIsMonitoringOn: (value) => set({ isMonitoringOn: value })
+   ,
 
     addSound: async (label, confidence, sound) => {
         set({ isLoading: true, error: null });

@@ -4,6 +4,7 @@ import { useAuthStore } from "../../../store/authStore";
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import "../../../global.css";
 import { useAppStore } from "../../../store/appStore";
+import { useDetectedSoundStore } from "../../../store/detectedSoundStore";
 
 const INACTIVE_SWITCH_COLOR = '#767577';
 const ACTIVE_SWITCH_COLOR = '#8A2BE2';
@@ -12,7 +13,8 @@ export default function Profile() {
   const navigation = useNavigation();
   const { user, logout, setActiveStatus } = useAuthStore();
   const { isOfflineMode, toggleOfflineMode } = useAppStore();
-  const [isMonitoringOn, setIsMonitoringOn] = useState(user.isMonitoringOn);
+  const {isMonitoringOn, setIsMonitoringOn} = useDetectedSoundStore();
+  
 
 
   useEffect(() => {
