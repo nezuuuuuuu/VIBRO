@@ -82,10 +82,6 @@ This guide assumes you have **Node.js** (v20+), **npm/Yarn**, and the necessary 
     * Add the necessary configurations (e.g., database connection string, JWT secret).
     ```env
     # Example .env content
-    API_URL=https://mern-vibro.onrender.com
-    MONGO_URI=mongodb+srv://johnmarkeconar7:HEWlz7E3htnP6dKt@cluster0.wxvsc4q.mongodb.net/vibro_db?retryWrites=true&w=majority&appName=Cluster0
-    JWT_SECRET=o8NIjj49astZsNzl/2TdpYmWoiRg4f6gxFNSxjBCttY=
-    PORT=3000
     ```
 7.  **Start the Backend Server:**
     ```sh
