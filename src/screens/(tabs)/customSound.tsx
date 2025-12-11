@@ -43,16 +43,16 @@ const CustomSounds = () => {
   const [playbackStatus, setPlaybackStatus] = useState('idle');
   const [loadingSoundId, setLoadingSoundId] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false); 
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const MAX_RECORD_DURATION_MS = 5000;
 
    const loadFolders = async () => {
-      // Your getGroups handles its own isLoading state, 
+      // Your getGroups handles its own isLoading state,
       // but we need a local state for the RefreshControl spinner
-      setIsRefreshing(true); 
+      setIsRefreshing(true);
       await getGroups();
-      if (currentGroupId) { 
+      if (currentGroupId) {
           await getFolders(currentGroupId);
         }
       setIsRefreshing(false);
@@ -66,7 +66,7 @@ const CustomSounds = () => {
         <Text className="font-pregular text-sm text-gray-200">
           {groupPointer?.groupName}
         </Text>
-        
+
         {/* Subtitle */}
           <Text className="font-pbold text-xl text-white">
           Custom Sounds
@@ -127,7 +127,7 @@ const CustomSounds = () => {
       // This function is executed when the user pulls down
       await loadFolders();
     }, []);
-  
+
 
   const toggleCreateFolderModal = () => {
     setCreateFolderModalVisible(!isCreateFolderModalVisible);
@@ -173,6 +173,7 @@ const CustomSounds = () => {
     }
   };
 
+  // FUNCTION TO REMOVE FOLDER
  const handleRemoveFolder = async (folderId, folderName) => {
     Alert.alert(
       'Confirm Delete',
@@ -193,7 +194,7 @@ const CustomSounds = () => {
                 // If it was the state error, we force a refresh from the server to fix the UI
                 if (isStateError) {
                   console.log("State desync detected (filter error). Refreshing folder list...");
-                  getFolders(currentGroupId); 
+                  getFolders(currentGroupId);
                 }
 
                 Alert.alert('Success', `Folder "${folderName}" removed!`);
@@ -259,7 +260,7 @@ const CustomSounds = () => {
 
   const closeFolder = () => {
     setSelectedFolder(null);
-    
+
     CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback on folder close:", e));
     setCurrentPlayingSoundId(null);
   };
@@ -376,11 +377,11 @@ const CustomSounds = () => {
         setCurrentPlayingSoundId(customSoundId);
         await CustomAudioRecorderModule.playAudio(sound.sound.sound);
         console.log('Native playAudio initiated.');
-        setLoadingSoundId(null); 
+        setLoadingSoundId(null);
       } else {
         Alert.alert('Playback Error', 'Sound data not found or invalid.');
         setCurrentPlayingSoundId(null);
-        setLoadingSoundId(null); 
+        setLoadingSoundId(null);
       }
     } catch (error) {
       setLoadingSoundId(null);
@@ -392,7 +393,7 @@ const CustomSounds = () => {
     setPlaybackStatus('playing');
 
   };
-  
+
   const playRecordedSound = async (audioBase64) => {
     if (playbackStatus === 'playing') {
       console.log('Already playing recorded audio. Stopping current playback.');
@@ -497,7 +498,7 @@ const CustomSounds = () => {
       try {
         await fetchAndCreateModel(currentGroupId, groupPointer.groupName);
         Alert.alert('Success', 'Model training complete! Ready for Download!');
-        
+
       } catch (error) {
         console.error("Training failed", error);
         Alert.alert('Error', 'Failed to train model. Please try again.');
@@ -517,15 +518,15 @@ const CustomSounds = () => {
           <Text className="text-white font-psemibold text-lg">Train Model</Text>
         )}
       </TouchableOpacity>
-      
-      
+
+
       <Text className="text-lightsecondary font-psemibold text-lg mb-2 text-center">Download Your Model Here:</Text>
 
     {/* Check if the model URL exists and is not 'PENDING' or empty */}
-    {groupPointer?.groupModelUrl && 
+    {groupPointer?.groupModelUrl &&
     groupPointer.groupModelUrl !== "" &&
     groupPointer.groupModelUrl !== "PENDING" ? (
-    
+
       // Download Model button (Active State)
       <TouchableOpacity
         className={`p-4 rounded-lg mb-4 items-center ${
@@ -551,11 +552,11 @@ const CustomSounds = () => {
     ) : (
       // Model Not Ready button (Disabled/Lower Opacity State)
       <TouchableOpacity
-        className={`p-4 rounded-lg mb-4 items-center bg-secondary 
-          ${isTrainingModel ? 'opacity-100 bg-gray-500' : 'opacity-50'} 
+        className={`p-4 rounded-lg mb-4 items-center bg-secondary
+          ${isTrainingModel ? 'opacity-100 bg-gray-500' : 'opacity-50'}
         `}
-        onPress={() => {}} 
-        disabled={true} 
+        onPress={() => {}}
+        disabled={true}
       >
         {isTrainingModel ? (
           <ActivityIndicator size="small" color="#fff" />
@@ -615,9 +616,9 @@ const CustomSounds = () => {
                   />
                   <Text className="text-white font-pregular text-lg flex-shrink">{folder.folderName}</Text>
                 </View>
-                <TouchableOpacity 
-                  onPress={() => handleRemoveFolder(folder._id, folder.folderName)} 
-                  className="ml-4 p-2" 
+                <TouchableOpacity
+                  onPress={() => handleRemoveFolder(folder._id, folder.folderName)}
+                  className="ml-4 p-2"
                   disabled={isTrainingModel}
                 >
                   <Image
@@ -632,7 +633,7 @@ const CustomSounds = () => {
         )}
         <TouchableOpacity
           className={`border-2 border-secondary p-4 rounded-lg mt-4 items-center ${
-            isTrainingModel ? 'opacity-50' : '' 
+            isTrainingModel ? 'opacity-50' : ''
           }`}
           onPress={toggleCreateFolderModal}
           disabled={isTrainingModel}

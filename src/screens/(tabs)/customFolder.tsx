@@ -14,11 +14,11 @@ const CustomFolder = ({ route }) => {
     // 1. Rename route param to initialFolder to avoid confusion
     const { folder: initialFolder } = route.params;
 
-    const { isTrainingModel } = useModelStore(); 
+    const { isTrainingModel } = useModelStore();
     const navigation = useNavigation();
     const { user } = useAuthStore();
     const { getGroups, groupPointer } = useGroupStore();
-    
+
     const {
         folders, // 2. Get the LIVE list of folders from the store
         getFolders,
@@ -38,7 +38,7 @@ const CustomFolder = ({ route }) => {
     // --- State Initialization ---
     const [isRecordModalVisible, setRecordModalVisible] = useState(false);
     const [recordingStatus, setRecordingStatus] = useState('idle');
-    const [recordDuration, setRecordDuration] = useState(0); 
+    const [recordDuration, setRecordDuration] = useState(0);
     const recordIntervalRef = useRef(null);
     const isManualStopRef = useRef(false);
 
@@ -46,18 +46,18 @@ const CustomFolder = ({ route }) => {
     const [currentPlayingSoundId, setCurrentPlayingSoundId] = useState(null);
     const [playbackStatus, setPlaybackStatus] = useState('idle');
     const [loadingSoundId, setLoadingSoundId] = useState(null);
-    const [playbackDuration, setPlaybackDuration] = useState(0); 
+    const [playbackDuration, setPlaybackDuration] = useState(0);
     const playbackIntervalRef = useRef(null);
 
-     const [isRefreshing, setIsRefreshing] = useState(false); 
-    
+     const [isRefreshing, setIsRefreshing] = useState(false);
+
 
     const loadSounds = async () => {
-      // Your getGroups handles its own isLoading state, 
+      // Your getGroups handles its own isLoading state,
       // but we need a local state for the RefreshControl spinner
-      setIsRefreshing(true); 
+      setIsRefreshing(true);
       await getGroups();
-      if (currentGroupId) { 
+      if (currentGroupId) {
           await getSoundById(currentGroupId);
         }
       setIsRefreshing(false);
@@ -70,7 +70,7 @@ const CustomFolder = ({ route }) => {
 
     // --- Utility Functions ---
     const formatDuration = (ms) => {
-        const seconds = (ms / 1000).toFixed(0); 
+        const seconds = (ms / 1000).toFixed(0);
         return `${seconds}s`;
     };
 
@@ -89,20 +89,20 @@ const CustomFolder = ({ route }) => {
             await stopRecording(true);
         }
         await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping playback:", e));
-        
+
         clearPlaybackState();
 
         setRecordModalVisible(prev => !prev);
         setRecordingStatus('idle');
         setRecordDuration(0);
         setRecordedAudioBase64(null);
-        
+
         if (recordIntervalRef.current) {
             clearInterval(recordIntervalRef.current);
             recordIntervalRef.current = null;
         }
     };
-    
+
     // --- Permissions & Recording ---
     const requestAndCheckAudioPermissions = async () => {
         if (Platform.OS === 'android') {
@@ -124,42 +124,42 @@ const CustomFolder = ({ route }) => {
             Alert.alert('Permission Denied', 'Microphone permission is required.');
             return;
         }
-    
+
         try {
-            setRecordDuration(1000); 
+            setRecordDuration(1000);
             setRecordedAudioBase64(null);
             setRecordingStatus('recording');
             clearPlaybackState();
             isManualStopRef.current = false;
-            
+
             await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping prior playback:", e));
-    
+
             recordIntervalRef.current = setInterval(() => {
                 setRecordDuration(prev => {
                     const newDuration = prev + 100;
                     if (newDuration >= MAX_RECORD_DURATION_MS) {
-                        stopRecording(false); 
+                        stopRecording(false);
                         return MAX_RECORD_DURATION_MS;
                     }
                     return newDuration;
                 });
             }, 100);
-    
+
             await CustomAudioRecorderModule.startRecording();
-    
+
         } catch (error) {
             console.error('Failed to start recording:', error);
             Alert.alert('Recording Error', 'Failed to start recording.');
             setRecordingStatus('idle');
-            setRecordDuration(0); 
+            setRecordDuration(0);
             if (recordIntervalRef.current) clearInterval(recordIntervalRef.current);
         }
     };
-    
+
     const stopRecording = async (isManual = true) => {
         if (recordingStatus !== 'recording') return;
         isManualStopRef.current = isManual;
-    
+
         try {
             if (recordIntervalRef.current) clearInterval(recordIntervalRef.current);
             await CustomAudioRecorderModule.stopRecording();
@@ -168,7 +168,7 @@ const CustomFolder = ({ route }) => {
             setRecordingStatus('idle');
         }
     };
-    
+
     // --- Playback Logic ---
     const playAudio = async (customSoundId) => {
         if (currentPlayingSoundId === customSoundId || playbackStatus === 'playing') {
@@ -176,11 +176,11 @@ const CustomFolder = ({ route }) => {
             clearPlaybackState();
             return;
         }
-    
+
         await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping prior playback:", e));
         clearPlaybackState();
-        setLoadingSoundId(customSoundId); 
-    
+        setLoadingSoundId(customSoundId);
+
         try {
             let sound = await getSoundById(customSoundId);
             if (sound && sound.sound?.sound) {
@@ -195,10 +195,11 @@ const CustomFolder = ({ route }) => {
             Alert.alert('Playback Error', 'Failed to play recorded sound.');
             setCurrentPlayingSoundId(null);
         } finally {
-            setLoadingSoundId(null); 
+            setLoadingSoundId(null);
         }
     };
-    
+
+    // FUNCTION TO PLAY RECORDED SOUND
     const playRecordedSound = async (audioBase64) => {
         if (playbackStatus === 'playing') {
             await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping prior playback:", e));
@@ -209,22 +210,22 @@ const CustomFolder = ({ route }) => {
              await CustomAudioRecorderModule.stopPlayback().catch(e => console.log("Error stopping prior playback:", e));
              setCurrentPlayingSoundId(null);
         }
-    
+
         if (!audioBase64) {
             Alert.alert('No Sound', 'No sound recorded to play.');
             return;
         }
-        
+
         try {
             setPlaybackStatus('playing');
-            setPlaybackDuration(0); 
+            setPlaybackDuration(0);
             const maxDuration = recordDuration > 0 ? recordDuration : MAX_RECORD_DURATION_MS;
-            
+
             playbackIntervalRef.current = setInterval(() => {
                 setPlaybackDuration(prev => {
                     const newDuration = prev + 100;
                     if (newDuration >= maxDuration) {
-                        setTimeout(() => clearPlaybackState(), 100); 
+                        setTimeout(() => clearPlaybackState(), 100);
                         return maxDuration;
                     }
                     return newDuration;
@@ -265,17 +266,17 @@ const CustomFolder = ({ route }) => {
       ]
     );
   };
-    
+
     // --- Upload ---
     const handleUploadRecordedSound = async () => {
         if (!recordedAudioBase64) {
             Alert.alert('No Sound', 'Please record a sound before uploading.');
             return;
         }
-    
+
         const defaultFileName = `recorded_sound_${Date.now()}.wav`;
         const folderName = activeFolder ? activeFolder.folderName : 'without a folder';
-    
+
         Alert.alert(
             "Upload Confirmation",
             `Are you sure you want to upload "${defaultFileName}" to "${folderName}"?`,
@@ -286,7 +287,7 @@ const CustomFolder = ({ route }) => {
                     onPress: async () => {
                         const folderIdToUse = activeFolder ? activeFolder._id : null;
                         const result = await addSound(currentGroupId, currentUserId, folderIdToUse, defaultFileName, recordedAudioBase64);
-                        
+
                         if (result.success) {
                             Alert.alert('Success', `Sound "${defaultFileName}" uploaded!`);
                             toggleRecordModal();
@@ -331,7 +332,7 @@ const CustomFolder = ({ route }) => {
             if (recordIntervalRef.current) clearInterval(recordIntervalRef.current);
             if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
         };
-    }, []); 
+    }, []);
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -341,7 +342,7 @@ const CustomFolder = ({ route }) => {
                     <Text className="font-pregular text-sm text-gray-200">
                       {groupPointer?.groupName}
                     </Text>
-                    
+
                     {/* Subtitle */}
                       <Text className="font-pbold text-xl text-white">{activeFolder?.folderName || 'Folder Details'}</Text>
                   </View>
@@ -440,14 +441,14 @@ const CustomFolder = ({ route }) => {
                         <Text className="text-gray-400 mb-3 text-center">
                             Record a 5-second audio clip {activeFolder ? `for "${activeFolder.folderName}"` : 'without a folder'}.
                         </Text>
-                        
+
                         <Text className={`text-3xl font-pbold mb-4 ${(recordDuration >= MAX_RECORD_DURATION_MS && playbackStatus !== 'playing') ? 'text-red-500' : 'text-white'}`}>
-                             {playbackStatus === 'playing' && recordingStatus === 'finished' ? 
-                                formatDuration(playbackDuration) : 
-                                formatDuration(recordDuration)} 
+                             {playbackStatus === 'playing' && recordingStatus === 'finished' ?
+                                formatDuration(playbackDuration) :
+                                formatDuration(recordDuration)}
                             / {formatDuration(MAX_RECORD_DURATION_MS)}
                         </Text>
-                        
+
                         {recordingStatus === 'idle' && (
                             <TouchableOpacity
                                 className="bg-secondary p-4 rounded-full w-20 h-20 items-center justify-center mb-4"
@@ -464,7 +465,8 @@ const CustomFolder = ({ route }) => {
                                 <Image source={icons.recording} className="w-10 h-10 tint-white" resizeMode="contain" />
                             </TouchableOpacity>
                         )}
-                        
+
+                        {/* sound */}
                         {recordingStatus === 'finished' && (
                             <View className="flex-row items-center justify-center mb-4">
                                 <TouchableOpacity
@@ -497,7 +499,7 @@ const CustomFolder = ({ route }) => {
                                 </TouchableOpacity>
                             </View>
                         )}
-                        
+
                         <View className="flex-row justify-end mt-4 w-full">
                             <TouchableOpacity className="py-2 px-4 rounded-md mr-2" onPress={toggleRecordModal}>
                                 <Text className="text-gray-400">Cancel</Text>
