@@ -334,6 +334,7 @@ const CustomFolder = ({ route }) => {
         };
     }, []);
 
+    // USELAYOUTEFFECT
     useLayoutEffect(() => {
         navigation.setOptions({
             headerTitle: () => (
