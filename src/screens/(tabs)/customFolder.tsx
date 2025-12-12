@@ -304,7 +304,7 @@ const CustomFolder = ({ route }) => {
         );
     };
 
-    // --- Side Effects ---
+    // SIDEEFFETCSSAKFLSDKFJSDF
     useEffect(() => {
         const recordingListener = DeviceEventEmitter.addListener('onRecordingFinished', (data) => {
             if (recordIntervalRef.current) clearInterval(recordIntervalRef.current);
