@@ -120,45 +120,93 @@
 //     </NavigationContainer>
 //   );
 // }
-
-import React, { useEffect } from 'react';
-import {
-  StyleSheet,
-  View,
-  Button,
-  Platform,
-  PermissionsAndroid,
-  Alert,
+import React, { useEffect, useState } from 'react';
+import { 
+  View, 
+  ActivityIndicator, 
+  Platform, 
+  StatusBar, 
+  PermissionsAndroid 
 } from 'react-native';
-import Torch from 'react-native-torch';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Torch from 'react-native-torch'; // <--- USING TORCH FOR FLASH
+import notifee, { 
+  AndroidImportance, 
+  EventType 
+} from '@notifee/react-native';
 
-const FlashNotification = () => {
+// Screens
+import Welcome from './src/screens/(welcome)/index';
+import Signup from './src/screens/(auth)/signup';
+import Login from './src/screens/(auth)';
+import OTPVerification from './src/screens/(auth)/otpverification';
+import Tabs from './src/components/mainNavigator';
+import { useAuthStore } from "./store/authStore";
+
+const Stack = createNativeStackNavigator();
+
+// --- 1. Notifee Channel Setup (For Notification Sound/Vibration) ---
+if (Platform.OS === 'android') {
+  notifee.createChannel({
+    id: 'sound-alerts1',
+    name: 'Sound Alerts (Low)',
+    importance: AndroidImportance.MIN,
+    vibration: true,
+    sound: 'default',
+  });
+
+  notifee.createChannel({
+    id: 'sound-alerts2',
+    name: 'Sound Alerts (Default)',
+    importance: AndroidImportance.DEFAULT,
+    vibration: true,
+    sound: 'default',
+  });
+
+  notifee.createChannel({
+    id: 'sound-alerts3',
+    name: 'Sound Alerts (High)',
+    importance: AndroidImportance.HIGH,
+    vibration: true,
+    sound: 'default',
+  });
+
+  notifee.createChannel({
+    id: 'chat-alerts-v2',
+    name: 'Chat Alerts',
+    importance: AndroidImportance.HIGH,
+    vibration: true,
+    sound: 'default',
+  });
+}
+
+export default function App() {
+  const { checkAuth, user, token } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+
+  // --- 2. Flashlight Logic (Using react-native-torch) ---
   
-  // Clean up: Ensure torch is OFF when leaving the screen
+  // Cleanup: Ensure torch is OFF when app closes/unmounts
   useEffect(() => {
     return () => {
-      Torch.switchState(false);
+      try {
+        Torch.switchState(false);
+      } catch (e) {
+        console.log("Torch cleanup error", e);
+      }
     };
   }, []);
 
-  const handleFlash = async () => {
-    // 1. Check Permissions (Android Only)
-    if (Platform.OS === 'android') {
-      const hasPermission = await requestCameraPermission();
-      if (!hasPermission) return;
-    }
-
-    // 2. Trigger the blink pattern
-    blinkSequence();
-  };
-
   const requestCameraPermission = async () => {
+    if (Platform.OS !== 'android') return true;
+    
     try {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.CAMERA,
         {
           title: 'Flashlight Permission',
-          message: 'App needs access to your camera to blink the flashlight.',
+          message: 'VIBRO needs access to your camera to blink the flashlight for alerts.',
           buttonNeutral: 'Ask Me Later',
           buttonNegative: 'Cancel',
           buttonPositive: 'OK',
@@ -171,45 +219,80 @@ const FlashNotification = () => {
     }
   };
 
-  const blinkSequence = () => {
-    // Blink Pattern: ON -> 150ms -> OFF -> 150ms -> ON -> 150ms -> OFF
-    
-    // First Flash
-    Torch.switchState(true);
-    
-    setTimeout(() => {
-      Torch.switchState(false); // Off
+  const startBlinkSequence = async () => {
+    try {
+      // Check permission first
+      const hasPermission = await requestCameraPermission();
+      if (!hasPermission) return;
 
+      // Blink Pattern: ON -> 150ms -> OFF -> 150ms -> ON -> 150ms -> OFF
+      Torch.switchState(true);
+      
       setTimeout(() => {
-        Torch.switchState(true); // Second Flash
+        Torch.switchState(false); // Off
 
         setTimeout(() => {
-          Torch.switchState(false); // Final Off
-        }, 150);
-        
-      }, 150);
+          Torch.switchState(true); // Second Flash
 
-    }, 150);
+          setTimeout(() => {
+            Torch.switchState(false); // Final Off
+          }, 150);
+        }, 150);
+      }, 150);
+      
+    } catch (e) {
+      console.log("Torch Error:", e);
+    }
   };
 
+  // --- 3. Integrate Notification with Flash ---
+  useEffect(() => {
+    // This listener fires whenever a notification is displayed while the app is open
+    const unsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
+      // EventType.DELIVERED means the notification just appeared
+      if (type === EventType.DELIVERED) {
+        console.log("Notification received! Triggering Flash...");
+        startBlinkSequence();
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // --- 4. Auth & Navigation Logic ---
+  useEffect(() => {
+    const init = async () => {
+      await checkAuth();
+      setLoading(false);
+    };
+    init();
+  }, []);
+
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  //This dont work lol
+
   return (
-    <View style={styles.container}>
-      <Button 
-        title="Test Flash Notification" 
-        onPress={handleFlash} 
-        color="#841584"
-      />
-    </View>
+    <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {!user || !token ? (
+            <>
+              <Stack.Screen name="Welcome" component={Welcome} />
+              <Stack.Screen name="Login" component={Login} />
+              <Stack.Screen name="Signup" component={Signup} />
+              <Stack.Screen name="OTPVerification" component={OTPVerification} />
+            </>
+          ) : (
+            <Stack.Screen name="Tabs" component={Tabs} />
+          )}
+        </Stack.Navigator>
+        <StatusBar className='bg-primary' />
+    </NavigationContainer>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-});
-
-export default FlashNotification;
+}
