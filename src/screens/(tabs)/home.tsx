@@ -234,7 +234,11 @@ function Home() {
       // Process Yamnet predictions
       if (Array.isArray(yamnetPredictions)) {
         yamnetPredictions.forEach(({ label, confidence }) => {
-          predictionQueue.push({ isCustom : false, label, confidence, audioBase64 });
+          console.log("Label", label)
+          if(label in CRITICAL_SOUND_LEVELS){
+            predictionQueue.push({ isCustom : false, label, confidence, audioBase64 });
+          }
+
           if (!isProcessing) processQueue();
         });
       }
@@ -270,7 +274,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
         
       
             const currentTime = Date.now();
-            const criticalLevel = CRITICAL_SOUND_LEVELS[label] || null;
+            const criticalLevel = CRITICAL_SOUND_LEVELS[label] || 4;
             const lastTime = lastDetectionTimeRef.current[label];
 
             if (lastTime && currentTime - lastTime < MIN_INTERVAL) {
@@ -292,6 +296,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                 ]);
                 // Only send sound to socket if monitoring is on and socket is connected
                 if(isMonitoringOn && socket && socket.connected) {
+                  console.log("Sending detected sound to socket:", { label, confidence, isCustom, audioBase64 });
                   addSound(label, confidence, audioBase64);
                 }
                 // --- VIBRATION LOGIC ADDED HERE ---

@@ -561,17 +561,17 @@ const CustomSounds = () => {
           <ActivityIndicator size="small" color="#fff" />
         ) : (
           <Text className="text-white font-psemibold text-lg">
-            Model Not Ready
+            Model Pending...
           </Text>
         )}
       </TouchableOpacity>
     )}
 
       {/* Loading overlay for model training */}
-      <Modal
+      {/* <Modal
         animationType="fade"
         transparent={true}
-        visible={isTrainingModel}
+        // visible={isTrainingModel}
         onRequestClose={() => {}} // Disable closing by back button
       >
         <View className="flex-1 justify-center items-center bg-black/70">
@@ -581,7 +581,7 @@ const CustomSounds = () => {
             <Text className="text-gray-400 font-pregular text-sm mt-2 text-center">This may take a moment.</Text>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
 
       <Text className='text-white my-3 font-psemibold text-lg'>Sound Folders:</Text>
      <ScrollView className='w-full mb-4 flex-1'

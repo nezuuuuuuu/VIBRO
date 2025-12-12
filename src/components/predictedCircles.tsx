@@ -15,6 +15,18 @@ const GRADIENT_COLOR: { [key: number]: [string, string] } = {
   4: ['#B57EDC', '#8A2BE2'],
 };
 
+
+const SOUND_ICONS: { [key: string]: any } = {
+  'Emergency vehicle': require('../assets/icons/bookmark.png'),       // Replace with your real paths
+  // 'Dog Bark': require('./assets/dog.png'),
+  // 'Baby Cry': require('./assets/baby.png'),
+  // 'Doorbell': require('./assets/doorbell.png'),
+  // 'Gunshot': require('./assets/gun.png'),
+  // 'Glass Break': require('./assets/glass.png'),
+  // // Fallback icon if needed:
+  // 'default': require('./assets/default-sound.png'), 
+};
+
 // SAFE MAP (NO DIVISION BY ZERO → NO NaN)
 const map = (value: number, fromLow: number, fromHigh: number, toLow: number, toHigh: number) => {
   if (fromHigh === fromLow) return toLow;
@@ -117,13 +129,20 @@ export default function PredictedCircles({ predictions }) {
       {currentLabels.map((label) => {
         const arr = grouped[label];
         const size = computeSize(arr.length);
-
         const pos = positions[label];
         const criticalLevel = arr[0]?.criticalLevel ?? 1;
-        const colors = GRADIENT_COLOR[criticalLevel] ?? ['#FECACA', '#F87171'];
+        let colors;
+
+        if(arr[0].isCustom){
+            colors = GRADIENT_COLOR[4];
+        } else{
+             colors = GRADIENT_COLOR[criticalLevel] ?? ['#B57EDC', '#8A2BE2'];
+        }
+
+        const iconSource = SOUND_ICONS[label] ?? SOUND_ICONS['default'];
 
         const { x, y } = pos;
-        console.log(`Rendering circle for "${label}" at (${x.toFixed(1)}, ${y.toFixed(1)}) with size ${size.toFixed(1)}`);
+        console.log(`Rendering circle for "${label}" at (${x.toFixed(1)}, ${y.toFixed(1)}) with size ${size.toFixed(1)} critical level ${criticalLevel}`);
 
         return (
           <View
@@ -134,6 +153,8 @@ export default function PredictedCircles({ predictions }) {
               top: y,
               width: size,
               height: size,
+
+              zIndex: criticalLevel * 10,
             }}
           >
             <MorphingCircle
@@ -142,6 +163,8 @@ export default function PredictedCircles({ predictions }) {
               text={label}
               textColor="#fff"
               textSize={Math.min(40, size / 15)}
+
+              icon={iconSource}
             />
           </View>
         );
