@@ -421,6 +421,7 @@ const CustomFolder = ({ route }) => {
                 contentContainerStyle={{ paddingBottom: 100 }} // Prevents FAB from covering last item
             />
 
+            {/* wehwhe */}
             {/* Fixed Bottom-Right Button */}
             <TouchableOpacity
                 onPress={() => setRecordModalVisible(true)}
