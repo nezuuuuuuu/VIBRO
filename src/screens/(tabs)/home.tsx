@@ -51,6 +51,7 @@ const ACTIVE_SWITCH_COLOR = '#8A2BE2';
 const INACTIVE_SWITCH_COLOR = '#767577';
 
 
+
 const BACKGROUND_LABELS = ['Background','Silence'];
 
  
@@ -115,6 +116,7 @@ const LEGEND_INFO: {
 
 
 function Home() {
+  const lastDetectionTimeRef = useRef({});
   const {  fetchModelById, setActiveModel, useLabels,labels,activeModel } = useModelStore();
 
   const { socket, connect, disconnect,isOnline } = useSocket();
@@ -261,14 +263,22 @@ function Home() {
 
 
 const handlePrediction = async (prediction: { isCustom: boolean, label: string, confidence: number, audioBase64: string }) => {
+        const MIN_INTERVAL = 5000; // 5 seconds
+
         const { isCustom, label, confidence, audioBase64 } = prediction;
         // const MIN_CONFIDENCE = 0.50;
-
-        console.log("Raw prediction received:", { label, confidence, isCustom });
-
+        
       
             const currentTime = Date.now();
             const criticalLevel = CRITICAL_SOUND_LEVELS[label] || null;
+            const lastTime = lastDetectionTimeRef.current[label];
+
+            if (lastTime && currentTime - lastTime < MIN_INTERVAL) {
+                console.log(`⏳ SKIPPED: ${label} occurred again within 5 seconds`);
+                return; // ❌ stop processing — skip everything
+            }
+            console.log("Raw prediction received:", { label, confidence, isCustom });
+            lastDetectionTimeRef.current[label] = currentTime;
 
             console.log(`Calculated criticalLevel for "${label}": ${criticalLevel}`);
 

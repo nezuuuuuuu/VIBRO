@@ -458,7 +458,7 @@ const CustomFolder = ({ route }) => {
                         )}
                         {recordingStatus === 'recording' && (
                             <TouchableOpacity
-                                className="bg-red-500 p-4 rounded-full w-20 h-20 items-center justify-center mb-4 animate-pulse"
+                                className="bg-red-500 p-4 rounded-full w-20 h-20 items-center justify-center mb-4"
                                 onPress={() => stopRecording(true)}
                             >
                                 <Image source={icons.recording} className="w-10 h-10 tint-white" resizeMode="contain" />

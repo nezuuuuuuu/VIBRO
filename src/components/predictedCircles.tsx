@@ -6,7 +6,7 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const MIN_SIZE = 100;
 const MAX_SIZE = 200;
-const TIME_WINDOW_MS = 3 * 60 * 1000; // 3 minutes
+const TIME_WINDOW_MS = 1 * 60 * 1000; // 1 minutes
 
 const GRADIENT_COLOR: { [key: number]: [string, string] } = {
   1: ['#FECACA', '#F87171'],
@@ -64,6 +64,9 @@ export default function PredictedCircles({ predictions }) {
 
   const currentLabels = Object.keys(grouped);
   const maxCount = Math.max(...Object.values(grouped).map((arr) => arr.length), 1);
+  const computeSize = (count: number) => {
+    return Math.min(MIN_SIZE + (count - 1) * 20, MAX_SIZE);
+  };
 
   // 3. STATE FOR POSITIONS
   const [positions, setPositions] = useState<{ [key: string]: { x: number; y: number } }>({});
@@ -113,13 +116,14 @@ export default function PredictedCircles({ predictions }) {
     <View style={{ flex: 1, backgroundColor: '#1B1B3A' }}>
       {currentLabels.map((label) => {
         const arr = grouped[label];
-        const size = map(arr.length, 1, maxCount, MIN_SIZE, MAX_SIZE);
+        const size = computeSize(arr.length);
 
         const pos = positions[label];
         const criticalLevel = arr[0]?.criticalLevel ?? 1;
         const colors = GRADIENT_COLOR[criticalLevel] ?? ['#FECACA', '#F87171'];
 
         const { x, y } = pos;
+        console.log(`Rendering circle for "${label}" at (${x.toFixed(1)}, ${y.toFixed(1)}) with size ${size.toFixed(1)}`);
 
         return (
           <View

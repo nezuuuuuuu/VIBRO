@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { NativeModules } from 'react-native';
 import "../../global.css";
@@ -30,6 +30,12 @@ const BACKGROUND_COLOR: { [key: number]: string } = {
 async function playAudio(base64audio?: string) {
   if (!base64audio) return;
   try {
+    if (AudioRecorder.stopAudio) {
+        await AudioRecorder.stopAudio(); 
+    } else {
+        console.warn("AudioRecorder.stopAudio method not found. Check your Native Module.");
+    }
+
     await AudioRecorder.playAudio(base64audio);
   } catch (err) {
     console.warn("Audio playback failed:", err);
@@ -50,8 +56,15 @@ const DetectionDisplay: React.FC<DetectionDisplayProps> = ({
   const containerClass = `bg-gray-100 rounded-lg py-5 px-5 flex-row justify-around items-center mx-3 mt-3 shadow-sm ${backgroundClass}`.trim();
   const customContainerClass = `bg-lightsecondary rounded-lg py-5 px-5 flex-row justify-around items-center mx-3 mt-3 shadow-sm ${backgroundClass}`.trim();
 
-  const classNameToApply = isCustom === true? containerClass : customContainerClass;
+  const classNameToApply = isCustom === true ? customContainerClass : containerClass;
 
+  useEffect(() => {
+    return () => {
+      if (AudioRecorder.stopAudio) {
+        AudioRecorder.stopAudio(); 
+      }
+    };
+  }, []);
 
   return (
     <Pressable onPress={() => playAudio(audioBase64)}>
