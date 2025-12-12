@@ -11,7 +11,9 @@ if (typeof global.Buffer === 'undefined') {
   global.Buffer = Buffer;
 }
 
-const API_BASE_URL = 'http://192.168.1.7:5000'; // Replace with your server IP
+const API_BASE_URL = 'http://16.176.168.153/'; // Replace with your server IP
+// const API_BASE_URL = BASE_URL;
+
 
 export const useModelStore = create((set) => ({
   isTrainingModel: false,
@@ -77,6 +79,41 @@ export const useModelStore = create((set) => ({
       return null;
     }
   },
+  downloadModel :async (groupId, fileUrl) => {
+  try {
+    console.log("Downloading model from:", fileUrl);
+
+    // 1. Folder path
+    const directoryPath = `${RNFS.DocumentDirectoryPath}/models`;
+    
+    // 2. Ensure folder exists
+    const exists = await RNFS.exists(directoryPath);
+    if (!exists) {
+      await RNFS.mkdir(directoryPath);
+    }
+
+    // 3. File output path e.g. /models/6837e7d7.tflite
+    const filePath = `${directoryPath}/${groupId}.tflite`;
+
+    // 4. Download directly from S3
+    const result = await RNFS.downloadFile({
+      fromUrl: fileUrl,          // direct S3 URL
+      toFile: filePath,
+      background: true,
+    }).promise;
+
+    if (result.statusCode === 200) {
+      console.log("Model saved at:", filePath);
+      return { success: true, modelPath: filePath };
+    } else {
+      throw new Error(`Failed to download: ${result.statusCode}`);
+    }
+
+  } catch (error) {
+    console.error("DOWNLOAD ERROR:", error);
+    return { success: false, error };
+  }
+},
 
   useLabels: (labelsArray) => {
     set({ labels: labelsArray });

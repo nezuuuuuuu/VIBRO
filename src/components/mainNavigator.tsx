@@ -13,12 +13,14 @@ import GroupDetails from '../screens/(tabs)/GroupDetails';
 import GroupSoundsDetected from '../screens/(tabs)/GroupSoundsDetected';
 import GroupInfo from '../screens/(tabs)/GroupInfo';
 import ChatScreen from '../screens/(tabs)/chatScreen';
+// import MorphingBlob from '../screens/(tabs)/morphingBlob';
 import { icons } from '../constants';
 import "../../global.css";
 import CustomSounds from '../screens/(tabs)/customSound';
 
 
 import { useAppStore } from '../../store/appStore'; 
+import CustomFolder from '../screens/(tabs)/customFolder';
 
 const Tab = createBottomTabNavigator();
 const ProfileStack = createNativeStackNavigator();
@@ -85,12 +87,19 @@ const GroupStackNavigator = () => {
         component ={ChatScreen}
         options={({ title: 'Chat Screen'})}
       />
+        
       <GroupStack.Screen
        name="CustomSounds"
        component={CustomSounds}
          options={{
           headerShown: true,
           }} />
+
+      <GroupStack.Screen
+        name="CustomFolder"
+        component={CustomFolder}
+        options={({ title: 'Custom Folder'})}
+      />
     </GroupStack.Navigator>
   );
 };
@@ -145,7 +154,11 @@ const MainNavigator = () => {
           justifyContent: 'center',
         },
         tabBarItemStyle: {
-          top: 20,
+          height: '100%', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          paddingHorizontal: 0,
+          paddingVertical: 20,
         },
       })}
     >
@@ -166,6 +179,12 @@ const MainNavigator = () => {
           },
         }}
       />
+     
+        {/* <Tab.Screen
+        name="morhpingBlob"
+        component={MorphingBlob}
+        
+      /> */}
 
       <Tab.Screen
         name="Sound"

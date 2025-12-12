@@ -31,10 +31,11 @@ export default function EditProfile() {
 
       
       <View className="relative mb-6">
-        <View className="w-24 h-24 rounded-full bg-gray-300 justify-center items-center overflow-hidden">
+        <View className="w-28 h-28 rounded-full bg-gray-300 justify-center items-center overflow-hidden">
           {user?.profileImage ? (
             <Image
               source={{ uri: `https://api.dicebear.com/9.x/personas/png?seed=${user?.username || "guest"}` }}
+              style={{ width: 100, height: 100, borderRadius: 100 }}
               className="w-full h-full"
               resizeMode="cover"
             />

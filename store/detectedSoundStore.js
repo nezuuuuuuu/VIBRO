@@ -7,70 +7,88 @@ export const useDetectedSoundStore = create((set) => ({
     sounds: [],
     isLoading: false,
     error: null,
+   isMonitoringOn: false,
 
-    addSound: async (label, confidence, sound) => {
+  setIsMonitoringOn: async (value) => {
+    try {
+   
+      await AsyncStorage.setItem('isMonitoringOn', JSON.stringify(value));
+      // Update Zustand state
+      set({ isMonitoringOn: value });
+    } catch (error) {
+      console.error('Failed to save isMonitoringOn to AsyncStorage', error);
+    }
+  },
+  loadMonitoringState: async () => {
+    try {
+      const storedValue = await AsyncStorage.getItem('isMonitoringOn');
+      if (storedValue !== null) {
+        set({ isMonitoringOn: JSON.parse(storedValue) });
+      }
+    } catch (error) {
+      console.error('Failed to load isMonitoringOn from AsyncStorage', error);
+    }
+  }, addSound: async (label, confidence, sound) => {
         set({ isLoading: true, error: null });
 
         try {
-            const token = await AsyncStorage.getItem('token');
+          const token = await AsyncStorage.getItem('token');
 
-            const response = await fetch(`${BASE_URL}/detectedSound/add`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({ label, confidence, sound }),
-            });
-       
-            const data = await response.json();
-            
+          const response = await fetch(`${BASE_URL}/detectedSound/add`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ label, confidence, sound }),
+          });
 
-            if (!response.ok) throw new Error(data.message || 'Failed to add sound');
+          const data = await response.json();
 
-            // Optionally add the new sound to state
-            set((state) => ({
-                sounds: [data.sound, ...state.sounds],
-                isLoading: false,
-            }));
+          if (!response.ok) throw new Error(data.message || 'Failed to add sound');
 
-            return { success: true };
+          set((state) => ({
+            sounds: [data.sound, ...state.sounds],
+            isLoading: false,
+          }));
+
+          return { success: true };
 
         } catch (error) {
-            set({ isLoading: false, error: error.message });
-            return { success: false, error: error.message };
+          set({ isLoading: false, error: error.message });
+          return { success: false, error: error.message };
         }
-    },
+      },
 
-    fetchUserSounds: async (userId) => {
+      fetchUserSounds: async (userId) => {
         set({ isLoading: true, error: null });
         try {
-            const token = await AsyncStorage.getItem('token');
-           
-            const response = await fetch(`${BASE_URL}/detectedSound/${userId}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+          const token = await AsyncStorage.getItem('token');
 
-            const data = await response.json();
-           
-            if (!response.ok) throw new Error(data.message || 'Failed to fetch sounds');
+          const response = await fetch(`${BASE_URL}/detectedSound/${userId}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
 
-            set({ sounds: data.sounds, isLoading: false });
-            return { success: true };
+          const data = await response.json();
+
+          if (!response.ok) throw new Error(data.message || 'Failed to fetch sounds');
+
+          set({ sounds: data.sounds, isLoading: false });
+          return { success: true };
 
         } catch (error) {
-            set({ isLoading: false, error: error.message });
-            return { success: false, error: error.message };
+          set({ isLoading: false, error: error.message });
+          return { success: false, error: error.message };
         }
-    },
-    clearSound: async () => {
+      },
+      
+      clearSound: async () => {
         set({ isLoading: true, error: null });
         set({ sounds: null, isLoading: false });
-        
-    },
+      },
 
-    clearSounds: () => set({ sounds: [] }),
+      clearSounds: () => set({ sounds: [] }),
 }));
