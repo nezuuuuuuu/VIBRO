@@ -267,7 +267,7 @@ const CustomFolder = ({ route }) => {
     );
   };
 
-    // --- Upload ---
+    // Function to handle recorded sound upload
     const handleUploadRecordedSound = async () => {
         if (!recordedAudioBase64) {
             Alert.alert('No Sound', 'Please record a sound before uploading.');
