@@ -18,7 +18,6 @@ import { useSocket } from '../../../store/useSocket'; // Adjust the import path 
 
 import BASE_URL from '../../../store/api';
 
-
 const API_BASE_URL = BASE_URL; // Replace with your API base URL
 
 interface User {
@@ -85,11 +84,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         }
     }, [groupName, navigation]);
 
+    // CHATSCREEN COLOR
     useEffect(() => {
         if (socket) {
             console.log('ChatScreen using global socket:', socket.id);
 
-           
+
 
             const handleNewMessage = (newMessage: MessagePayload) => {
                 console.log('ChatScreen received newMessage for its group:', newMessage);
@@ -108,9 +108,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
 
             return () => {
                 console.log(`ChatScreen cleanup for group ${groupId} with socket ${socket.id}`);
-                     
+
                 socket.off('newMessage', handleNewMessage);
-               
+
             };
         }
 
