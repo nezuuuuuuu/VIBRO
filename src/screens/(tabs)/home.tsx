@@ -15,6 +15,9 @@ import {
 } from 'react-native';
 import { useState, useRef } from 'react';
 import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
+import MorphingCircle from "../../components/morphingCircle"; 
+import PredictedCircles from "../../components/predictedCircles"; 
+
 
 import "../../../global.css"
 import DetectionDisplay from '../../components/detectionDisplay';
@@ -41,11 +44,12 @@ import { useAppStore } from '../../../store/appStore';
 
 const { AudioRecorder, Flashlight } = NativeModules;
 
-const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)','Fire alarm'];
+const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)','Fire alarm', 'Emergency vehicle'];
 const NOTIF_LEVEL_2_ALLOWED_LABELS = [ 'Glass','Baby cry, infant cry','Crying, sobbing'];
 const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass','Speech','Music'];
 const ACTIVE_SWITCH_COLOR = '#8A2BE2';
 const INACTIVE_SWITCH_COLOR = '#767577';
+
 
 
 const BACKGROUND_LABELS = ['Background','Silence'];
@@ -64,6 +68,7 @@ const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
   'Music': 3,
   'Crying, sobbing': 2,
   'Baby cry, infant cry': 2,
+  'Emergency vehicle': 1
 };
 
 export async function requestMicPermission() {
@@ -111,11 +116,12 @@ const LEGEND_INFO: {
 
 
 function Home() {
+  const lastDetectionTimeRef = useRef({});
   const {  fetchModelById, setActiveModel, useLabels,labels,activeModel } = useModelStore();
 
   const { socket, connect, disconnect,isOnline } = useSocket();
   const {getGroups} = useGroupStore()
-  const { addSound} = useDetectedSoundStore();
+  const { addSound,isMonitoringOn,loadMonitoringState} = useDetectedSoundStore();
   const { isOfflineMode, isLoadingOfflineModeToggle, toggleOfflineMode } = useAppStore();
 
   const navigation = useNavigation(); 
@@ -123,7 +129,6 @@ function Home() {
   const [predictions, setPredictions] = useState<any[]>([]);
 
   const [isRecording, setIsRecording] = useState(false);
-  const [isMonitoringOn, setIsMonitoringOn] = useState(user.isActive); // Initialize with user's active status
   
   const predictionQueue: { isCustom: boolean, label: string; confidence: number; audioBase64?: string }[] = [];
   let isProcessing = false;
@@ -145,12 +150,12 @@ function Home() {
     if (user) {
       navigation.setOptions({
         headerTitle: () => ( 
-          <Text className="font-pbold text-2xl text-white">VIBRO</Text>
+          <Text className="font-pbold text-3xl text-white">VIBRO</Text>
        ),
         headerRight: () => (
           <TouchableOpacity
             onPress={() => navigation.navigate('Profile')} 
-            className="flex-row items-center gap-2 mr-6"
+            className="flex-row items-center gap-2 py-2 px-3 mr-6 bg-secondary/5 p-1 rounded-lg"
           >
             <Image
               className="w-12 h-12 rounded-full bg-gray-300"
@@ -190,7 +195,7 @@ function Home() {
 
 
   useEffect(()=>{
-    
+    loadMonitoringState()
     copyModelToInternalStorage();
     console.log(RNFS.DocumentDirectoryPath); 
     // This line initializes isMonitoringOn with user.isActive, which is correct.
@@ -229,7 +234,11 @@ function Home() {
       // Process Yamnet predictions
       if (Array.isArray(yamnetPredictions)) {
         yamnetPredictions.forEach(({ label, confidence }) => {
-          predictionQueue.push({ isCustom : false, label, confidence, audioBase64 });
+          console.log("Label", label)
+          if(label in CRITICAL_SOUND_LEVELS){
+            predictionQueue.push({ isCustom : false, label, confidence, audioBase64 });
+          }
+
           if (!isProcessing) processQueue();
         });
       }
@@ -258,14 +267,22 @@ function Home() {
 
 
 const handlePrediction = async (prediction: { isCustom: boolean, label: string, confidence: number, audioBase64: string }) => {
+        const MIN_INTERVAL = 5000; // 5 seconds
+
         const { isCustom, label, confidence, audioBase64 } = prediction;
         // const MIN_CONFIDENCE = 0.50;
-
-        console.log("Raw prediction received:", { label, confidence, isCustom });
-
+        
       
             const currentTime = Date.now();
-            const criticalLevel = CRITICAL_SOUND_LEVELS[label] || null;
+            const criticalLevel = CRITICAL_SOUND_LEVELS[label] || 4;
+            const lastTime = lastDetectionTimeRef.current[label];
+
+            if (lastTime && currentTime - lastTime < MIN_INTERVAL) {
+                console.log(`⏳ SKIPPED: ${label} occurred again within 5 seconds`);
+                return; // ❌ stop processing — skip everything
+            }
+            console.log("Raw prediction received:", { label, confidence, isCustom });
+            lastDetectionTimeRef.current[label] = currentTime;
 
             console.log(`Calculated criticalLevel for "${label}": ${criticalLevel}`);
 
@@ -279,6 +296,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                 ]);
                 // Only send sound to socket if monitoring is on and socket is connected
                 if(isMonitoringOn && socket && socket.connected) {
+                  console.log("Sending detected sound to socket:", { label, confidence, isCustom, audioBase64 });
                   addSound(label, confidence, audioBase64);
                 }
                 // --- VIBRATION LOGIC ADDED HERE ---
@@ -388,22 +406,16 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
     setIsRecording(false);
     const path = await AudioRecorder.stopRecording(); 
 }
-const handleToggle = () => {
-  if (isMonitoringOn) {
-    setActiveStatus(false);
-  } else {
-    setActiveStatus(true);
-  }
-  // Toggle the state
-setIsMonitoringOn(!isMonitoringOn);
-}
+
 
 
 
     return (
      <View className='h-full bg-primary' >
        <View className='items-center px-4'> 
-         <Text className='mt-4 text-xl font-psemibold text-white'>Sounds Detected</Text>
+         <Text className='mt-4 text-2xl font-pbold text-white'>Sounds Detected</Text>
+               {/* <MorphingCircle /> */}
+
 
          <View className="text-center my-3 w-full">
            
@@ -429,7 +441,7 @@ setIsMonitoringOn(!isMonitoringOn);
          ))}
          
        </View>
-                 <View className="p-4">
+                 {/* <View className="p-4">
                    <View className="flex flex-row items-center justify-between py-2">
                      <View className="flex-1 mr-4">
                        <Text className="text-base font-pmedium text-gray-200">
@@ -447,24 +459,40 @@ setIsMonitoringOn(!isMonitoringOn);
                        ios_backgroundColor={INACTIVE_SWITCH_COLOR} //
                      />
                    </View>
-                 </View>
+                 </View> */}
          </View>
 
-         <ScrollView className="w-full" style={{ height: '70%' }}> 
+         <View className="w-full" style={{ height: '70%', width: '90%' }}> 
+          <PredictedCircles predictions={predictions} />
+
            
-           {predictions.slice().reverse().map((prediction, index) => {
+           {/* {predictions.slice().reverse().map((prediction, index) => {
              return (
-               <DetectionDisplay
-                 key={`${prediction.timestamp}-${index}`} 
-                 time={new Date(prediction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit'})}
-                 confidence={`${(prediction.confidence * 100).toFixed(1)}%`}
-                 sound={prediction.label}
-                 audioBase64={prediction.audioBase64}
-                 criticalLevel={prediction.criticalLevel}
-               />
+              //  <DetectionDisplay
+              //    key={`${prediction.timestamp}-${index}`} 
+              //    time={new Date(prediction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit'})}
+              //    confidence={`${(prediction.confidence * 100).toFixed(1)}%`}
+              //    sound={prediction.label}
+              //    audioBase64={prediction.audioBase64}
+              //    criticalLevel={prediction.criticalLevel}
+              //  />
+              
+              //    <MorphingCircle 
+              //    key={prediction.label}
+              //   size={300}
+              //   colors={["#0f0606ff", "#000000ff"]}
+              // />
+              <MorphingCircle
+              key={prediction.label}
+              size={300}
+              colors={["#ff6a00", "#ee0979"]}
+              text={prediction.label}
+              textColor="#fff"
+              textSize={40}
+            />
              );
-           })}
-         </ScrollView>
+           })} */}
+         </View>
        </View>
 
        <View className='absolute bottom-6 left-0 right-0 flex-row items-center justify-center'>
