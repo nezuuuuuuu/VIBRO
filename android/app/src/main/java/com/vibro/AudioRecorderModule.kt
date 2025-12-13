@@ -594,7 +594,10 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
         "Radio",
         "Field recording"
     )
+
+    private var currentPlaybackId: Long = 0
     private var isRecording = false
+    private var activeAudioTrack: AudioTrack? = null
     private var record: AudioRecord? = null
     private var timerTask: TimerTask? = null
     private val timer = Timer()
@@ -738,7 +741,7 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
     }
 
 
-    @ReactMethod
+   @ReactMethod
     fun playAudio(base64Audio: String?, promise: Promise) {
         try {
             if (base64Audio.isNullOrEmpty()) {
@@ -746,26 +749,28 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
                 return
             }
 
-            Log.d("DEBUG", "Received base64 audio with size: ${base64Audio.length}")
+            // 1. Increment the ID. This invalidates any previous sleeping threads.
+            synchronized(this) {
+                currentPlaybackId++
+            }
+            val myPlaybackId = currentPlaybackId 
 
-            // 1. Decode the base64 string to byte array
+            // Stop any currently playing audio
+            stopPlayerInternal()
+
             val audioBytes = Base64.decode(base64Audio, Base64.NO_WRAP)
-
-            // 2. Convert byte array to short array (PCM 16-bit)
-            val shortBuffer = ByteBuffer.wrap(audioBytes)
-                .order(ByteOrder.LITTLE_ENDIAN)
-                .asShortBuffer()
+            val shortBuffer = ByteBuffer.wrap(audioBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
             val audioData = ShortArray(shortBuffer.remaining())
             shortBuffer.get(audioData)
 
-            // 3. Prepare AudioTrack
             val sampleRate = 16000
             val channelConfig = AudioFormat.CHANNEL_OUT_MONO
             val audioFormat = AudioFormat.ENCODING_PCM_16BIT
             val minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, audioFormat)
             val bufferSize = maxOf(minBufferSize, audioData.size * 2)
 
-            val audioTrack = AudioTrack(
+            // Assign to the CLASS-LEVEL variable 'activeAudioTrack'
+            activeAudioTrack = AudioTrack(
                 AudioManager.STREAM_MUSIC,
                 sampleRate,
                 channelConfig,
@@ -774,33 +779,59 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
                 AudioTrack.MODE_STREAM
             )
 
-            // 4. Play audio
-            audioTrack.play()
-            audioTrack.write(audioData, 0, audioData.size)
+            activeAudioTrack?.play()
+            activeAudioTrack?.write(audioData, 0, audioData.size)
 
-            // 5. Stop and release after playing
+            // Auto-stop thread
             Thread {
                 try {
                     val durationMs = (audioData.size * 1000L) / sampleRate
-                    Thread.sleep(durationMs + 100)
+                    Thread.sleep(durationMs + 200)
+                    
+                    // Only resolve if we finished naturally (and weren't stopped manually)
+                    if (myPlaybackId == currentPlaybackId && activeAudioTrack != null) {
+                        stopPlayerInternal()
+                        promise.resolve("Audio playback finished.")
+                    }
                 } catch (e: InterruptedException) {
                     Log.e("AudioRecorderModule", "Sleep interrupted: ${e.message}")
-                } finally {
-                    audioTrack.stop()
-                    audioTrack.release()
-                    promise.resolve("Audio playback finished.")
+                } catch (e: Exception) {
+                    // Handle potential promise crash if already resolved
                 }
             }.start()
 
-        } catch (e: IllegalArgumentException) {
-            Log.e("AudioRecorderModule", "IllegalArgumentException: ${e.message}")
-            promise.reject("PLAYBACK_ERROR", "Invalid base64 audio data: ${e.message}")
-        } catch (e: IOException) {
-            Log.e("AudioRecorderModule", "IOException: ${e.message}")
-            promise.reject("PLAYBACK_ERROR", "Error playing audio: ${e.message}")
         } catch (e: Exception) {
             Log.e("AudioRecorderModule", "Exception: ${e.message}")
             promise.reject("PLAYBACK_ERROR", "General error: ${e.message}")
+        }
+    }
+
+    // 3. ADD these new methods to stop audio
+    @ReactMethod
+    fun stopAudio(promise: Promise) {
+        stopPlayerInternal()
+        promise.resolve("Audio stopped.")
+    }
+
+    @ReactMethod
+    fun stopPlayer(promise: Promise) {
+        // Alias for stopAudio
+        stopAudio(promise)
+    }
+
+    // Helper function to safely stop and release
+    private fun stopPlayerInternal() {
+        try {
+            if (activeAudioTrack != null) {
+                activeAudioTrack?.pause()
+                activeAudioTrack?.flush()
+                activeAudioTrack?.stop()
+                activeAudioTrack?.release()
+            }
+        } catch (e: Exception) {
+            Log.e("AudioRecorderModule", "Error stopping audio: ${e.message}")
+        } finally {
+            activeAudioTrack = null
         }
     }
 

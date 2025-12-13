@@ -185,7 +185,7 @@ function Home() {
           //  return destinationPath;
           // }
           await RNFS.copyFileAssets(assetPath, destinationPath);
-          console.log('Model copied to internal storage successfully.');
+          // console.log('Model copied to internal storage successfully.');
           return destinationPath;
         } catch (error) {
           console.error('Failed to copy model to internal storage:', error);
@@ -248,7 +248,7 @@ function Home() {
         customPredictions.forEach(({ label, confidence }) => {
           // FIX: Use .includes() for array check
           if(BACKGROUND_LABELS.includes(label)){
-            console.log(`Filtered out background label: ${label}`);
+            // console.log(`Filtered out background label: ${label}`);
           }
           else{
             predictionQueue.push({ isCustom : true, label, confidence, audioBase64 });

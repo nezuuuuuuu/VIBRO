@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import io from 'socket.io-client';
 import { Alert } from 'react-native';
 import notifee, { AndroidImportance } from '@notifee/react-native'; // You likely need this
-const SOCKET_URL = "http://3.106.248.74:3000";//local server
+const SOCKET_URL = "http://13.237.180.192:3000";//local server
 
 // import BASE_URL from './api'; // Not used here
 
