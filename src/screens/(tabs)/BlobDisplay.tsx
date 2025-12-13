@@ -464,7 +464,7 @@ setIsMonitoringOn(!isMonitoringOn);
                  confidence={`${(prediction.confidence * 100).toFixed(1)}%`}
                  sound={prediction.label}
                  audioBase64={prediction.audioBase64}
-                 criticalLevel={prediction.criticalLevel}
+                 criticalLevel={}
                />
              );
            })}

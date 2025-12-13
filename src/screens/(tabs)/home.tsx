@@ -18,7 +18,6 @@ import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
 import MorphingCircle from "../../components/morphingCircle"; 
 import PredictedCircles from "../../components/predictedCircles"; 
 
-
 import "../../../global.css"
 import DetectionDisplay from '../../components/detectionDisplay';
 import { useAuthStore } from "../../../store/authStore";
@@ -40,9 +39,9 @@ import { AndroidImportance } from '@notifee/react-native';
 import Index from '../(welcome)';
 import Profile from '../(tabs)/profile';
 import { useAppStore } from '../../../store/appStore';
+import Torch from 'react-native-torch'; // <--- ADD THIS IMPORT
 
-
-const { AudioRecorder, Flashlight } = NativeModules;
+const { AudioRecorder } = NativeModules; // Removed Flashlight from here as we use Torch
 
 const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)','Fire alarm', 'Emergency vehicle'];
 const NOTIF_LEVEL_2_ALLOWED_LABELS = [ 'Glass','Baby cry, infant cry','Crying, sobbing'];
@@ -50,12 +49,9 @@ const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass','Speech','Music'];
 const ACTIVE_SWITCH_COLOR = '#8A2BE2';
 const INACTIVE_SWITCH_COLOR = '#767577';
 
-
 const BACKGROUND_LABELS = ['Background','Silence'];
 
- 
 const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
-  
   'siren': 1,
   'Ambulance (siren)': 1,
   'Police car (siren)': 1,
@@ -71,7 +67,6 @@ const CRITICAL_SOUND_LEVELS: { [key: string]: number } = {
 };
 
 export async function requestMicPermission() {
-
   if (Platform.OS === 'android') {
     const granted = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
@@ -86,7 +81,23 @@ export async function requestMicPermission() {
   return true;
 }
 
-
+// --- NEW: Helper for Camera Permission (for Torch) ---
+export async function requestCameraPermission() {
+  if (Platform.OS === 'android') {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.CAMERA,
+      {
+        title: 'Flashlight Permission',
+        message: 'App needs access to your camera to blink the flashlight for alerts.',
+        buttonNeutral: 'Ask Me Later',
+        buttonNegative: 'Cancel',
+        buttonPositive: 'OK',
+      }
+    );
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  }
+  return true;
+}
 
 const LEGEND_INFO: {
   [key: number]: { label: string; colorClass: string; description: string };
@@ -127,10 +138,47 @@ function Home() {
   const [predictions, setPredictions] = useState<any[]>([]);
 
   const [isRecording, setIsRecording] = useState(false);
-  const [isMonitoringOn, setIsMonitoringOn] = useState(user.isActive); // Initialize with user's active status
+  const [isMonitoringOn, setIsMonitoringOn] = useState(user.isActive); 
   
   const predictionQueue: { isCustom: boolean, label: string; confidence: number; audioBase64?: string }[] = [];
   let isProcessing = false;
+
+  // Cleanup Torch on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        Torch.switchState(false);
+      } catch (e) {
+        console.log("Torch cleanup error", e);
+      }
+    };
+  }, []);
+
+  // --- NEW: Flashlight Trigger Function ---
+  const triggerFlashlight = async () => {
+    try {
+      const hasPermission = await Torch.requestCameraPermission(
+        'Camera Permissions',
+        'We require camera permissions to use the torch on the back of your phone.'
+      );
+
+      if (!hasPermission) return;
+
+      // Pattern: ON -> 150ms -> OFF -> 150ms -> ON -> 150ms -> OFF
+      Torch.switchState(true);
+      setTimeout(() => {
+        Torch.switchState(false);
+        setTimeout(() => {
+          Torch.switchState(true);
+          setTimeout(() => {
+            Torch.switchState(false);
+          }, 150);
+        }, 150);
+      }, 150);
+    } catch (e) {
+      console.log("Torch Error:", e);
+    }
+  };
 
 
   const processQueue = async () => {
@@ -178,17 +226,12 @@ function Home() {
         try {
           const assetPath = 'VIBRO.tflite';
           const destinationPath = `${RNFS.DocumentDirectoryPath}/VIBRO.tflite`;
-          // const fileExists = await RNFS.exists(destinationPath); // Optional: skip if exists
-          // if (fileExists) {
-          //  console.log('Model already copied to internal storage.');
-          //  return destinationPath;
-          // }
           await RNFS.copyFileAssets(assetPath, destinationPath);
           console.log('Model copied to internal storage successfully.');
           return destinationPath;
         } catch (error) {
           console.error('Failed to copy model to internal storage:', error);
-          throw error; // Or handle more gracefully
+          throw error; 
         }
       };
 
@@ -197,13 +240,10 @@ function Home() {
     
     copyModelToInternalStorage();
     console.log(RNFS.DocumentDirectoryPath); 
-    // This line initializes isMonitoringOn with user.isActive, which is correct.
-    // No need to set it again outside of its initial state.
-    // setIsMonitoringOn(user.isActive) 
 
       const fetchAndConnect = async () => {
       try {
-       // Connect only if not in offline mode initially (or when component mounts)
+       // Connect only if not in offline mode initially 
         const result = await getGroups();
         if (result && result.groups) {
           const groupIds = result.groups.map(group => group._id);
@@ -217,7 +257,6 @@ function Home() {
     console.log("safeee")
   };
 
-  // Fetch groups and connect socket when the component mounts
   if(!isOfflineMode && socket === null) { 
     fetchAndConnect();
   }
@@ -241,7 +280,6 @@ function Home() {
       // Process custom predictions
       if (Array.isArray(customPredictions)) {
         customPredictions.forEach(({ label, confidence }) => {
-          // FIX: Use .includes() for array check
           if(BACKGROUND_LABELS.includes(label)){
             console.log(`Filtered out background label: ${label}`);
           }
@@ -253,17 +291,14 @@ function Home() {
       }
     });
 
-    // Clean up the event listener when the component unmounts
-    // You should return a cleanup function from useEffect
     return () => {
       DeviceEventEmitter.removeAllListeners("onPrediction");
     };
-  }, [isOfflineMode, user]); // Added user to dependency array as setIsMonitoringOn depends on it
+  }, [isOfflineMode, user]); 
 
 
 const handlePrediction = async (prediction: { isCustom: boolean, label: string, confidence: number, audioBase64: string }) => {
         const { isCustom, label, confidence, audioBase64 } = prediction;
-        // const MIN_CONFIDENCE = 0.50;
 
         console.log("Raw prediction received:", { label, confidence, isCustom });
 
@@ -273,7 +308,6 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
 
             console.log(`Calculated criticalLevel for "${label}": ${criticalLevel}`);
 
-            // This is the crucial condition for deciding whether to display and notify
             if (criticalLevel !== null || isCustom) {
                 console.log(`>>> ACCEPTED PREDICTION: ${label}, criticalLevel: ${criticalLevel}, isCustom: ${isCustom}`);
 
@@ -281,13 +315,14 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     ...prevPredictions,
                     { isCustom: isCustom, label: label, confidence: confidence, timestamp: currentTime, audioBase64: audioBase64, criticalLevel: criticalLevel }
                 ]);
-                // Only send sound to socket if monitoring is on and socket is connected
-                // if(isMonitoringOn && socket && socket.connected) {
+                
                   addSound(label, confidence, audioBase64);
-                // }
-                // --- VIBRATION LOGIC ADDED HERE ---
+                
+                // --- VIBRATION & FLASHLIGHT LOGIC ---
                 if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
-                    Vibration.vibrate([0, 500, 200, 500]); // Vibrate for 500ms, pause 200ms, vibrate 500ms (High urgency)
+                    Vibration.vibrate([0, 500, 200, 500]); // High urgency vibration
+                    triggerFlashlight(); // <--- Trigger Flash
+                    
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
@@ -297,7 +332,9 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                         },
                     });
                 } else if (NOTIF_LEVEL_2_ALLOWED_LABELS.includes(label)) {
-                    Vibration.vibrate(500); // Vibrate for 500ms (Medium urgency)
+                    Vibration.vibrate(500); // Medium urgency
+                    triggerFlashlight(); // <--- Trigger Flash
+
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 2`,
@@ -307,7 +344,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                         },
                     });
                 } else if (NOTIF_LEVEL_3_ALLOWED_LABELS.includes(label)) {
-                    // Vibration.vibrate(200); // Vibrate for 200ms (Low urgency)
+                    // No vibration/flash for Level 3 (Informational)
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 3`,
@@ -317,7 +354,9 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                         },
                     });
                 } else if (isCustom) {
-                    Vibration.vibrate([0, 1000]); // Vibrate for 1000ms (Distinct for custom sounds)
+                    Vibration.vibrate([0, 1000]); // Custom sound vibration
+                    triggerFlashlight(); // <--- Trigger Flash
+
                     await notifee.displayNotification({
                         title: `Detected Custom Sound: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - Custom Model`,
@@ -333,41 +372,16 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
     
     };
 
-// // Flashlight Di mugana
-//  const blinkFlashlight = async (times = 5, interval = 200) => {
-//       if (Platform.OS === 'android' && Platform.Version >= 23) {
-//         const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
-//           title: 'Camera Permission',
-//           message: 'App needs access to the camera to flash the light.',
-//           buttonPositive: 'OK',
-//         });
-    
-//         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-//           console.warn('Camera permission denied.');
-//           return;
-//         }
-//       }
-    
-//       for (let i = 0; i < times; i++) {
-//         Torch.switchState(true);  // ON
-//         await new Promise(res => setTimeout(res, interval));
-//         Torch.switchState(false); // OFF
-//         await new Promise(res => setTimeout(res, interval));
-//       }
-//     };
-  
 
- async function startRecording() {
+  async function startRecording() {
     console.log("start recording",activeModel)
     if(isRecording) {
     stopRecording()
       return;
     }
-      // Request permission *before* attempting to start recording
     const hasPermission = await requestMicPermission();
     if (!hasPermission) {
       console.warn("Microphone permission denied. Cannot start recording.");
-      // Optionally, show a user-friendly message or alert
       return;
     }
 
@@ -398,7 +412,6 @@ const handleToggle = () => {
   } else {
     setActiveStatus(true);
   }
-  // Toggle the state
 setIsMonitoringOn(!isMonitoringOn);
 }
 
@@ -408,7 +421,6 @@ setIsMonitoringOn(!isMonitoringOn);
      <View className='h-full bg-primary' >
        <View className='items-center px-4'> 
          <Text className='mt-4 text-2xl font-pbold text-white'>Sounds Detected</Text>
-               {/* <MorphingCircle /> */}
 
 
          <View className="text-center my-3 w-full">
@@ -435,57 +447,10 @@ setIsMonitoringOn(!isMonitoringOn);
          ))}
          
        </View>
-                 {/* <View className="p-4">
-                   <View className="flex flex-row items-center justify-between py-2">
-                     <View className="flex-1 mr-4">
-                       <Text className="text-base font-pmedium text-gray-200">
-                         Enable Group Monitoring
-                       </Text>
-                       <Text className="text-xs font-pregular text-gray-400 mt-1">
-                         When enabled, detected sounds will be visible to your group members.
-                       </Text>
-                     </View>
-                     <Switch
-                       onValueChange={() => handleToggle()}
-                       trackColor={{ false: INACTIVE_SWITCH_COLOR, true: ACTIVE_SWITCH_COLOR }}
-                       thumbColor={isMonitoringOn ? "#f4f3f4" : "#f4f3f4"} 
-                       value={isMonitoringOn}
-                       ios_backgroundColor={INACTIVE_SWITCH_COLOR} //
-                     />
-                   </View>
-                 </View> */}
          </View>
 
          <View className="w-full" style={{ height: '70%', width: '90%' }}> 
           <PredictedCircles predictions={predictions} />
-
-           
-           {/* {predictions.slice().reverse().map((prediction, index) => {
-             return (
-              //  <DetectionDisplay
-              //    key={`${prediction.timestamp}-${index}`} 
-              //    time={new Date(prediction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit'})}
-              //    confidence={`${(prediction.confidence * 100).toFixed(1)}%`}
-              //    sound={prediction.label}
-              //    audioBase64={prediction.audioBase64}
-              //    criticalLevel={prediction.criticalLevel}
-              //  />
-              
-              //    <MorphingCircle 
-              //    key={prediction.label}
-              //   size={300}
-              //   colors={["#0f0606ff", "#000000ff"]}
-              // />
-              <MorphingCircle
-              key={prediction.label}
-              size={300}
-              colors={["#ff6a00", "#ee0979"]}
-              text={prediction.label}
-              textColor="#fff"
-              textSize={40}
-            />
-             );
-           })} */}
          </View>
        </View>
 

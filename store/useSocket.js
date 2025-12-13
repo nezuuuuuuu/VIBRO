@@ -2,9 +2,34 @@ import { create } from 'zustand';
 import io from 'socket.io-client';
 import { Alert } from 'react-native';
 import notifee, { AndroidImportance } from '@notifee/react-native'; // You likely need this
+import Torch from 'react-native-torch';
 // import BASE_URL from './api'; // Not used here
 const SOCKET_URL = 'https://mern-vibro.onrender.com';
 // const SOCKET_URL = 'http://192.168.1.104:3000';
+
+const triggerFlashlight = async () => {
+  try {
+    const hasPermission = await Torch.requestCameraPermission(
+      'Camera Permissions',
+      'We require camera permissions to use the torch on the back of your phone.'
+    );
+    if (!hasPermission) return;
+
+    // Pattern: ON -> 150ms -> OFF -> 150ms -> ON -> 150ms -> OFF
+    Torch.switchState(true);
+    setTimeout(() => {
+      Torch.switchState(false);
+      setTimeout(() => {
+        Torch.switchState(true);
+        setTimeout(() => {
+          Torch.switchState(false);
+        }, 150);
+      }, 150);
+    }, 150);
+  } catch (e) {
+    console.log("Torch Error:", e);
+  }
+};
 
 export const useSocket = create((set, get) => ({
   socket: null,
@@ -57,7 +82,9 @@ export const useSocket = create((set, get) => ({
 
         if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
           try {
-            await notifee.displayNotification({
+            await triggerFlashlight();
+
+ await notifee.displayNotification({
               title: `From: ${username} (${groupName})`,
               body: `Detected: ${label}\nConfidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
               android: {
