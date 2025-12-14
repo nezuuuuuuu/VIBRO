@@ -147,6 +147,7 @@ function Home() {
   const processQueue = async () => {
     isProcessing = true;
     while (predictionQueue.length > 0) {
+      
       const prediction = predictionQueue.shift();
       if (prediction) await handlePrediction(prediction);
     }
@@ -364,7 +365,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
             lastDetectionTimeRef.current[label] = currentTime;
 
             console.log(`Calculated criticalLevel for "${label}": ${criticalLevel}`);
-
+            
             // This is the crucial condition for deciding whether to display and notify
             if (criticalLevel !== null || isCustom) {
                 console.log(`>>> ACCEPTED PREDICTION: ${label}, criticalLevel: ${criticalLevel}, isCustom: ${isCustom}`);
@@ -391,11 +392,6 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     // 1. Set state to show modal
                     setCurrentCriticalSound(label);
                     setSafetyModalVisible(true);
-
-                    // 2. Automatic Socket Message
-                    // "EMERGENCY ALERT: [Fire Alarm] detected..."
-                    const autoMessage = `🚨 EMERGENCY ALERT: ${label} detected. Waiting for user confirmation...`;
-                    sendGroupMessage(autoMessage);
                 }
 
                 // --- VIBRATION LOGIC ADDED HERE ---
@@ -404,9 +400,25 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
+                        data: {
+                          currentCriticalSound: label,
+                           
+                          },
                         android: {
                             channelId: 'sound-alerts3',
                             importance: AndroidImportance.HIGH,
+                            
+                            actions: [
+                                    {
+                                      title: "I'm Safe?",
+                                      pressAction: { id: 'i_am_safe' },
+                                    },
+                                    {
+                                      title: "help Me!",
+                                      pressAction: { id: 'help_me' },
+                                    },
+                                  ],
+                            
                         },
                     });
                 } else if (NOTIF_LEVEL_2_ALLOWED_LABELS.includes(label)) {

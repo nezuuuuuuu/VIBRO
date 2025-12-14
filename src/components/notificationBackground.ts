@@ -35,38 +35,9 @@ if (actionId === 'inquire_okay') {
       } catch (err) {
         console.error('Failed to send auto message in background:', err);
       }
-    // if (actionId === 'inquire_okay') {
-    //   navigate('Tabs', {
-    //     screen: 'Group',
-    //     params: {
-    //       screen: 'ChatScreen',
-    //       params: {
-    //          groupId: data?.groupId,
-    //           groupName: data?.groupName,
-    //           currentUserId: data?.userId,
-    //       },
-    //     },
-    //   }
-    
-    // );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // }
-
 
   // First, navigate to the Tabs stack and open the "Group" tab
+    // First, navigate to the Tabs stack and open the "Group" tab
   navigate('Tabs', {
     screen: 'Group', // This is the tab you want
   });
@@ -79,7 +50,22 @@ if (actionId === 'inquire_okay') {
       groupName: data?.groupName,
       currentUserId: data?.userId,
     });
-  }, 100); // 100ms delay usually works
+  }, 200); // 100ms delay usually works
+
+
+}else if (actionId === 'help_me') {
+    try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) throw new Error('Authentication token not found');
+
+       
+
+        console.log('Auto "Are you okay?" message sent successfully');
+      } catch (err) {
+        console.error('Failed to send auto message in background:', err);
+      }
+
+
 }
 
   }
