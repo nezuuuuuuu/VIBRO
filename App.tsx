@@ -45,7 +45,7 @@ if (Platform.OS === 'android') {
     name: 'Sound Alerts (High)',
     importance: AndroidImportance.HIGH,
     vibration: true,
-    sound: 'default',
+    sound: 'ragebait',
   });
 
   notifee.createChannel({
