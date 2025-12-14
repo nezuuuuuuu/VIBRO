@@ -41,14 +41,14 @@ const CreateGroup = () => {
 
   return (
     <ScrollView className="flex-1 bg-primary p-4">
-      <View className="items-center mt-20 mb-6">
+      <View className="items-center mt-48 mb-6  justify-center">
         <Text className="text-white text-2xl font-pbold">
           Create New Group
         </Text>
       </View>
 
       {/* Group Photo Section */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         className="w-32 h-32 rounded-full bg-[#2a2a5a] justify-center items-center self-center mb-6"
         onPress={handleSelectPhoto}
       >
@@ -68,11 +68,11 @@ const CreateGroup = () => {
       </TouchableOpacity>
       <Text className="text-center text-white text-sm mb-16 font-pregular">
         Tap to add group photo
-      </Text>
+      </Text> */}
 
 
       {/* Group Name Input */}
-      <View className="mb-6">
+      <View className="mb-6 mt-10">
         <Text className="text-white text-sm mb-2 font-psemibold">
           Group Name
         </Text>

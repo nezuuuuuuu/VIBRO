@@ -416,7 +416,7 @@ const GroupInfo = () => {
                                     onPress={() => setChangeGroupNameModalVisible(false)}
                                     className="mt-2"
                                 >
-                                    <Text className="text-gray-400 font-psemibold mt-2 text-center">Cancel</Text>
+                                    <Text className="text-secondary font-pmedium text-center">Cancel</Text>
                                 </TouchableOpacity>
                             </View>
                         </TouchableWithoutFeedback>
@@ -475,7 +475,7 @@ const GroupInfo = () => {
                                     onPress={() => setGroupCodeModalVisible(false)}
                                     className="mt-3"
                                 >
-                                    <Text className="text-secondary font-pregular text-center">Close</Text>
+                                    <Text className="text-secondary font-pmedium text-center">Close</Text>
                                 </TouchableOpacity>
                             </View>
                         </TouchableWithoutFeedback>
