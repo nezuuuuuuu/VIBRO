@@ -5,9 +5,11 @@ import { useNavigation } from '@react-navigation/native';
 import { icons } from '../../constants';
 import { useGroupStore } from "../../../store/groupStore";
 
+// NEW: Import Camera components
+import { useCameraDevice, useCodeScanner, Camera } from 'react-native-vision-camera';
+
 const Groups = () => {
   const { getGroups, groups, isLoading, setGroupNavigation, groupPointer, getMembers, joinGroup } = useGroupStore();
-
   const navigation = useNavigation();
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -16,26 +18,62 @@ const Groups = () => {
   const [filteredGroups, setFilteredGroups] = useState([]);
   const [groupCode, setGroupCode] = useState('');
   const [groupCodePlaceholder, setGroupCodePlaceholder] = useState('Enter group code');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // 1. New state for RefreshControl loading indicator
-  const [isRefreshing, setIsRefreshing] = useState(false); 
+  // NEW: Camera State
+  const [isScanning, setIsScanning] = useState(false);
+  const device = useCameraDevice('back');
 
-  // --- Data Fetching Logic ---
+  // NEW: Request Camera Permissions on Mount
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const permission = await Camera.requestCameraPermission();
+      if (permission === 'denied') Alert.alert('Permission required', 'Please allow camera access to scan QR codes.');
+    };
+    requestPermissions();
+  }, []);
 
-  // Refactored to a single function for initial load and refresh
+  // NEW: Handle Code Scanned
+  const onCodeScanned = useCallback((codes) => {
+    const value = codes[0]?.value;
+    if (value) {
+      try {
+        // Attempt to parse JSON (assuming your QR contains JSON like { type: 'JOIN_GROUP', code: '...' })
+        const parsed = JSON.parse(value);
+        
+        if (parsed.code) {
+          setIsScanning(false); // Stop scanning immediately
+          setGroupCode(parsed.code); // Fill the input
+          
+          // Optional: Auto-submit after a short delay to let state update
+          setTimeout(() => {
+             handleJoinGroup(parsed.code); 
+          }, 500);
+        }
+      } catch (e) {
+        // Fallback: If it's just a raw text string, use it directly
+        setIsScanning(false);
+        setGroupCode(value);
+      }
+    }
+  }, []);
+
+  // NEW: Initialize Code Scanner
+  const codeScanner = useCodeScanner({
+    codeTypes: ['qr', 'ean-13'],
+    onCodeScanned: onCodeScanned,
+  });
+
   const loadGroups = async () => {
-      // Your getGroups handles its own isLoading state, 
-      // but we need a local state for the RefreshControl spinner
-      setIsRefreshing(true); 
-      // The getGroups call will update the global groups state
-      await getGroups();
-      setIsRefreshing(false);
+    setIsRefreshing(true);
+    await getGroups();
+    setIsRefreshing(false);
   }
 
   useEffect(() => {
     const fetchInitialGroups = async () => {
       if (groups.length === 0 && !isLoading) {
-          await getGroups();
+        await getGroups();
       }
     };
     fetchInitialGroups();
@@ -53,10 +91,7 @@ const Groups = () => {
     }
   }, [searchQuery, groups]);
 
-
-  // 2. Define the callback function for pull-to-refresh
   const onRefresh = useCallback(async () => {
-    // This function is executed when the user pulls down
     await loadGroups();
   }, []);
 
@@ -80,32 +115,20 @@ const Groups = () => {
             <Text className="font-pbold text-2xl text-white">GROUPS</Text>
           )
         ),
-        headerStyle: {
-          backgroundColor: '#1a1a3d',
-        },
+        headerStyle: { backgroundColor: '#1a1a3d' },
         headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
+        headerTitleStyle: { fontWeight: 'bold' },
         headerRight: () => (
           <View className="flex-row mr-2 gap-2 items-center pr-3">
             <TouchableOpacity onPress={() => setSearchActive(!searchActive)} className="mr-4">
-              <Image
-                source={icons.search}
-                className="w-6 h-6 tint-white"
-                resizeMode="contain"
-              />
+              <Image source={icons.search} className="w-6 h-6 tint-white" resizeMode="contain" />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => {
-                setModalVisible(true);
-                setGroupCodePlaceholder('Enter group code');
-                setGroupCode('');
+              setModalVisible(true);
+              setGroupCodePlaceholder('Enter group code');
+              setGroupCode('');
             }}>
-               <Image
-                 source={icons.addgroup}
-                 className="w-8 h-8 tint-white"
-                 resizeMode="contain"
-               />
+              <Image source={icons.addgroup} className="w-8 h-8 tint-white" resizeMode="contain" />
             </TouchableOpacity>
           </View>
         ),
@@ -113,79 +136,87 @@ const Groups = () => {
     }
   }, [navigation, searchActive, searchQuery]);
 
+  // Modified to accept an optional code argument for the auto-scan feature
+  const handleJoinGroup = async (codeOverride = null) => {
+    const codeToUse = codeOverride || groupCode;
+    console.log('Attempting to join group with code:', codeToUse);
 
-  const handleJoinGroup = async () => {
-    console.log('Attempting to join group with code:', groupCode);
-
-    if (!groupCode) {
-        setGroupCodePlaceholder('Please enter a code');
-        return;
+    if (!codeToUse) {
+      setGroupCodePlaceholder('Please enter a code');
+      return;
     }
 
-    if (isLoading) {
-        console.log("Join already in progress");
-        return;
-    }
+    if (isLoading) return;
 
     setGroupCodePlaceholder('Joining...');
-
-    const result = await joinGroup(groupCode);
+    
+    // Ensure we are passing the code to your store function
+    const result = await joinGroup(codeToUse);
 
     if (result.success) {
-        console.log('Successfully joined group:', result.group);
-        setModalVisible(false);
-        setGroupCode('');
-        setGroupCodePlaceholder('Enter group code');
-        Alert.alert("Success", "Joined group successfully!");
+      setModalVisible(false);
+      setGroupCode('');
+      setGroupCodePlaceholder('Enter group code');
+      Alert.alert("Success", "Joined group successfully!");
     } else {
-        console.error('Failed to join group:', result.error);
-
-        const errorMessage = result.error || 'Failed to join group.';
-
-        if (errorMessage === 'You are already a member of this group.') {
-            Alert.alert("Cannot Join", errorMessage);
-            setGroupCodePlaceholder('Enter group code');
-        } else {
-            Alert.alert("Error", errorMessage);
-            setGroupCodePlaceholder(errorMessage);
-        }
-
-        setGroupCode('');
+      const errorMessage = result.error || 'Failed to join group.';
+      if (errorMessage === 'You are already a member of this group.') {
+        Alert.alert("Cannot Join", errorMessage);
+        setGroupCodePlaceholder('Enter group code');
+      } else {
+        Alert.alert("Error", errorMessage);
+        setGroupCodePlaceholder(errorMessage);
+      }
+      setGroupCode('');
     }
   };
 
-
   const handleCreateGroupNavigation = () => {
-    console.log('Navigating to New Group screen');
     setModalVisible(false);
     setGroupCode('');
     setGroupCodePlaceholder('Enter group code');
     navigation.navigate('CreateGroup');
   };
 
+  // NEW: Camera View Component
+  if (isScanning && device) {
+    return (
+      <View className="flex-1 bg-black">
+        <Camera
+          style={StyleSheet.absoluteFill}
+          device={device}
+          isActive={true}
+          codeScanner={codeScanner}
+        />
+        {/* Overlay UI for Scanner */}
+        <View className="absolute top-10 right-5">
+           <TouchableOpacity onPress={() => setIsScanning(false)} className="bg-white/20 p-2 rounded-full">
+              <Text className="text-white font-pbold text-lg">Close X</Text>
+           </TouchableOpacity>
+        </View>
+        <View className="absolute bottom-10 w-full items-center">
+            <Text className="text-white font-pregular bg-black/50 px-4 py-2 rounded-lg">Point camera at Group QR Code</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View className="h-full flex-1 bg-primary p-4">
-      <ScrollView 
-            className="flex-1"
-            refreshControl={
-              <RefreshControl
-                  refreshing={isRefreshing} // State to control the spinner
-                  onRefresh={onRefresh}     // Function to call on pull-down
-                  tintColor='#8A2BE2'       // Custom color for iOS
-                  colors={['#8A2BE2']}      // Custom color for Android
-              />
-          }
+      <ScrollView
+        className="flex-1"
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor='#8A2BE2' colors={['#8A2BE2']} />
+        }
       >
         {(isLoading || isRefreshing) && groups.length === 0 && (
-            <Text className="text-white font-pregular text-center mt-8">Loading groups...</Text>
+          <Text className="text-white font-pregular text-center mt-8">Loading groups...</Text>
         )}
 
-        {!isLoading && filteredGroups.length === 0 && searchQuery === '' && groups.length === 0 && (
-            <Text className="text-white font-pregular text-center mt-8">No groups found. Join or create one!</Text>
-        )}
-
-        {!isLoading && filteredGroups.length === 0 && searchQuery !== '' && (
-            <Text className="text-white font-pregular text-center mt-8">No groups found matching "{searchQuery}".</Text>
+        {!isLoading && filteredGroups.length === 0 && (
+            <Text className="text-white font-pregular text-center mt-8">
+                {searchQuery !== '' ? `No groups found matching "${searchQuery}".` : "No groups found. Join or create one!"}
+            </Text>
         )}
 
         {filteredGroups.map((group) => (
@@ -205,27 +236,19 @@ const Groups = () => {
               />
               <Text className="text-white px-4 text-lg font-pregular">{group.groupName}</Text>
             </View>
-
-            <View className="flex-row items-center">
-              <Image
-                source={icons.rightArrow}
-                className="w-7 h-7"
-                resizeMode="contain"
-                style={{ tintColor: 'white' }}
-              />
-            </View>
+            <Image source={icons.rightArrow} className="w-7 h-7 tint-white" resizeMode="contain" />
           </TouchableOpacity>
         ))}
       </ScrollView>
 
+      {/* MODAL SECTION */}
       <Modal
         animationType="fade"
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => {
-          setModalVisible(false);
-          setGroupCode('');
-          setGroupCodePlaceholder('Enter group code');
+            setModalVisible(false);
+            setGroupCode('');
         }}
       >
         <Pressable
@@ -233,36 +256,54 @@ const Groups = () => {
           onPress={() => {
             setModalVisible(false);
             setGroupCode('');
-            setGroupCodePlaceholder('Enter group code');
           }}
         >
           <Pressable className="bg-primary p-6 py-10 rounded-lg w-4/5 items-center" onPress={(e) => e.stopPropagation()}>
-            <Text className="text-xl font-pbold mb-6 text-center text-white">ADD GROUP</Text>
+            <Text className="text-xl font-pbold mb-10 text-center text-white">ADD GROUP</Text>
 
-            <Text className="text-left w-full mb-2 text-white font-psemibold">Group Code</Text>
-            <View className="w-full h-14 bg-gray-200 px-4 rounded-lg justify-center mb-4">
-              <TextInput
-                className="flex-1 text-black font-pregular"
-                placeholder={groupCodePlaceholder}
-                placeholderTextColor="#888"
-                value={groupCode}
-                onChangeText={setGroupCode}
-                autoCapitalize="none"
-              />
+            {/* Scan Button */}
+            <TouchableOpacity 
+                 className={`p-4 rounded-lg w-full items-center ${isLoading ? 'bg-gray-400' : 'bg-secondary'}`}
+                onPress={() => setIsScanning(true)}
+            >
+                <Text className="text-white text-base font-psemibold">{isLoading ? 'Opening Camera...' : 'Join with QR'}</Text>
+                
+            </TouchableOpacity>
+             <View className="flex-row items-center w-full my-6">
+                {/* Left Line */}
+                <View className="flex-1 h-[1px] bg-gray-600/50" />
+                
+                {/* Text */}
+                <Text className="text-gray-400 text-sm font-pmedium mx-4 uppercase">OR</Text>
+                
+                {/* Right Line */}
+                <View className="flex-1 h-[1px] bg-gray-600/50" />
+            </View>
+            
+            {/* NEW: Input Row with Scan Button */}
+            <View className="w-full flex-row gap-2 mb-4">
+                <View className="flex-1 h-14 bg-gray-200 px-4 rounded-lg justify-center">
+                    <TextInput
+                        className="text-black font-pregular"
+                        placeholder={groupCodePlaceholder}
+                        placeholderTextColor="#888"
+                        value={groupCode}
+                        onChangeText={setGroupCode}
+                        autoCapitalize="none"
+                    />
+                </View>
             </View>
 
             <TouchableOpacity
               className={`p-4 rounded-lg w-full items-center mb-6 ${isLoading ? 'bg-gray-400' : 'bg-secondary'}`}
-              onPress={handleJoinGroup}
+              onPress={() => handleJoinGroup()}
               disabled={isLoading}
             >
               <Text className="text-white text-base font-psemibold">{isLoading ? 'Joining...' : 'Join Group'}</Text>
             </TouchableOpacity>
 
             <View className="flex-row justify-center">
-              <Text className="text-white font-pregular text-sm text-center">
-                Create a new group instead?{' '}
-              </Text>
+              <Text className="text-white font-pregular text-sm text-center">Create a new group instead? </Text>
               <TouchableOpacity onPress={handleCreateGroupNavigation} className="items-center">
                 <Text className="text-secondary text-sm font-pbold underline">New Group</Text>
               </TouchableOpacity>

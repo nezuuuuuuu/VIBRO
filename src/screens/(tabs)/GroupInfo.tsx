@@ -17,6 +17,7 @@ import { icons } from '../../constants';
 import { useNavigation } from '@react-navigation/native';
 import { useGroupStore } from '../../../store/groupStore';
 import { useAuthStore } from '../../../store/authStore';
+import QRCode from 'react-native-qrcode-svg';
 
 // --- ContributionCard (Unchanged) ---
 const ContributionCard = memo(({ name, sounds }) => (
@@ -433,16 +434,41 @@ const GroupInfo = () => {
                 <TouchableWithoutFeedback onPress={() => setGroupCodeModalVisible(false)}>
                     <View className="flex-1 justify-center items-center bg-black/70">
                         <TouchableWithoutFeedback onPress={() => { }}>
-                            <View className="bg-primary p-6 rounded-lg w-3/4">
-                                <Text className="text-white text-xl font-psemibold mb-10">Group Code</Text>
-                                <Text className="text-white font-pmedium text-lg mb-3 text-center">{currentGroupId || 'No code available'}</Text>
+                            <View className="bg-primary p-6 rounded-lg w-4/5 items-center">
+                                <Text className="text-white text-xl font-psemibold mb-4">Scan to Join</Text>
+                                
+                                {/* QR Code Container */}
                                 {currentGroupId && (
+                                    <View className="bg-white p-3 rounded-xl mb-2 border-2 border-secondary">
+                                        <QRCode 
+                                            value={JSON.stringify({ type: 'JOIN_GROUP', code: currentGroupId })}
+                                            size={160}
+                                        />
+                                    </View>
+                                )}
+                                <View className="flex-row items-center w-full my-6">
+                                    {/* Left Line */}
+                                    <View className="flex-1 h-[1px] bg-gray-600/50" />
+                                    
+                                    {/* Text */}
+                                    <Text className="text-gray-400 text-sm font-pmedium mx-4 uppercase">OR</Text>
+                                    
+                                    {/* Right Line */}
+                                    <View className="flex-1 h-[1px] bg-gray-600/50" />
+                                </View>
+                                <Text className="text-white text-xl font-psemibold">Group Code</Text>
+                                <View className="bg-secondary/10 p-4 rounded-lg w-full items-center justify-center mt-4">
+                                    <Text className="text-white font-pmedium text-lg text-center">
+                                        {currentGroupId || 'No code available'}
+                                    </Text>
+                                </View>
+                                    {currentGroupId && (
                                     <TouchableOpacity
                                         onPress={() => handleCopyGroupCode()}
                                         className="bg-secondary p-4 rounded-lg w-full items-center mt-4 mb-4"
                                     >
 
-                                        <Text className="text-white font-pmedium text-center">Tap to copy</Text>
+                                        <Text className="text-white font-pmedium text-center">Copy Code</Text>
                                     </TouchableOpacity>
                                 )}
                                 <TouchableOpacity
@@ -467,7 +493,7 @@ const GroupInfo = () => {
                 <TouchableWithoutFeedback onPress={() => setJoinGroupModalVisible(false)}>
                     <View className="flex-1 justify-center items-center bg-black/70">
                         <TouchableWithoutFeedback onPress={() => { }}>
-                            <View className="bg-white p-6 rounded-lg w-80">
+                            <View className="bg-primary p-6 rounded-lg w-4/5 items-center">
                                 <Text className="text-black text-xl font-semibold mb-4 text-center">ADD GROUP</Text>
                                 <Text className="text-gray-600 mb-2">Group Code</Text>
                                 <TextInput

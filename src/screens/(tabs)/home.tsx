@@ -127,7 +127,6 @@ function Home() {
   const { addSound,isMonitoringOn,loadMonitoringState,isMonitoringLoaded} = useDetectedSoundStore();
   const { isOfflineMode, isLoadingOfflineModeToggle, toggleOfflineMode } = useAppStore();
   const [box, setBox] = useState({ width: 0, height: 0 });
-
   const navigation = useNavigation(); 
   const { user, token,setActiveStatus } = useAuthStore();
   const [predictions, setPredictions] = useState<any[]>([]);
@@ -643,6 +642,16 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
       <View className="flex-1 justify-center items-center bg-black/80">
           <View className="w-[85%] bg-[#1B1B3A] border-2 border-red-500 rounded-2xl p-6 items-center shadow-lg">
           
+          {/* --- CLOSE BUTTON START --- */}
+          <TouchableOpacity 
+            onPress={() => setSafetyModalVisible(false)}
+            className="absolute top-3 right-3 p-2 z-50"
+          >
+            {/* You can replace this Text with an <Image> or Icon component if preferred */}
+            <Text className="text-gray-400 text-xl font-bold">✕</Text>
+          </TouchableOpacity>
+          {/* --- CLOSE BUTTON END --- */}
+
           {/* Icon / Header */}
           <View className="h-16 w-16 bg-red-500 rounded-full items-center justify-center mb-4 animate-pulse">
               <Image source={icons.warning} className="h-10 w-10 tint-white" resizeMode="contain" /> 
