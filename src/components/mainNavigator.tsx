@@ -63,6 +63,7 @@ const GroupStackNavigator = () => {
         component={Group}
         options={{ title: 'My Groups' }}
       />
+      
       <GroupStack.Screen
         name="CreateGroup"
         component={CreateGroup}

@@ -229,56 +229,106 @@ export const useGroupStore = create((set, get) => ({
             return { success: false, error: error.message || "An unexpected error occurred." };
         }
     },
-    leaveGroup: async (groupId) => {
-        set({ isLoading: true });
-        try {
-            const token = await AsyncStorage.getItem('token');
-            // Get the current user ID from the auth store
-             // THIS LINE NOW WORKS BECAUSE useAuthStore IS IMPORTED ABOVE
-            const userId = useAuthStore.getState().user?._id;
+   leaveGroup: async (groupId) => {
+  set({ isLoading: true });
 
-            if (!userId) {
-                 set({ isLoading: false });
-                 return { success: false, error: "User not authenticated." };
-            }
-             if (!groupId) {
-                 set({ isLoading: false });
-                 return { success: false, error: "Group ID is missing." };
-             }
+  try {
+    const token = await AsyncStorage.getItem('token');
+    const userId = useAuthStore.getState().user?._id;
 
-            // Use your backend endpoint for removing a member
-            const response = await fetch(`${BASE_URL}/group/${groupId}/members/${userId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+    if (!userId) {
+      set({ isLoading: false });
+      return { success: false, error: "User not authenticated." };
+    }
 
-            const data = await response.json();
+    if (!groupId) {
+      set({ isLoading: false });
+      return { success: false, error: "Group ID is missing." };
+    }
 
-            if (!response.ok) {
-                const errorMessage = data.message || `Server responded with status ${response.status}`;
-                console.error("API error leaving group:", errorMessage, data);
-                set({ isLoading: false });
-                return { success: false, error: errorMessage };
-            }
+    // 1️⃣ Try normal leave (remove member)
+    const response = await fetch(
+      `${BASE_URL}/group/${groupId}/members/${userId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-            // Success case: Remove the group from the 'groups' list in the store
-            set((state) => ({
-                groups: state.groups.filter(group => group._id !== groupId),
-                groupPointer: null, // Clear the groupPointer if the user left the current group
-                groupMembersPointer: [], // Clear members list
-                isLoading: false,
-            }));
+    const data = await response.json();
 
-            return { success: true, message: data.message || 'Left group successfully.' };
+    // 2️⃣ If backend says "last admin", delete group instead
+    if (!response.ok) {
+      if (data.message === 'LAST_ADMIN_CANNOT_LEAVE') {
+        console.log("⚠️ Last admin detected. Deleting group instead...");
 
-        } catch (error) {
-            console.error("Network or unexpected error leaving group:", error);
-            set({ isLoading: false });
-            return { success: false, error: error.message || "An unexpected error occurred." };
-        }
-    },
+        const deleteResponse = await fetch(
+          `${BASE_URL}/group/${groupId}`,
+          {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const deleteData = await deleteResponse.json();
+
+        if (!deleteResponse.ok) {
+          set({ isLoading: false });
+          return {
+            success: false,
+            error: deleteData.message || "Failed to delete group",
+          };
+        }
+
+        // ✅ Remove group from store
+        set((state) => ({
+          groups: state.groups.filter(g => g._id !== groupId),
+          groupPointer: null,
+          groupMembersPointer: [],
+          isLoading: false,
+        }));
+
+        return {
+          success: true,
+          message: "Group deleted successfully",
+        };
+      }
+
+      // ❌ Other errors
+      set({ isLoading: false });
+      return {
+        success: false,
+        error: data.message || "Failed to leave group",
+      };
+    }
+
+    // 3️⃣ Normal leave success
+    set((state) => ({
+      groups: state.groups.filter(group => group._id !== groupId),
+      groupPointer: null,
+      groupMembersPointer: [],
+      isLoading: false,
+    }));
+
+    return {
+      success: true,
+      message: data.message || "Left group successfully",
+    };
+
+  } catch (error) {
+    console.error("Leave group error:", error);
+    set({ isLoading: false });
+    return {
+      success: false,
+      error: error.message || "Unexpected error occurred",
+    };
+  }
+},
+
 
 
 getContributions: async (groupId) => {
