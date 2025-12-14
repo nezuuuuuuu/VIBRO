@@ -44,6 +44,7 @@ const Groups = () => {
         if (parsed.code) {
           setIsScanning(false); // Stop scanning immediately
           setGroupCode(parsed.code); // Fill the input
+          console.log('Scanned group code:', parsed.code);
           
           // Optional: Auto-submit after a short delay to let state update
           setTimeout(() => {

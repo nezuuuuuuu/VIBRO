@@ -602,8 +602,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
   style={{
     height: '70%',
     width: '90%',
-    borderWidth: 2,
-    borderColor: 'red',
+   
   }}
   onLayout={(e) => {
     const { width, height } = e.nativeEvent.layout;
