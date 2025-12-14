@@ -54,7 +54,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
 
     const [messages, setMessages] = useState<MessagePayload[]>([]);
     const [inputText, setInputText] = useState('');
-
     const [isLoading, setIsLoading] = useState(true);
     const [isSending, setIsSending] = useState(false);
 
@@ -62,7 +61,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     const shouldScrollToBottomRef = useRef(true);
 
     const { socket } = useSocket();
-     useLayoutEffect(() => {
+
+    useLayoutEffect(() => {
         if (navigation) {
           navigation.setOptions({
             headerTitle: () => ((
@@ -78,7 +78,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
             },
           });
         }
-      }, [navigation]);
+    }, [navigation]);
+
     useEffect(() => {
         if (groupName) {
             navigation.setOptions({ title: groupName });
