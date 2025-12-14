@@ -48,6 +48,7 @@ interface ChatScreenProps {
     navigation: any;
 }
 
+// FIXED ERROR
 const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     const { groupId, groupName, currentUserId, token } = route.params;
 
