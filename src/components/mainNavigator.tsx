@@ -9,6 +9,7 @@ import CreateGroup from '../screens/(tabs)/createGroup';
 import Sound from '../screens/(tabs)/sound';
 import ProfileScreen from '../screens/(tabs)/profile';
 import EditProfile from '../screens/(tabs)/editprofile';
+import UserSoundsDetected from '../screens/(tabs)/UserSoundsDetected';
 import GroupDetails from '../screens/(tabs)/GroupDetails';
 import GroupSoundsDetected from '../screens/(tabs)/GroupSoundsDetected';
 import GroupInfo from '../screens/(tabs)/GroupInfo';
@@ -41,6 +42,7 @@ const ProfileStackNavigator = () => {
     >
       <ProfileStack.Screen name="ProfileScreen" component={ProfileScreen} />
       <ProfileStack.Screen name="EditProfile" component={EditProfile} />
+      <ProfileStack.Screen name="UserSoundsDetected" component={UserSoundsDetected} />
     </ProfileStack.Navigator>
   );
 };

@@ -126,6 +126,15 @@ setIsMonitoringOn(!isMonitoringOn);
         >
           <Text className="px-4 py-1 text-white font-psemibold text-lg">Edit Profile</Text>
         </TouchableOpacity>
+
+         <TouchableOpacity
+          className="mt-2 px-4 py-2 bg-secondary rounded-lg"
+          onPress={() => navigation.navigate("UserSoundsDetected")}
+          disabled={isOfflineMode}
+          style={{ opacity: isOfflineMode ? 0.5 : 1 }}
+        >
+          <Text className="px-4 py-1 text-white font-psemibold text-lg">Sound Logs</Text>
+        </TouchableOpacity>
       </View>
 
 

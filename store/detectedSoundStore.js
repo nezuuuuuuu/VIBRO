@@ -7,18 +7,63 @@ export const useDetectedSoundStore = create((set) => ({
     sounds: [],
     isLoading: false,
     error: null,
-   isMonitoringOn: false,
+    isMonitoringOn: false,
     isMonitoringLoaded: false,
 
+    predictionQueue: [], 
 
-  setIsMonitoringOn: async (value) => {
-    try {
-      await AsyncStorage.setItem('isMonitoringOn', value ? 'true' : 'false');
-      set({ isMonitoringOn: value });
-    } catch (error) {
-      console.error('Failed to save isMonitoringOn', error);
-    }
-  },
+
+    hydrateStore: async () => {
+        try {
+            const [logs, monitor] = await Promise.all([
+                AsyncStorage.getItem('vibro-prediction-logs'),
+            ]);
+
+            set({
+                predictionQueue: logs ? JSON.parse(logs) : [],
+               });
+        } catch (e) {
+            console.error("Hydration failed", e);
+        }
+    },
+
+      // Manually save to AsyncStorage
+      addLogs: async (value) => {
+        try {
+            // 'get' works perfectly here now
+            const currentQueue = get().predictionQueue;
+            
+            const timestampedValue = { 
+                ...value, 
+                logTime: new Date().toISOString() 
+            };
+
+            // Limit to 50 items
+            const newQueue = [timestampedValue, ...currentQueue].slice(0, 50);
+
+            set({ predictionQueue: newQueue });
+
+            // Manual Save
+            await AsyncStorage.setItem('vibro-prediction-logs', JSON.stringify(newQueue));
+            
+        } catch (e) {
+            console.error("Failed to save log manually", e);
+        }
+    },
+
+    clearLogs: async () => {
+        set({ predictionQueue: [] });
+        await AsyncStorage.removeItem('vibro-prediction-logs');
+    },
+
+    setIsMonitoringOn: async (value) => {
+      try {
+        await AsyncStorage.setItem('isMonitoringOn', value ? 'true' : 'false');
+        set({ isMonitoringOn: value });
+      } catch (error) {
+        console.error('Failed to save isMonitoringOn', error);
+      }
+    },
    loadMonitoringState: async () => {
     try {
       const storedValue = await AsyncStorage.getItem('isMonitoringOn');

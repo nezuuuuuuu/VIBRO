@@ -124,7 +124,7 @@ function Home() {
 
   const { socket, connect, disconnect,isOnline } = useSocket();
   const {getGroups, groups} = useGroupStore()
-  const { addSound,isMonitoringOn,loadMonitoringState,isMonitoringLoaded} = useDetectedSoundStore();
+  const { addSound,isMonitoringOn,loadMonitoringState,isMonitoringLoaded, addLogs, hydrateStore} = useDetectedSoundStore();
   const { isOfflineMode, isLoadingOfflineModeToggle, toggleOfflineMode } = useAppStore();
   const [box, setBox] = useState({ width: 0, height: 0 });
   const navigation = useNavigation(); 
@@ -142,6 +142,12 @@ function Home() {
   const [safetyModalVisible, setSafetyModalVisible] = useState(false);
   const [currentCriticalSound, setCurrentCriticalSound] = useState<string | null>(null);
 
+
+
+  useEffect(() => {
+    // Load the saved data once when the component mounts
+    hydrateStore();
+}, []);
 
   const processQueue = async () => {
     isProcessing = true;
@@ -305,8 +311,8 @@ useEffect(() => {
 
   // Event listener for predictions
   DeviceEventEmitter.addListener("onPrediction", (data) => {
-      console.log("YAMNET PREDICTIONS:", data.yamnetPredictions);
-      console.log("CUSTOM PREDICTIONS:", data.customPredictions);
+      // console.log("YAMNET PREDICTIONS:", data.yamnetPredictions);
+      // console.log("CUSTOM PREDICTIONS:", data.customPredictions);
 
       const { customPredictions, yamnetPredictions, audioBase64 } = data;
 
@@ -316,6 +322,7 @@ useEffect(() => {
           console.log("Label", label)
           if(label in CRITICAL_SOUND_LEVELS){
             predictionQueue.push({ isCustom : false, label, confidence, audioBase64 });
+            addLogs({ isCustom : false, label, confidence, audioBase64 });
           }
 
           if (!isProcessing) processQueue();
@@ -331,6 +338,7 @@ useEffect(() => {
           }
           else{
             predictionQueue.push({ isCustom : true, label, confidence, audioBase64 });
+            addLogs({ isCustom : false, label, confidence, audioBase64 });
             if (!isProcessing) processQueue();
           }
         });

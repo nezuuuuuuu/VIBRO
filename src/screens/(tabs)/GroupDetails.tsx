@@ -147,7 +147,7 @@ const GroupDetails = () => {
                 {/* 2. Monitoring On Section */}
                 <Text className='text-white font-pregular my-5 px-4'>Monitoring on:</Text>
                 <View style={{paddingHorizontal: 10}}>
-                    {groupMembersPointer.filter((member) => member.isActive).map((member) => (
+                    {groupMembersPointer.filter((member) => member.isActive && member._id !== currentUserId).map((member) => (
                         <TouchableOpacity
                             key={member._id}
                             className='flex-row justify-between items-center bg-[#2a2a5a] p-4 mb-3 rounded-lg'
