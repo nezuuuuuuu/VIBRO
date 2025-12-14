@@ -26,7 +26,6 @@ const BACKGROUND_COLOR: { [key: number]: string } = {
   3: 'bg-sky-300',
 };
 
-prediction.criticalLevel
 
 async function playAudio(base64audio?: string) {
   if (!base64audio) return;

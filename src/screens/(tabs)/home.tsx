@@ -302,8 +302,8 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                         title: `Detected: ${label}`,
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 2`,
                         android: {
-                            channelId: 'sound-alerts3',
-                            importance: AndroidImportance.MIN,
+                            channelId: 'sound-alerts2',
+                            importance: AndroidImportance.DEFAULT,
                         },
                     });
                 } else if (NOTIF_LEVEL_3_ALLOWED_LABELS.includes(label)) {
@@ -313,7 +313,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 3`,
                         android: {
                             channelId: 'sound-alerts1',
-                            importance: AndroidImportance.LOW,
+                            importance: AndroidImportance.MIN,
                         },
                     });
                 } else if (isCustom) {
@@ -323,7 +323,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                         body: `Confidence: ${(confidence * 100).toFixed(2)}% - Custom Model`,
                         android: {
                             channelId: 'sound-alerts2',
-                            importance: AndroidImportance.HIGH,
+                            importance: AndroidImportance.DEFAULT,
                         },
                     });
                 }

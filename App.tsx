@@ -27,7 +27,7 @@ if (Platform.OS === 'android') {
     importance: AndroidImportance.MIN,
     vibration: true,
     vibrationPattern: [300, 500],
-    sound: 'default',
+    sound: 'ragebait',
   });
 
   notifee.createChannel({
@@ -41,7 +41,7 @@ if (Platform.OS === 'android') {
       lights: true,
       lightColor: '#FF0000',
     }),
-    sound: 'default',
+    sound: 'ragebait',
   });
 
   notifee.createChannel({
@@ -55,7 +55,7 @@ if (Platform.OS === 'android') {
       lights: true,
       lightColor: '#FF0000',
     }),
-    sound: 'default',
+    sound: 'ragebait',
   });
 
   notifee.createChannel({
@@ -69,7 +69,7 @@ if (Platform.OS === 'android') {
       lights: true,
       lightColor: '#FF0000',
     }),
-    sound: 'default',
+    sound: 'ragebait',
   });
 }
 
