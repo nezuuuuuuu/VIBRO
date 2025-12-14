@@ -394,7 +394,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
 
                     // 2. Automatic Socket Message
                     // "EMERGENCY ALERT: [Fire Alarm] detected..."
-                    const autoMessage = `🚨 **EMERGENCY ALERT**: **${label}** detected. Waiting for user confirmation...`;
+                    const autoMessage = `🚨 EMERGENCY ALERT: ${label} detected. Waiting for user confirmation...`;
                     sendGroupMessage(autoMessage);
                 }
 
@@ -517,7 +517,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
 
       const handleUserSafe = () => {
         // User clicked "I AM SAFE"
-        const message = `✅ **I AM SAFE.** The detected **${currentCriticalSound}** has been acknowledged.`;
+        const message = `✅ I AM SAFE. The detected ${currentCriticalSound} has been acknowledged.`;
     sendGroupMessage(message);
         
         // Close modal
@@ -527,7 +527,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
 
       const handleUserHelp = () => {
         // User clicked "HELP ME"
-        const message = `🆘 **HELP NEEDED!** Confirmed critical sound: **${currentCriticalSound}**. Please assist!`;
+        const message = `🆘 HELP NEEDED! Confirmed critical sound: ${currentCriticalSound}. Please assist!`;
         sendGroupMessage(message);
         
         // Close modal (or keep open depending on preference)

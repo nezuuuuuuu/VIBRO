@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import io from 'socket.io-client';
 import { Alert } from 'react-native';
-import notifee, { AndroidImportance } from '@notifee/react-native'; // You likely need this
+import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 const SOCKET_URL = "http://13.237.180.192:3000";//local server
 
 // import BASE_URL from './api'; // Not used here
@@ -49,22 +49,34 @@ export const useSocket = create((set, get) => ({
       newSocket.on('user-offline', ({ userId }) => {
         get().updateOnlineStatus(userId, false);
       });
+      
 
       // Handle incoming sound events
       newSocket.on('new-sound', async ({ userId, username, groupId, groupName, label, confidence, sound }) => {
          const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren','Emergency vehicle'];
-       
+        console.log('🔔 New sound event received:', { userId, username, groupId, groupName, label, confidence });
 
         if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
           try {
             await notifee.displayNotification({
-              title: `From: ${username} (${groupName})`,
-              body: `Detected: ${label}\nConfidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
-              android: {
-                channelId: 'sound-alerts3',
-                importance: AndroidImportance.HIGH,
-              },
-            });
+            title: `From: ${username} (${groupName})`,
+            body: `Detected: ${label}`,
+            data: {
+              groupId,
+              groupName,
+              username,
+              userId
+            },
+            android: {
+              channelId: 'sound-alerts3',
+              actions: [
+                {
+                  title: 'Are you okay?',
+                  pressAction: { id: 'inquire_okay' },
+                },
+              ],
+            },
+          });
           } catch (err) {
             console.error('❌ Error showing notification:', err);
           }

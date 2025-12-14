@@ -17,6 +17,7 @@ import "../../../global.css"
 import { useSocket } from '../../../store/useSocket'; // Adjust the import path as needed
 
 import BASE_URL from '../../../store/api';
+import { useAuthStore } from "../../../store/authStore";
 
 
 const API_BASE_URL = BASE_URL; // Replace with your API base URL
@@ -50,7 +51,8 @@ interface ChatScreenProps {
 }
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
-    const { groupId, groupName, currentUserId, token } = route.params;
+    const { groupId, groupName, currentUserId } = route.params;
+    const {token } = useAuthStore();
 
     const [messages, setMessages] = useState<MessagePayload[]>([]);
     const [inputText, setInputText] = useState('');

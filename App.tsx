@@ -8,8 +8,10 @@ import { useAuthStore } from "./store/authStore";
 import { View, ActivityIndicator, Platform, Image, StatusBar, Alert } from 'react-native';
 import Signup from './src/screens/(auth)/signup';
 import Login from './src/screens/(auth)';
-import notifee, { AndroidColor, AndroidImportance } from '@notifee/react-native';
 
+import notifee, { AndroidColor, AndroidImportance } from '@notifee/react-native';
+import { navigationRef } from './src/components/navigationRef';
+import {registerNotificationListeners} from './src/components/notification';
 
 const Stack = createNativeStackNavigator();
 
@@ -80,7 +82,9 @@ export default function App() {
   const { checkAuth, user, token } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false); 
-
+useEffect(() => {
+  registerNotificationListeners();
+}, []);
   useEffect(() => {
 
 
@@ -102,7 +106,7 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {!user || !token ? (
             <>
