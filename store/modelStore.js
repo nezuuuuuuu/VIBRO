@@ -11,7 +11,7 @@ if (typeof global.Buffer === 'undefined') {
   global.Buffer = Buffer;
 }
 
-const API_BASE_URL = 'http://192.168.1.10:5000/'; // Replace with your server IP
+const API_BASE_URL = 'http://13.54.189.45:5000/'; // Replace with your server IP
 // const API_BASE_URL = BASE_URL;
 
 
