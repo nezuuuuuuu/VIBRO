@@ -115,7 +115,7 @@ export const useGroupStore = create((set, get) => ({
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                body: JSON.stringify({ inviteCode: groupCode }),
+                body: JSON.stringify({ inviteCode: groupId }),
             });
 
             const data = await response.json();
