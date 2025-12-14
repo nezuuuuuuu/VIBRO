@@ -2,7 +2,7 @@ import { Dimensions, View, Text } from 'react-native';
 import { useMemo, useState, useEffect } from 'react';
 import MorphingCircle from './morphingCircle';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+// const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const MIN_SIZE = 100;
 const MAX_SIZE = 200;
@@ -35,6 +35,8 @@ const map = (value: number, fromLow: number, fromHigh: number, toLow: number, to
 
 const generateRandomPosition = (
   size: number,
+  containerHeight : number,
+  containerWidth : number,
   existingPositions: { x: number; y: number; size: number }[]
 ) => {
   let tries = 0;
@@ -51,15 +53,19 @@ const generateRandomPosition = (
     });
 
   do {
-    x = Math.random() * (screenWidth - size);
-    y = Math.random() * (screenHeight - size - 150);
+    x = Math.random() * (containerWidth  - size);
+    y = Math.random() * Math.max(0, containerHeight - size);
     tries++;
   } while (collides(x, y, size) && tries < maxTries);
 
   return { x, y };
 };
 
-export default function PredictedCircles({ predictions }) {
+export default function PredictedCircles({
+  predictions,
+  containerWidth,
+  containerHeight,
+}) {
   const now = Date.now();
 
   // 1. SAFELY FILTER PREDICTIONS
@@ -101,7 +107,7 @@ export default function PredictedCircles({ predictions }) {
             };
           });
 
-          newPositions[label] = generateRandomPosition(size, existing);
+          newPositions[label] = generateRandomPosition(size,containerHeight,containerWidth,existing);
           changed = true;
         }
       });
@@ -154,7 +160,7 @@ export default function PredictedCircles({ predictions }) {
               width: size,
               height: size,
 
-              zIndex: criticalLevel * 10,
+              zIndex: criticalLevel * 100 + Math.floor(arr[0].timestamp / 1000),
             }}
           >
             <MorphingCircle

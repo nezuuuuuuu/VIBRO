@@ -21,7 +21,14 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.Timer
 import java.util.TimerTask
+// Import for abs and max mathematical functions
+import kotlin.math.abs
+import kotlin.math.max
 
+// Imports for Android's Audio Effects (required for NoiseSuppressor, etc.)
+import android.media.audiofx.NoiseSuppressor
+import android.media.audiofx.AutomaticGainControl
+import android.media.audiofx.AcousticEchoCanceler
 
 class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
     companion object {
@@ -610,6 +617,7 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
         AudioFormat.CHANNEL_IN_MONO,
         AudioFormat.ENCODING_PCM_16BIT
     )
+    private var lastHpSample = 0f
 
 
     override fun getName(): String = NAME
@@ -619,6 +627,32 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
             .emit(eventName, params)
     }
+
+    private fun applyNoiseGate(buffer: ShortArray, threshold: Short = 400) {
+        for (i in buffer.indices) {
+            if (abs(buffer[i].toInt()) < threshold) buffer[i] = 0
+        }
+    }
+    private fun normalize(buffer: ShortArray) {
+        var maxAmp = 0
+        for (s in buffer) maxAmp = max(maxAmp, abs(s.toInt()))
+        if (maxAmp == 0) return
+
+        val scale = Short.MAX_VALUE.toFloat() / maxAmp
+        for (i in buffer.indices) {
+            buffer[i] = (buffer[i] * scale).toInt().toShort()
+        }
+    }
+    private fun highPassFilter(buffer: ShortArray, alpha: Float = 0.95f) {
+        for (i in buffer.indices) {
+            val current = buffer[i].toFloat()
+            val filtered = alpha * (lastHpSample + current - lastHpSample)
+            buffer[i] = filtered.toInt().toShort()
+            lastHpSample = current
+        }
+    }
+
+
 
     @ReactMethod
     fun startRecording(numClasses: Int, labels: ReadableArray, filename: String, promise: Promise)
@@ -652,6 +686,10 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
             AudioFormat.ENCODING_PCM_16BIT,
             bufferSize
         )
+        if (NoiseSuppressor.isAvailable()) {
+            NoiseSuppressor.create(record!!.audioSessionId)
+        }
+        
 
         record?.startRecording()
         isRecording = true
@@ -664,8 +702,14 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
                 val readCount = record?.read(tempBuffer, 0, stepSize) ?: return
                 if (readCount <= 0) return
 
-
+                //applyNoiseGate(tempBuffer)
+                //highPassFilter(tempBuffer)
+                //normalize(tempBuffer)
                 // Shift old data left by stepSize
+                for (i in tempBuffer.indices) {
+                    tempBuffer[i] = (tempBuffer[i] * 0.999f).toInt().toShort()
+                }
+
                 System.arraycopy(
                     rollingBuffer,
                     stepSize,
@@ -691,13 +735,13 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
                     val prediction = Arguments.createMap()
 
                     if (yamnet_labels[index] in criticalLabels){
-                        if(confidence.toDouble()>=.40) {
+                        if(confidence.toDouble()>=.30) {
                             prediction.putString("label", yamnet_labels[index])
                             prediction.putDouble("confidence", confidence.toDouble())
                             yamnetPredictionArray.pushMap(prediction)
                         }
                     }else{
-                        if(confidence.toDouble()>=.60) {
+                        if(confidence.toDouble()>=.50) {
                             prediction.putString("label", yamnet_labels[index])
                             prediction.putDouble("confidence", confidence.toDouble())
                             yamnetPredictionArray.pushMap(prediction)
@@ -711,7 +755,7 @@ class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextB
                 if(numClasses>0){
 
                     customResult?.forEachIndexed { index, confidence ->
-                        if (confidence.toDouble() >= 0.90 && labels.getString(index) !in CustomEnvironmentalSound) {
+                        if (confidence.toDouble() >= 0.50 && labels.getString(index) !in CustomEnvironmentalSound) {
                             val prediction = Arguments.createMap()
                             prediction.putString("label", labels.getString(index))
                             prediction.putDouble("confidence", confidence.toDouble())

@@ -8,11 +8,31 @@ import {
   Text as SkiaText,
   useFont,
   vec,
+  Image as SkiaImage,
+  useImage,
+  Group,
+
 } from "@shopify/react-native-skia";
 import { createNoise2D } from "simplex-noise";
 
 // Load a font (add your font in assets)
 const FONT = require("../assets/fonts/Poppins-Medium.ttf");
+// const BABY_CRYING = require("../assets/images/ic_launcher.png");
+const SOUND_PNG = require("../assets/images/labels_image/sound.png");
+
+
+const imgSize = 50;
+const gap = 6;
+const SOUND_ICONS: { [key: string]: any } = {
+  'Speech': require('../assets/images/labels_image/speech.png'),
+  'Crying, sobbing': require('../assets/images/labels_image/crying.png'),
+  'Emergency vehicle': require('../assets/images/labels_image/emergency.png'),
+  'Music': require('../assets/images/labels_image/music.png'),
+  'Fire alarm': require('../assets/images/labels_image/firealarm.png'),
+
+
+ 
+};
 
 // Create points around a circle for morphing
 function createPoints(center: number, radius: number, numPoints = 12) {
@@ -54,8 +74,10 @@ export default function MorphingCircle({
   colors = ["green", "yellow"],
   text = "Hello",
   textColor = "white",
-  textSize = 32,
+  textSize = 48,
 }: MorphingCircleProps) {
+  const image = useImage(SOUND_ICONS[text] || SOUND_PNG);
+
   const font = useFont(FONT, textSize);
 
   const noise = useRef(createNoise2D()).current;
@@ -102,6 +124,8 @@ export default function MorphingCircle({
 
   const textX = center - (font ? font.getTextWidth(text) / 2 : 0);
   const textY = center + textSize / 3;
+  const textHeight = font?.getSize() ?? 0;
+  
 
   return (
     <View style={{ width: size, height: size }}>
@@ -111,16 +135,33 @@ export default function MorphingCircle({
             <LinearGradient start={vec(0, 0)} end={vec(size, size)} colors={colors} />
           </Path>
         )}
+        
+         {image && font && (
+  <Group>
+    {/*
+      Total height of stacked content:
+      image + gap + text
+    */}
+    <SkiaImage
+      image={image}
+      x={(size - imgSize) / 2}
+      y={(size - (imgSize + gap + textHeight)) / 2}
+      width={imgSize}
+      height={imgSize}
+      fit="contain"
+    />
 
-        {font && (
-          <SkiaText
-            text={text}
-            x={textX}
-            y={textY}
-            color={textColor}
-            font={font}
-          />
-        )}
+    <SkiaText
+      text={text}
+      x={textX}
+      y={(size - (imgSize + gap + textHeight)) / 2 + imgSize + gap + textHeight}
+      color={textColor}
+      font={font}
+      letterSpacing={-0.5}
+
+    />
+  </Group>
+)}
       </Canvas>
     </View>
   );

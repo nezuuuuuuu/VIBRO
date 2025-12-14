@@ -121,8 +121,9 @@ function Home() {
 
   const { socket, connect, disconnect,isOnline } = useSocket();
   const {getGroups} = useGroupStore()
-  const { addSound,isMonitoringOn,loadMonitoringState} = useDetectedSoundStore();
+  const { addSound,isMonitoringOn,loadMonitoringState,isMonitoringLoaded} = useDetectedSoundStore();
   const { isOfflineMode, isLoadingOfflineModeToggle, toggleOfflineMode } = useAppStore();
+  const [box, setBox] = useState({ width: 0, height: 0 });
 
   const navigation = useNavigation(); 
   const { user, token,setActiveStatus } = useAuthStore();
@@ -132,6 +133,9 @@ function Home() {
   
   const predictionQueue: { isCustom: boolean, label: string; confidence: number; audioBase64?: string }[] = [];
   let isProcessing = false;
+
+  const monitoringRef = useRef(false);
+const socketRef = useRef(null);
 
 
   const processQueue = async () => {
@@ -193,9 +197,18 @@ function Home() {
         }
       };
 
+useEffect(() => {
+  loadMonitoringState();
+}, []);
+useEffect(() => {
+  monitoringRef.current = isMonitoringOn;
+}, [isMonitoringOn]);
 
+useEffect(() => {
+  socketRef.current = socket;
+}, [socket]);
   useEffect(()=>{
-    loadMonitoringState()
+  
     copyModelToInternalStorage();
     console.log(RNFS.DocumentDirectoryPath); 
     // This line initializes isMonitoringOn with user.isActive, which is correct.
@@ -294,8 +307,15 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     ...prevPredictions,
                     { isCustom: isCustom, label: label, confidence: confidence, timestamp: currentTime, audioBase64: audioBase64, criticalLevel: criticalLevel }
                 ]);
-                // Only send sound to socket if monitoring is on and socket is connected
-                if(isMonitoringOn && socket && socket.connected) {
+                  console.log('🧪 SEND CHECK (REF):', {
+                  isMonitoringOn: monitoringRef.current,
+                  socketExists: !!socketRef.current,
+                  socketConnected: socketRef.current?.connected,
+                });              // Only send sound to socket if monitoring is on and socket is connected
+                
+                if( monitoringRef.current &&
+                  socketRef.current &&
+                  socketRef.current.connected &&criticalLevel == 1) {
                   console.log("Sending detected sound to socket:", { label, confidence, isCustom, audioBase64 });
                   addSound(label, confidence, audioBase64);
                 }
@@ -408,7 +428,13 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
 }
 
 
-
+    if (!isMonitoringLoaded) {
+      return (
+        <View className="flex-1 bg-primary items-center justify-center">
+          <Text className="text-white">Loading monitoring state...</Text>
+        </View>
+      );
+    }
 
     return (
      <View className='h-full bg-primary' >
@@ -462,38 +488,29 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                  </View> */}
          </View>
 
-         <View className="w-full" style={{ height: '70%', width: '90%' }}> 
-          <PredictedCircles predictions={predictions} />
-
-           
-           {/* {predictions.slice().reverse().map((prediction, index) => {
-             return (
-              //  <DetectionDisplay
-              //    key={`${prediction.timestamp}-${index}`} 
-              //    time={new Date(prediction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit'})}
-              //    confidence={`${(prediction.confidence * 100).toFixed(1)}%`}
-              //    sound={prediction.label}
-              //    audioBase64={prediction.audioBase64}
-              //    criticalLevel={prediction.criticalLevel}
-              //  />
-              
-              //    <MorphingCircle 
-              //    key={prediction.label}
-              //   size={300}
-              //   colors={["#0f0606ff", "#000000ff"]}
-              // />
-              <MorphingCircle
-              key={prediction.label}
-              size={300}
-              colors={["#ff6a00", "#ee0979"]}
-              text={prediction.label}
-              textColor="#fff"
-              textSize={40}
-            />
-             );
-           })} */}
-         </View>
+        <View
+  style={{
+    height: '70%',
+    width: '90%',
+    borderWidth: 2,
+    borderColor: 'red',
+  }}
+  onLayout={(e) => {
+    const { width, height } = e.nativeEvent.layout;
+    setBox({ width, height });
+  }}
+>
+  {box.width > 0 && (
+    <PredictedCircles
+      predictions={predictions}
+      containerWidth={box.width}
+      containerHeight={box.height}
+    />
+  )}
+</View>
        </View>
+
+       
 
        <View className='absolute bottom-6 left-0 right-0 flex-row items-center justify-center'>
          <TouchableOpacity

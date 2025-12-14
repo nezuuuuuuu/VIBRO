@@ -8,27 +8,32 @@ export const useDetectedSoundStore = create((set) => ({
     isLoading: false,
     error: null,
    isMonitoringOn: false,
+    isMonitoringLoaded: false,
+
 
   setIsMonitoringOn: async (value) => {
     try {
-   
-      await AsyncStorage.setItem('isMonitoringOn', JSON.stringify(value));
-      // Update Zustand state
+      await AsyncStorage.setItem('isMonitoringOn', value ? 'true' : 'false');
       set({ isMonitoringOn: value });
     } catch (error) {
-      console.error('Failed to save isMonitoringOn to AsyncStorage', error);
+      console.error('Failed to save isMonitoringOn', error);
     }
   },
-  loadMonitoringState: async () => {
+   loadMonitoringState: async () => {
     try {
       const storedValue = await AsyncStorage.getItem('isMonitoringOn');
-      if (storedValue !== null) {
-        set({ isMonitoringOn: JSON.parse(storedValue) });
-      }
+
+      set({
+        isMonitoringOn: storedValue === 'true', // default false if null
+        isMonitoringLoaded: true,               // ✅ CRITICAL FIX
+      });
+      console.log('Loaded isMonitoringOn:', storedValue);
     } catch (error) {
-      console.error('Failed to load isMonitoringOn from AsyncStorage', error);
+      console.error('Failed to load isMonitoringOn', error);
+      set({ isMonitoringLoaded: true }); // prevent lockup
     }
-  }, addSound: async (label, confidence, sound) => {
+  },
+  addSound: async (label, confidence, sound) => {
         set({ isLoading: true, error: null });
 
         try {
