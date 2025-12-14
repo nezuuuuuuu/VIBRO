@@ -44,16 +44,24 @@ export default function Signup({navigation}) {
             return; 
         }
 
-        const result = await register(username, email, password);
+        // --- STEP 1: Call Register to send OTP ---
+        const result = await register(username, email, password);
 
-        if (!result.success) {
-          Alert.alert("Error", result.error);
-        } else {
-          Alert.alert("Success", "Account created! Please log in.");
-          navigation.replace('Login');
-        }
-
-       
+        if (!result.success) {
+          Alert.alert("Registration Failed", result.error || "Could not send OTP. Try again.");
+        } else {
+            // SUCCESS: OTP sent. Navigate to the verification screen.
+            Alert.alert("Verification Required", `An OTP has been sent to ${email}.`);
+            
+            // Pass the email (and perhaps the full registration data) to the next screen
+            navigation.navigate('OTPVerification', { 
+                email, 
+                // We pass username and password as well, to reconstruct the payload later
+                // This is only safe if OTPVerification is the next immediate screen.
+                username,
+                password,
+            }); 
+        }   
         
     };
 
@@ -98,7 +106,7 @@ export default function Signup({navigation}) {
                 <View class="relative w-full">
                     {/* password */}
                     <TextInput
-                        className="text-white border-2 px-4 py-5 text-xl border-[#C0C0C0] rounded-xl placeholder:text-white placeholder:font-pregular"
+                        className="text-white border px-4 py-5 text-xl border-[#C0C0C0] rounded-xl placeholder:text-white placeholder:font-pregular"
                         placeholder="Password"
                         secureTextEntry={!showPassword} 
                         autoCapitalize="none"

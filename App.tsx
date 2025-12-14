@@ -8,7 +8,7 @@ import { useAuthStore } from "./store/authStore";
 import { View, ActivityIndicator, Platform, Image, StatusBar, Alert } from 'react-native';
 import Signup from './src/screens/(auth)/signup';
 import Login from './src/screens/(auth)';
-
+import OTPVerification from './src/screens/(auth)/otpverification';
 import notifee, { AndroidColor, AndroidImportance } from '@notifee/react-native';
 import { navigationRef } from './src/components/navigationRef';
 import {registerNotificationListeners} from './src/components/notification';
@@ -113,6 +113,8 @@ useEffect(() => {
               <Stack.Screen name="Welcome" component={Welcome} />
               <Stack.Screen name="Login" component={Login} />
               <Stack.Screen name="Signup" component={Signup} />
+              <Stack.Screen name="OTPVerification" component={OTPVerification} />
+
             </>
           ) : (
             <Stack.Screen name="Tabs" component={Tabs} />
