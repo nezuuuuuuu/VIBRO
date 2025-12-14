@@ -4,27 +4,29 @@ import "../../../global.css";
 import { useNavigation } from '@react-navigation/native';
 import { icons } from '../../constants';
 import { useGroupStore } from "../../../store/groupStore";
-
-// NEW: Import Camera components
 import { useCameraDevice, useCodeScanner, Camera } from 'react-native-vision-camera';
 
 const Groups = () => {
-  const { getGroups, groups, isLoading, setGroupNavigation, groupPointer, getMembers, joinGroup } = useGroupStore();
+  const { getGroups, groups, isLoading, setGroupNavigation, joinGroup } = useGroupStore();
   const navigation = useNavigation();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [searchActive, setSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredGroups, setFilteredGroups] = useState([]);
+  
   const [groupCode, setGroupCode] = useState('');
-  const [groupCodePlaceholder, setGroupCodePlaceholder] = useState('Enter group code');
+  
+  // ERROR STATES
+  const [qrError, setQrError] = useState(''); 
+  const [manualError, setManualError] = useState(''); 
+  
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // NEW: Camera State
+  // Camera State
   const [isScanning, setIsScanning] = useState(false);
   const device = useCameraDevice('back');
 
-  // NEW: Request Camera Permissions on Mount
   useEffect(() => {
     const requestPermissions = async () => {
       const permission = await Camera.requestCameraPermission();
@@ -33,32 +35,71 @@ const Groups = () => {
     requestPermissions();
   }, []);
 
-  // NEW: Handle Code Scanned
+  // --- UPDATED JOIN LOGIC WITH SPECIFIC ERROR HANDLING ---
+  const executeJoin = async (codeToUse, type = 'manual') => {
+    // 1. Clear previous errors based on interaction type
+    if (type === 'qr') setQrError('');
+    if (type === 'manual') setManualError('');
+    
+    // 2. Validation for empty code
+    if (!codeToUse) {
+      if (type === 'manual') setManualError('Please enter a code');
+      if (type === 'qr') setQrError('Invalid QR code scanned');
+      return;
+    }
+
+    if (isLoading) return;
+    
+    // 3. Call Store
+    const result = await joinGroup(codeToUse);
+
+    // 4. Handle Result
+    if (result.success) {
+      setModalVisible(false);
+      setGroupCode('');
+      setQrError('');
+      setManualError('');
+      Alert.alert("Success", "Joined group successfully!");
+    } else {
+      const rawError = result.error ? result.error.toLowerCase() : '';
+      let displayMsg = 'Failed to join group.';
+
+      // --- SPECIFIC ERROR CHECKS ---
+      if (rawError.includes('already a member')) {
+         displayMsg = 'You are already a member of this group.';
+      } 
+      else if (rawError.includes('not found') || rawError.includes('invalid') || rawError.includes('does not exist')) {
+         displayMsg = 'Group code does not exist.';
+      }
+      
+      // Set error to the correct location
+      if (type === 'qr') {
+        setQrError(displayMsg);
+      } else {
+        setManualError(displayMsg);
+      }
+      
+      setGroupCode('');
+    }
+  };
+
   const onCodeScanned = useCallback((codes) => {
     const value = codes[0]?.value;
     if (value) {
+      setIsScanning(false); 
       try {
-        // Attempt to parse JSON (assuming your QR contains JSON like { type: 'JOIN_GROUP', code: '...' })
         const parsed = JSON.parse(value);
-        
         if (parsed.code) {
-          setIsScanning(false); // Stop scanning immediately
-          setGroupCode(parsed.code); // Fill the input
-          
-          // Optional: Auto-submit after a short delay to let state update
-          setTimeout(() => {
-             handleJoinGroup(parsed.code); 
-          }, 500);
+          setGroupCode(parsed.code); 
+          executeJoin(parsed.code, 'qr');
         }
       } catch (e) {
-        // Fallback: If it's just a raw text string, use it directly
-        setIsScanning(false);
         setGroupCode(value);
+        executeJoin(value, 'qr');
       }
     }
   }, []);
 
-  // NEW: Initialize Code Scanner
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13'],
     onCodeScanned: onCodeScanned,
@@ -125,7 +166,8 @@ const Groups = () => {
             </TouchableOpacity>
             <TouchableOpacity onPress={() => {
               setModalVisible(true);
-              setGroupCodePlaceholder('Enter group code');
+              setQrError('');
+              setManualError('');
               setGroupCode('');
             }}>
               <Image source={icons.addgroup} className="w-8 h-8 tint-white" resizeMode="contain" />
@@ -136,49 +178,14 @@ const Groups = () => {
     }
   }, [navigation, searchActive, searchQuery]);
 
-  // Modified to accept an optional code argument for the auto-scan feature
-  const handleJoinGroup = async (codeOverride = null) => {
-    const codeToUse = codeOverride || groupCode;
-    console.log('Attempting to join group with code:', codeToUse);
-
-    if (!codeToUse) {
-      setGroupCodePlaceholder('Please enter a code');
-      return;
-    }
-
-    if (isLoading) return;
-
-    setGroupCodePlaceholder('Joining...');
-    
-    // Ensure we are passing the code to your store function
-    const result = await joinGroup(codeToUse);
-
-    if (result.success) {
-      setModalVisible(false);
-      setGroupCode('');
-      setGroupCodePlaceholder('Enter group code');
-      Alert.alert("Success", "Joined group successfully!");
-    } else {
-      const errorMessage = result.error || 'Failed to join group.';
-      if (errorMessage === 'You are already a member of this group.') {
-        Alert.alert("Cannot Join", errorMessage);
-        setGroupCodePlaceholder('Enter group code');
-      } else {
-        Alert.alert("Error", errorMessage);
-        setGroupCodePlaceholder(errorMessage);
-      }
-      setGroupCode('');
-    }
-  };
-
   const handleCreateGroupNavigation = () => {
     setModalVisible(false);
     setGroupCode('');
-    setGroupCodePlaceholder('Enter group code');
+    setQrError('');
+    setManualError('');
     navigation.navigate('CreateGroup');
   };
 
-  // NEW: Camera View Component
   if (isScanning && device) {
     return (
       <View className="flex-1 bg-black">
@@ -188,7 +195,6 @@ const Groups = () => {
           isActive={true}
           codeScanner={codeScanner}
         />
-        {/* Overlay UI for Scanner */}
         <View className="absolute top-10 right-5">
            <TouchableOpacity onPress={() => setIsScanning(false)} className="bg-white/20 p-2 rounded-full">
               <Text className="text-white font-pbold text-lg">Close X</Text>
@@ -249,6 +255,8 @@ const Groups = () => {
         onRequestClose={() => {
             setModalVisible(false);
             setGroupCode('');
+            setQrError('');
+            setManualError('');
         }}
       >
         <Pressable
@@ -256,6 +264,8 @@ const Groups = () => {
           onPress={() => {
             setModalVisible(false);
             setGroupCode('');
+            setQrError('');
+            setManualError('');
           }}
         >
           <Pressable className="bg-primary p-6 py-10 rounded-lg w-4/5 items-center" onPress={(e) => e.stopPropagation()}>
@@ -264,39 +274,59 @@ const Groups = () => {
             {/* Scan Button */}
             <TouchableOpacity 
                  className={`p-4 rounded-lg w-full items-center ${isLoading ? 'bg-gray-400' : 'bg-secondary'}`}
-                onPress={() => setIsScanning(true)}
+                onPress={() => {
+                    setQrError('');
+                    setManualError(''); 
+                    setIsScanning(true);
+                }}
             >
                 <Text className="text-white text-base font-psemibold">{isLoading ? 'Opening Camera...' : 'Join with QR'}</Text>
-                
             </TouchableOpacity>
-             <View className="flex-row items-center w-full my-6">
-                {/* Left Line */}
+
+            {/* QR ERROR AREA */}
+            <View className="h-4 mb-4 mt-2 w-full justify-center">
+                {qrError ? (
+                    <Text className="text-red-500 text-xs font-pregular text-center">
+                        {qrError}
+                    </Text>
+                ) : null}
+            </View>
+
+             <View className="flex-row items-center w-full mb-6">
                 <View className="flex-1 h-[1px] bg-gray-600/50" />
-                
-                {/* Text */}
                 <Text className="text-gray-400 text-sm font-pmedium mx-4 uppercase">OR</Text>
-                
-                {/* Right Line */}
                 <View className="flex-1 h-[1px] bg-gray-600/50" />
             </View>
             
-            {/* NEW: Input Row with Scan Button */}
-            <View className="w-full flex-row gap-2 mb-4">
+            {/* Input Row */}
+            <View className="w-full flex-row gap-2 mb-2">
                 <View className="flex-1 h-14 bg-gray-200 px-4 rounded-lg justify-center">
                     <TextInput
                         className="text-black font-pregular"
-                        placeholder={groupCodePlaceholder}
+                        placeholder="Enter group code"
                         placeholderTextColor="#888"
                         value={groupCode}
-                        onChangeText={setGroupCode}
+                        onChangeText={(text) => {
+                            setGroupCode(text);
+                            if(manualError) setManualError(''); 
+                        }}
                         autoCapitalize="none"
                     />
                 </View>
             </View>
 
+            {/* MANUAL ERROR AREA */}
+            <View className="h-4 mb-4 w-full justify-center">
+                {manualError ? (
+                    <Text className="text-red-500 text-xs font-pregular text-center">
+                        {manualError}
+                    </Text>
+                ) : null}
+            </View>
+
             <TouchableOpacity
               className={`p-4 rounded-lg w-full items-center mb-6 ${isLoading ? 'bg-gray-400' : 'bg-secondary'}`}
-              onPress={() => handleJoinGroup()}
+              onPress={() => executeJoin(groupCode, 'manual')}
               disabled={isLoading}
             >
               <Text className="text-white text-base font-psemibold">{isLoading ? 'Joining...' : 'Join Group'}</Text>

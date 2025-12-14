@@ -600,7 +600,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
 
         <View
   style={{
-    height: '70%',
+    height: '65%',
     width: '90%',
     borderWidth: 2,
     borderColor: 'red',
@@ -622,7 +622,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
 
        
 
-       <View className='absolute bottom-6 left-0 right-0 flex-row items-center justify-center'>
+       <View className='z-50 absolute bottom-6 left-0 right-0 flex-row items-center justify-center'>
          <TouchableOpacity
              onPress={startRecording}
              className={`h-16 w-16 items-center justify-center rounded-full ${isRecording ? 'bg-red-500' : 'bg-secondary'}`}

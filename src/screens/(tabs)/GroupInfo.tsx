@@ -167,11 +167,11 @@ const GroupInfo = () => {
                 headerTitleStyle: {
                     fontWeight: 'bold',
                 },
-                headerRight: () => (
-                    <TouchableOpacity onPress={() => setJoinGroupModalVisible(true)} className="mr-4">
-                        <Image source={icons.add_group} className="w-6 h-6 tint-white" resizeMode="contain" />
-                    </TouchableOpacity>
-                ),
+                // headerRight: () => (
+                //     <TouchableOpacity onPress={() => setJoinGroupModalVisible(true)} className="mr-4">
+                //         <Image source={icons.add_group} className="w-6 h-6 tint-white" resizeMode="contain" />
+                //     </TouchableOpacity>
+                // ),
             });
             setNewGroupName(groupPointer.groupName || '');
         }
@@ -483,45 +483,6 @@ const GroupInfo = () => {
                 </TouchableWithoutFeedback>
             </Modal>
 
-            {/* Join Group Modal (Unchanged) */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={isJoinGroupModalVisible}
-                onRequestClose={() => setJoinGroupModalVisible(false)}
-            >
-                <TouchableWithoutFeedback onPress={() => setJoinGroupModalVisible(false)}>
-                    <View className="flex-1 justify-center items-center bg-black/70">
-                        <TouchableWithoutFeedback onPress={() => { }}>
-                            <View className="bg-primary p-6 rounded-lg w-4/5 items-center">
-                                <Text className="text-black text-xl font-semibold mb-4 text-center">ADD GROUP</Text>
-                                <Text className="text-gray-600 mb-2">Group Code</Text>
-                                <TextInput
-                                    value={joinGroupCode}
-                                    onChangeText={setJoinGroupCode}
-                                    placeholder="Enter group code"
-                                    placeholderTextColor="#ccc"
-                                    className="bg-gray-100 text-black p-3 rounded-md mb-4"
-                                />
-                                <Button title="Join Group" onPress={() => {
-                                    console.log('Joining group with code:', joinGroupCode);
-                                    setJoinGroupModalVisible(false);
-                                }} color="#6c5ce7" />
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setJoinGroupModalVisible(false);
-                                        console.log('Navigate to New Group screen');
-                                        navigation.navigate('CreateGroup'); 
-                                    }}
-                                    className="mt-3"
-                                >
-                                    <Text className="text-gray-600 text-center">Create a new group instead? <Text className="text-blue-500">New Group</Text></Text>
-                                </TouchableOpacity>
-                            </View>
-                        </TouchableWithoutFeedback>
-                    </View>
-                </TouchableWithoutFeedback>
-            </Modal>
         </View>
     );
 };
