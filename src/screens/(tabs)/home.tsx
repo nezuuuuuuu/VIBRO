@@ -12,11 +12,14 @@ import {
   Switch,
   Vibration,
   StatusBar,
+  Modal,
+  Alert,
 } from 'react-native';
 import { useState, useRef } from 'react';
 import { Double, Float } from 'react-native/Libraries/Types/CodegenTypes';
 import MorphingCircle from "../../components/morphingCircle"; 
 import PredictedCircles from "../../components/predictedCircles"; 
+import BASE_URL from '../../../store/api';
 
 
 import "../../../global.css"
@@ -120,7 +123,7 @@ function Home() {
   const {  fetchModelById, setActiveModel, useLabels,labels,activeModel } = useModelStore();
 
   const { socket, connect, disconnect,isOnline } = useSocket();
-  const {getGroups} = useGroupStore()
+  const {getGroups, groups} = useGroupStore()
   const { addSound,isMonitoringOn,loadMonitoringState,isMonitoringLoaded} = useDetectedSoundStore();
   const { isOfflineMode, isLoadingOfflineModeToggle, toggleOfflineMode } = useAppStore();
   const [box, setBox] = useState({ width: 0, height: 0 });
@@ -135,7 +138,10 @@ function Home() {
   let isProcessing = false;
 
   const monitoringRef = useRef(false);
-const socketRef = useRef(null);
+  const socketRef = useRef(null);
+
+  const [safetyModalVisible, setSafetyModalVisible] = useState(false);
+  const [currentCriticalSound, setCurrentCriticalSound] = useState<string | null>(null);
 
 
   const processQueue = async () => {
@@ -145,6 +151,66 @@ const socketRef = useRef(null);
       if (prediction) await handlePrediction(prediction);
     }
     isProcessing = false;
+  };
+
+   const sendGroupMessage = async (messageContent: string) => {
+    // 1. Get groups from state
+    // We use getState() to ensure we have the absolute latest value, not a stale render value
+    let currentGroups = useGroupStore.getState().groups;
+
+    // 2. ROBUST CHECK: If state is empty, try to fetch fresh from API immediately
+    if (!currentGroups || currentGroups.length === 0) {
+      console.log("⚠️ Groups list is empty. Attempting to fetch fresh groups...");
+      try {
+        // We assume getGroups returns { groups: [...] } based on your useEffect code
+        const result = await getGroups(); 
+        
+        if (result && result.groups && result.groups.length > 0) {
+           console.log("✅ Freshly fetched groups:", result.groups.length);
+           currentGroups = result.groups;
+        } else {
+           // If it's STILL empty after fetching, then the user really isn't in a group
+           console.warn("❌ Fetch returned no groups.");
+           Alert.alert("Notice", "You are not part of any groups, so no one was notified.");
+           return;
+        }
+      } catch (error) {
+         console.error("Failed to fetch groups on demand:", error);
+         return;
+      }
+    }
+
+    // 3. Proceed to send
+    try {
+      console.log(`🚀 Broadcasting message to ${currentGroups.length} groups...`);
+
+      const sendPromises = currentGroups.map(async (group) => {
+        const messageData = {
+          groupId: group._id,
+          messageType: 'text',
+          message: messageContent,
+          imageUrl: null,
+        };
+
+        const response = await fetch(`${BASE_URL}/messages/send`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(messageData),
+        });
+
+        if (!response.ok) throw new Error('Failed to send');
+        return response.json();
+      });
+
+      await Promise.all(sendPromises);
+      console.log("✅ Alert successfully sent to all groups.");
+
+    } catch (err) {
+      console.error('Error broadcasting message:', err);
+    }
   };
 
 
@@ -319,6 +385,19 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                   console.log("Sending detected sound to socket:", { label, confidence, isCustom, audioBase64 });
                   addSound(label, confidence, audioBase64);
                 }
+
+                // --- NEW: SAFETY CHECK LOGIC (Level 1 Only) ---
+                if (criticalLevel === 1 && !safetyModalVisible) {
+                    // 1. Set state to show modal
+                    setCurrentCriticalSound(label);
+                    setSafetyModalVisible(true);
+
+                    // 2. Automatic Socket Message
+                    // "EMERGENCY ALERT: [Fire Alarm] detected..."
+                    const autoMessage = `🚨 **EMERGENCY ALERT**: **${label}** detected. Waiting for user confirmation...`;
+                    sendGroupMessage(autoMessage);
+                }
+
                 // --- VIBRATION LOGIC ADDED HERE ---
                 if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
                     Vibration.vibrate([0, 500, 200, 500]); // Vibrate for 500ms, pause 200ms, vibrate 500ms (High urgency)
@@ -436,6 +515,26 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
       );
     }
 
+      const handleUserSafe = () => {
+        // User clicked "I AM SAFE"
+        const message = `✅ **I AM SAFE.** The detected **${currentCriticalSound}** has been acknowledged.`;
+    sendGroupMessage(message);
+        
+        // Close modal
+        setSafetyModalVisible(false);
+        setCurrentCriticalSound(null);
+      };
+
+      const handleUserHelp = () => {
+        // User clicked "HELP ME"
+        const message = `🆘 **HELP NEEDED!** Confirmed critical sound: **${currentCriticalSound}**. Please assist!`;
+        sendGroupMessage(message);
+        
+        // Close modal (or keep open depending on preference)
+        setSafetyModalVisible(false);
+        setCurrentCriticalSound(null);
+      };
+
     return (
      <View className='h-full bg-primary' >
        <View className='items-center px-4'> 
@@ -459,8 +558,8 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
              </View>
              
              <View className="flex-1">
-               <Text className="text-xs font-pmedium text-white">{info.label}</Text>
-               <Text className="text-xs leading-tight font-pregular text-gray-300">{info.description}</Text>
+               <Text className="text-sm font-pmedium text-white">{info.label}</Text>
+               <Text className="text-sm leading-tight font-pregular text-gray-300">{info.description}</Text>
              </View>
              
            </View>
@@ -522,7 +621,56 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
          </TouchableOpacity>
        </View>
        <StatusBar className='bg-primary' />
+
+      <Modal
+      animationType="slide"
+      transparent={true}
+      visible={safetyModalVisible}
+      onRequestClose={() => setSafetyModalVisible(false)}
+      >
+      <View className="flex-1 justify-center items-center bg-black/80">
+          <View className="w-[85%] bg-[#1B1B3A] border-2 border-red-500 rounded-2xl p-6 items-center shadow-lg">
+          
+          {/* Icon / Header */}
+          <View className="h-16 w-16 bg-red-500 rounded-full items-center justify-center mb-4 animate-pulse">
+              <Image source={icons.warning} className="h-10 w-10 tint-white" resizeMode="contain" /> 
+              {/* If you don't have a warning icon, use a standard text '!' */}
+          </View>
+
+          <Text className="text-white text-2xl font-pbold mb-2 text-center">
+              HIGH CRITICALITY ALERT!
+          </Text>
+          
+          <Text className="text-gray-300 text-base text-center mb-6 font-pregular">
+              <Text className="text-red-400 font-pbold">{currentCriticalSound}</Text> detected. 
+              Are you safe?
+          </Text>
+
+          {/* Action Buttons */}
+          <View className="w-full gap-4">
+              
+              {/* I AM SAFE BUTTON */}
+              <TouchableOpacity 
+              onPress={handleUserSafe}
+              className="w-full bg-emerald-500 py-4 rounded-xl items-center active:bg-emerald-600"
+              >
+              <Text className="text-white text-lg font-pbold">I AM SAFE</Text>
+              </TouchableOpacity>
+
+              {/* HELP ME BUTTON */}
+              <TouchableOpacity 
+              onPress={handleUserHelp}
+              className="w-full bg-red-600 py-4 rounded-xl items-center active:bg-red-700"
+              >
+              <Text className="text-white text-lg font-pbold">HELP ME</Text>
+              </TouchableOpacity>
+
+          </View>
+          </View>
+      </View>
+      </Modal>
      </View>
+     
    );
 }
 

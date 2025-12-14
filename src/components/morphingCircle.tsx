@@ -11,6 +11,7 @@ import {
   Image as SkiaImage,
   useImage,
   Group,
+  Shadow,
 
 } from "@shopify/react-native-skia";
 import { createNoise2D } from "simplex-noise";
@@ -24,14 +25,12 @@ const SOUND_PNG = require("../assets/images/labels_image/sound.png");
 const imgSize = 50;
 const gap = 6;
 const SOUND_ICONS: { [key: string]: any } = {
-  'Speech': require('../assets/images/labels_image/speech.png'),
-  'Crying, sobbing': require('../assets/images/labels_image/crying.png'),
-  'Emergency vehicle': require('../assets/images/labels_image/emergency.png'),
+  'Speech': require('../assets/images/labels_image/human_speech.png'),
+  'Crying, sobbing': require('../assets/images/labels_image/baby_crying.png'),
+  'Emergency vehicle': require('../assets/images/labels_image/siren.png'),
   'Music': require('../assets/images/labels_image/music.png'),
-  'Fire alarm': require('../assets/images/labels_image/firealarm.png'),
+  'Fire alarm': require('../assets/images/labels_image/fire_alarm2.png'),
 
-
- 
 };
 
 // Create points around a circle for morphing
@@ -133,6 +132,7 @@ export default function MorphingCircle({
         {path && (
           <Path path={path}>
             <LinearGradient start={vec(0, 0)} end={vec(size, size)} colors={colors} />
+            <Shadow dx={0} dy={4} blur={10} color="rgba(0,0,0,0.3)" />
           </Path>
         )}
         
@@ -148,8 +148,10 @@ export default function MorphingCircle({
       y={(size - (imgSize + gap + textHeight)) / 2}
       width={imgSize}
       height={imgSize}
-      fit="contain"
-    />
+      fit="contain">
+
+      <Shadow dx={0} dy={2} blur={4} color="rgba(0,0,0,0.2)" />
+    </SkiaImage>
 
     <SkiaText
       text={text}
@@ -159,7 +161,15 @@ export default function MorphingCircle({
       font={font}
       letterSpacing={-0.5}
 
-    />
+    >
+      {/* --- NEW: Shadow added here --- */}
+      <Shadow 
+        dx={0}     // Horizontal offset
+        dy={2}     // Vertical offset (downwards)
+        blur={4}   // How soft the shadow is
+        color="rgba(0,0,0,0.5)" // Usually darker than the text color
+      />
+    </SkiaText>
   </Group>
 )}
       </Canvas>
