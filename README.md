@@ -41,7 +41,7 @@ This project is a full-stack application built on the **MERN stack principle**. 
 | **Axios** | **1.9.0** | Promise-based HTTP client for API communication. |
 | **Socket.IO Client** | **4.8.1** | Enables real-time, bidirectional communication (crucial for VIBRO). 
 
-### 🖥️ Backend (API Server)
+### 🖥️ Common Backend (Express API Server)
 
 | Technology | Version | Description |
 | :--- | :--- | :--- |
@@ -50,9 +50,21 @@ This project is a full-stack application built on the **MERN stack principle**. 
 | **Mongoose** | *8.14.1* | Primary NoSQL database for flexible data storage. |
 | **Nodemailer** | **7.0.11** | Used for sending emails (e.g., verification, password resets). |
 
+
+### 🖥️ Training Backend (Flask API Server)
+
+| Technology | Version | Description |
+| :--- | :--- | :--- |
+| **Python** | **3.10.16** | Programming language used for the backend logic and ML training. |
+| **Flask** | *3.1.1* |Lightweight web framework for building the API endpoints. |
+| **tensorflow** | *2.10.1* | Used to train sound classification models and convert them to TFLite. |
+| **TensorFlow-IO** | 0.27.0 |Provides additional I/O support for TensorFlow, e.g., reading audio files. |
+
+
+
 ---
 
-## ⚙️ Deployment and Setup Instructions
+## ⚙️ Deployment and Setup Instructions (
 
 This guide assumes you have **Node.js** (v20+), **npm/Yarn**, and the necessary **React Native environment** (Android Studio/Xcode) installed.
 
@@ -132,6 +144,24 @@ This guide assumes you have **Node.js** (v20+), **npm/Yarn**, and the necessary 
 
 If everything is set up correctly, you should see your new app running in the Android Emulator or your connected device.
 
+### 3. Train API Setup and Deployment
+1.  **Clone the Repository:**
+    ```sh
+    git https://github.com/nezuuuuuuu/VIBRO_FLASK_TRAIN.git
+    ```
+
+2.  **Install Dependencies:**
+    ```sh
+  pip install -r requirements.txt
+    ```
+3.  **Start the Flask Server:**
+   
+        ```typescript
+        python app.py
+        By default, the API runs at http://127.0.0.1:5000.
+        ```
+
+If everything is set up correctly, you should see your new app running in the Android Emulator or your connected device.
 ---
 
 ## 🔑 Sample User Credentials
