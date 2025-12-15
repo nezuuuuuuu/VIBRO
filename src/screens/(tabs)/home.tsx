@@ -386,11 +386,20 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                   addSound(label, confidence, audioBase64);
                 }
 
-                // --- NEW: SAFETY CHECK LOGIC (Level 1 Only) ---
-                if (criticalLevel === 1 && !safetyModalVisible) {
-                    // 1. Set state to show modal
+                // --- NEW SAFETY CHECK LOGIC (Level 1 Only) ---
+                if (criticalLevel === 1) {
+                  const autoMessage = `🚨 EMERGENCY ALERT: ${label} detected. Waiting for user confirmation...`;
+                  
+                  // Prevent spamming the chat if the modal is already visible
+                  if (!safetyModalVisible) {
+                      sendGroupMessage(autoMessage);
+                  }
+
+                  // 2. Set state to show modal
+                  if (!safetyModalVisible) {
                     setCurrentCriticalSound(label);
                     setSafetyModalVisible(true);
+                  }
                 }
 
                 // --- VIBRATION LOGIC ADDED HERE ---
@@ -647,7 +656,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
        <StatusBar className='bg-primary' />
 
       <Modal
-      animationType="slide"
+      animationType="fade"
       transparent={true}
       visible={safetyModalVisible}
       onRequestClose={() => setSafetyModalVisible(false)}

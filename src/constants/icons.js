@@ -26,8 +26,10 @@ import musicnote from "../assets/icons/musicnote.png";
 import trash from "../assets/icons/trash.png";
 import folder  from "../assets/icons/folder.png";
 import warning  from "../assets/icons/warning.png";
+import downarrow  from "../assets/icons/down-arrow.png";
 
 export default {
+  downarrow,
   warning,
   play,
   pause,

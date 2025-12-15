@@ -1,5 +1,4 @@
-// ChatScreen.tsx
-import React, { useLayoutEffect, useState, useEffect, useCallback, useRef } from 'react';
+import React, { useLayoutEffect, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
     View,
     Text,
@@ -12,15 +11,16 @@ import {
     ActivityIndicator,
     Alert,
     SafeAreaView,
+    NativeScrollEvent,
+    NativeSyntheticEvent
 } from 'react-native';
 import "../../../global.css"
-import { useSocket } from '../../../store/useSocket'; // Adjust the import path as needed
-
+import { useSocket } from '../../../store/useSocket'; 
 import BASE_URL from '../../../store/api';
 import { useAuthStore } from "../../../store/authStore";
+import { icons } from '../../constants';
 
-
-const API_BASE_URL = BASE_URL; // Replace with your API base URL
+const API_BASE_URL = BASE_URL; 
 
 interface User {
     _id: string;
@@ -54,78 +54,66 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     const { groupId, groupName } = route.params;
     const { user } = useAuthStore();
     const currentUserId = user?._id;
-    const {token } = useAuthStore();
+    const { token } = useAuthStore();
 
     const [messages, setMessages] = useState<MessagePayload[]>([]);
     const [inputText, setInputText] = useState('');
-
     const [isLoading, setIsLoading] = useState(true);
     const [isSending, setIsSending] = useState(false);
+    const [showScrollBottomButton, setShowScrollBottomButton] = useState(false);
 
     const flatListRef = useRef<FlatList<MessagePayload>>(null);
-    const shouldScrollToBottomRef = useRef(true);
-
     const { socket } = useSocket();
-     useLayoutEffect(() => {
+
+    // --- CRITICAL: Reverse messages for Inverted List ---
+    // We reverse the array so the Latest message is at Index 0 (Visual Bottom)
+    const reversedMessages = useMemo(() => {
+        return [...messages].reverse();
+    }, [messages]);
+
+    useLayoutEffect(() => {
         if (navigation) {
           navigation.setOptions({
-            headerTitle: () => ((
+            headerTitle: () => (
                 <Text className="font-psemibold text-2xl text-white">{ groupName }</Text>
-              )
             ),
-            headerStyle: {
-              backgroundColor: '#1a1a3d',
-            },
+            headerStyle: { backgroundColor: '#1a1a3d' },
             headerTintColor: '#fff',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
+            headerTitleStyle: { fontWeight: 'bold' },
           });
         }
-      }, [navigation]);
-    useEffect(() => {
-        if (groupName) {
-            navigation.setOptions({ title: groupName });
-        }
-    }, [groupName, navigation]);
+    }, [navigation, groupName]);
+
+    // --- NEW: Scroll to Bottom is now "Scroll to Offset 0" ---
+    const scrollToBottom = () => {
+        // animated: true gives a smooth slide to the latest message
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        setShowScrollBottomButton(false);
+    };
 
     useEffect(() => {
         if (socket) {
-            console.log('ChatScreen using global socket:', socket.id);
-
-           
-
             const handleNewMessage = (newMessage: MessagePayload) => {
-                console.log('ChatScreen received newMessage for its group:', newMessage);
                 if (newMessage.groupId === groupId) {
                     setMessages(prevMessages => {
-                        if (prevMessages.find(msg => msg._id === newMessage._id)) {
-                            return prevMessages;
-                        }
+                        if (prevMessages.find(msg => msg._id === newMessage._id)) return prevMessages;
                         return [...prevMessages, newMessage];
                     });
-                    shouldScrollToBottomRef.current = true;
+                    
+                    // In an inverted list, adding a new item to the "end" of the state (which is the "start" of the list)
+                    // usually handles itself well. If the user is at offset 0, they see it immediately.
                 }
             };
-
             socket.on('newMessage', handleNewMessage);
-
             return () => {
-                console.log(`ChatScreen cleanup for group ${groupId} with socket ${socket.id}`);
-                     
                 socket.off('newMessage', handleNewMessage);
-               
             };
         }
-
     }, [socket, groupId]);
 
     const fetchMessages = useCallback(async () => {
         setIsLoading(true);
-
         try {
-            console.log('Frontend Fetch - Initial messages for Group ID:', groupId);
-
             const response = await fetch(`${API_BASE_URL}/messages/${groupId}`, {
                 method: 'GET',
                 headers: {
@@ -134,43 +122,27 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
                 },
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Fetch messages API error:', errorData);
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error('Failed to fetch');
 
             const fetchedMessages: MessagePayload[] = await response.json();
-             console.log(`Frontend Fetch - Initial messages loaded: ${fetchedMessages.length}`);
-
             setMessages(fetchedMessages);
-             shouldScrollToBottomRef.current = true;
-
         } catch (error) {
             console.error('Fetch messages error:', error);
-            Alert.alert('Error', (error as Error).message || 'Could not load messages.');
+            Alert.alert('Error', 'Could not load messages.');
         } finally {
             setIsLoading(false);
         }
     }, [groupId, token]);
 
     useEffect(() => {
-        console.log('ChatScreen mounted or groupId changed, triggering initial fetch.');
         setMessages([]);
         setIsLoading(true);
-
         fetchMessages();
-
         return () => {
-             console.log('ChatScreen cleanup initial fetch state');
              setMessages([]);
              setIsLoading(false);
-             shouldScrollToBottomRef.current = true;
         }
-
     }, [groupId, fetchMessages]);
-
- 
 
     const handleSend = async (type: 'text' | 'image', content?: string | null, imageUrl?: string | null) => {
         if (isSending) return;
@@ -183,7 +155,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         const messageData = {
             groupId,
             messageType: type,
-            message: type === 'text' ? messageContent : null, // Use 'message' field as per common API patterns
+            message: type === 'text' ? messageContent : null, 
             imageUrl: type === 'image' ? imageUrl : null,
         };
 
@@ -197,40 +169,24 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
                 body: JSON.stringify(messageData),
             });
 
-            if (!response.ok) {
-                let errorData;
-                try {
-                    errorData = await response.json();
-                } catch {
-                    errorData = { message: 'Could not parse error body' };
-                }
-                console.error('Send message failed API response:', errorData);
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error("Failed");
 
-            // --- START: Add message to state immediately after successful API send ---
-            const sentMessage: MessagePayload = await response.json(); // Assuming the API returns the saved message object
-            console.log('Message sent successfully via API, adding to local state:', sentMessage);
+            const sentMessage: MessagePayload = await response.json(); 
+            
             setMessages(prevMessages => {
-                 // Double-check against potential immediate socket echo racing
-                 if (prevMessages.find(msg => msg._id === sentMessage._id)) {
-                     console.log('Message already exists in state (likely from rapid socket echo), skipping add.', sentMessage._id);
-                     return prevMessages;
-                 }
+                 if (prevMessages.find(msg => msg._id === sentMessage._id)) return prevMessages;
                  return [...prevMessages, sentMessage];
              });
-             shouldScrollToBottomRef.current = true; // Mark for scrolling
+             
+             // If we send a message, snap to bottom (offset 0)
+             setShowScrollBottomButton(false);
+             flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
 
-            if (type === 'text') {
-                setInputText(''); // Clear input only on success
-            }
-            // --- END: Add message to state immediately after successful API send ---
-
+            if (type === 'text') setInputText(''); 
 
         } catch (err) {
-            console.error('Error sending message:', err);
-            Alert.alert('Error', (err as Error).message || 'Could not send message.');
-             // Optionally, handle UI feedback for failed message (e.g., mark message as failed)
+            console.error(err);
+            Alert.alert('Error', 'Could not send message.');
         } finally {
             setIsSending(false);
         }
@@ -239,10 +195,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     const renderMessage = ({ item }: { item: MessagePayload }) => {
         let isMyMessage;
         if(!item.senderId){
-            console.log("Deleted user detected in message:", item);
             item.senderId={username: "Deleted User", _id: "deleted"};
-        }else{
-        isMyMessage = item.senderId._id === currentUserId;
+        } else {
+            isMyMessage = item.senderId._id === currentUserId;
         }
         return (
             <View
@@ -278,7 +233,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         return (
             <View className="flex-1 justify-center items-center bg-gray-100">
                 <ActivityIndicator size="large" color="#007AFF" />
-                <Text className="mt-2 text-gray-600">Loading messages...</Text>
             </View>
         );
     }
@@ -290,24 +244,55 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
                 className="flex-1"
                 keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
             >
-                <FlatList
-                    ref={flatListRef}
-                    data={messages}
-                    renderItem={renderMessage}
-                    keyExtractor={(item) => item._id}
-                    className="flex-1 px-2.5 bg-gray-100"
-                    contentContainerStyle={{ paddingVertical: 10 }}
-                    onContentSizeChange={() => {
-                        if (shouldScrollToBottomRef.current && messages.length > 0) {
-                            flatListRef.current?.scrollToEnd({ animated: false });
-                        }
-                    }}
-                    ListEmptyComponent={
-                        <Text className="text-center mt-12 text-gray-500 text-base">
-                            No messages yet. Start the conversation!
-                        </Text>
-                    }
-                />
+                <View className="flex-1 relative">
+                    <FlatList
+                        ref={flatListRef}
+                        // --- INVERTED MODE ---
+                        inverted 
+                        data={reversedMessages} // We use the reversed array
+                        renderItem={renderMessage}
+                        keyExtractor={(item) => item._id}
+                        
+                        className="flex-1 px-2.5 bg-gray-100"
+                        contentContainerStyle={{ paddingVertical: 10 }}
+                        
+                        // --- SIMPLIFIED SCROLL LOGIC ---
+                        onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+                            const offsetY = event.nativeEvent.contentOffset.y;
+                            // In inverted mode, Y=0 is the bottom.
+                            // If Y > 30, user has scrolled "up" to see history.
+                            if (offsetY > 30) {
+                                setShowScrollBottomButton(true);
+                            } else {
+                                setShowScrollBottomButton(false);
+                            }
+                        }}
+                        scrollEventThrottle={16} 
+                    />
+
+                    {/* Scroll Down Button */}
+                    {showScrollBottomButton && (
+                        <TouchableOpacity
+                            onPress={scrollToBottom}
+                            className="absolute bottom-4 right-4 bg-white p-3 rounded-full shadow-lg border border-gray-200 z-50 items-center justify-center h-12 w-12"
+                            style={{
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.25,
+                                shadowRadius: 3.84,
+                                elevation: 5,
+                            }}
+                        >
+                            <Image 
+                                source={icons.downarrow} 
+                                className="w-6 h-6"
+                                resizeMode="contain"
+                            />
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Input Area */}
                 <View className="flex-row items-center py-2 px-2.5 border-t border-gray-300 bg-white">
                     <TextInput
                         className={`flex-1 min-h-[40px] max-h-[120px] bg-gray-100 rounded-2xl px-4 text-base mr-2.5 text-black ${Platform.OS === 'ios' ? 'py-2.5' : 'py-1.5'}`}
