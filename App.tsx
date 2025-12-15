@@ -1,90 +1,166 @@
-import React from 'react';
-import { StatusBar, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect, useState, } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import '@react-native-firebase/app';
-import Home from './src/screens/(tabs)/home'; 
-import Group from './src/screens/(tabs)/group'; 
-import Sound from './src/screens/(tabs)/sound'; 
-import Profile from './src/screens/(tabs)/profile'; 
-import Login from './src/screens/account/login'; 
-import { icons } from './src/constants';
-const Tab = createBottomTabNavigator();
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Welcome from './src/screens/(welcome)/index';
+import AuthScreen from './src/screens/(auth)';
+import Tabs from './src/components/mainNavigator';
+import { useAuthStore } from "./store/authStore";
+import { View, ActivityIndicator, Platform, Image, StatusBar, Alert,PermissionsAndroid } from 'react-native';
+import Signup from './src/screens/(auth)/signup';
+import Login from './src/screens/(auth)';
+import OTPVerification from './src/screens/(auth)/otpverification';
+import notifee, { AndroidColor, AndroidImportance } from '@notifee/react-native';
+import { navigationRef } from './src/components/navigationRef';
+import {registerNotificationListeners} from './src/components/notification';
+import messaging from "@react-native-firebase/messaging"
 
-function App() {
-  return (
-  //   <>
-   
-  //     <SafeAreaView className="h-full bg-primary">
+const Stack = createNativeStackNavigator();
 
-  //       <NavigationContainer >
-  //         <Tab.Navigator 
-  //           screenOptions={({ route }) => ({
-  //             headerShown: true,
-  //             headerStyle: {
-  //               backgroundColor: '#1B1B3A',
-  //               borderBottomWidth: 0,
-             
-  //             },
-  //             headerTintColor: '#F5F5F5',
-  //             tabBarIcon: ({ focused, color, size }) => {
-  //               let icon;
 
-  //               switch (route.name) {
-  //                 case 'Home':
-  //                   icon = icons.home;
-  //                   break;
-  //                 case 'Group':
-  //                   icon = icons.group;
-  //                   break;
-  //                 case 'Sound':
-  //                   icon =icons.sound;
-  //                   break;
-  //                 case 'Profile':
-  //                   icon = icons.profile;
-  //                   break;
-  //               }
+// 🔔 Notifee Setup
+if (Platform.OS === 'android') {
+  const androidVersion = Platform.Version;
+  const hasLedSupport = androidVersion >= 26; // Android 8.0 (Oreo)
 
-  //               return (
-  //                 <Image
-  //                   source={icon}
-  //                   style={{
-  //                     width: 24,
-  //                     height: 24,
-  //                     tintColor: focused ? '#10B981' : '#9CA3AF', // green if active, gray if not
-  //                   }}
-  //                   resizeMode="contain"
-  //                 />
-  //               );
-  //             },
-  //             tabBarActiveTintColor: "#8A2BE2",
-  //             tabBarInactiveTintColor: "#CDCDE0",
-  //             tabBarShowLabel: false,
-  //             tabBarStyle: {
-  //               backgroundColor: "#1B1B3A",
-  //               borderTopWidth: 1,
-  //               borderTopColor: "#232533",
-  //               height: 84,
-  //               justifyContent: 'center'
-  //             },
-  //             tabBarItemStyle:{
-  //                 top: 20
-                  
-  //             }
-  //           })}
-  //         >
-  //           <Tab.Screen name="Home" component={Home} />
-  //           <Tab.Screen name="Group" component={Group} />
-  //           <Tab.Screen name="Sound" component={Sound} />
-  //           <Tab.Screen name="Profile" component={Profile} />
-  //         </Tab.Navigator>
-  //       </NavigationContainer>
-  //     </SafeAreaView>
-  //   </>
-  // 
-    <Login />
-  );
+  notifee.createChannel({
+    id: 'sound-alerts1',
+    name: 'Sound Alerts',
+    description: 'Notifications for detected sounds',
+    importance: AndroidImportance.MIN,
+    vibration: true,
+    vibrationPattern: [300, 500],
+    sound: 'default',
+  });
+
+  notifee.createChannel({
+    id: 'sound-alerts2',
+    name: 'Sound Alerts',
+    description: 'Notifications for detected sounds',
+    importance: AndroidImportance.DEFAULT,
+    vibration: true,
+    vibrationPattern: [300, 500, 700, 900],
+    ...(hasLedSupport && {
+      lights: true,
+      lightColor: '#FF0000',
+    }),
+    sound: 'default',
+  });
+
+  notifee.createChannel({
+    id: 'sound-alerts3',
+    name: 'Sound Alerts',
+    description: 'Notifications for detected sounds',
+    importance: AndroidImportance.HIGH,
+    vibration: true,
+    vibrationPattern: [300, 500, 700, 900, 1100, 1300, 1500, 1700, 1900, 2100],
+    ...(hasLedSupport && {
+      lights: true,
+      lightColor: '#FF0000',
+    }),
+    sound: 'default',
+  });
+
+  notifee.createChannel({
+    id: 'chat-alerts-v2',
+    name: 'Chat Alerts',
+    description: 'Notifications for new messages',
+    importance: AndroidImportance.HIGH,
+    vibration: true,
+    vibrationPattern: [ 100,700],
+    ...(hasLedSupport && {
+      lights: true,
+      lightColor: '#FF0000',
+    }),
+    sound: 'default',
+  });
 }
 
-export default App;
+
+export default function App() {
+
+  
+
+
+  const { checkAuth, user, token } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+  const [isOfflineMode, setIsOfflineMode] = useState(false); 
+
+
+
+  const requestPermission = async ()=>{
+    try {
+      const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+      console.log("result**", result)
+      console.log("result**2", PermissionsAndroid.RESULTS.GRANTED)
+      if(result === PermissionsAndroid.RESULTS.GRANTED){
+        // request for device token
+        requestToken()
+      }else{
+        Alert.alert("Permission Denied")
+      }
+    } catch (error) {
+        console.log(error)
+    }
+  }
+
+  
+  const requestToken = async ()=>{
+    try {
+      await messaging().registerDeviceForRemoteMessages();
+      const token = await messaging().getToken();
+      console.log("token**", token)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+  // messaging().setBackgroundMessageHandler(async remoteMessage => { 
+    
+  //   console.log('Message handled in the background!', remoteMessage);
+  // }); // deprecated
+  // useEffect(() => {
+  //   const unsubscribe = messaging().onMessage(async remoteMessage => {
+  //     Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
+  //   });
+
+  //   return unsubscribe;
+  // }, []);
+ 
+
+  useEffect(() => {
+    const init = async () => {
+      await registerNotificationListeners();
+      await checkAuth();  // fetches and sets user/token
+      setLoading(false);  // only show UI after auth is checked
+    };
+    init();
+ 
+  }, []);
+
+  
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer ref={navigationRef}>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {!user || !token ? (
+            <>
+              <Stack.Screen name="Welcome" component={Welcome} />
+              <Stack.Screen name="Login" component={Login} />
+              <Stack.Screen name="Signup" component={Signup} />
+              <Stack.Screen name="OTPVerification" component={OTPVerification} />
+
+            </>
+          ) : (
+            <Stack.Screen name="Tabs" component={Tabs} />
+          )}
+        </Stack.Navigator>
+        <StatusBar className='bg-primary' />
+    </NavigationContainer>
+  );
+}

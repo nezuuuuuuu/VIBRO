@@ -1,129 +1,896 @@
 package com.vibro
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.media.*
-import android.os.Environment
+import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.AudioRecord
+import android.media.AudioTrack
+import android.media.MediaRecorder
+import android.util.Base64
 import android.util.Log
-import android.widget.Toast
-import androidx.core.app.ActivityCompat
-import com.facebook.react.bridge.*
-import com.facebook.react.module.annotations.ReactModule
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableArray
+import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
-import java.io.*
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.text.SimpleDateFormat
-import java.util.*
-import kotlin.concurrent.thread
-import org.tensorflow.lite.Interpreter
-import java.io.FileInputStream
+import java.util.Timer
+import java.util.TimerTask
+// Import for abs and max mathematical functions
+import kotlin.math.abs
+import kotlin.math.max
 
+// Imports for Android's Audio Effects (required for NoiseSuppressor, etc.)
+import android.media.audiofx.NoiseSuppressor
+import android.media.audiofx.AutomaticGainControl
+import android.media.audiofx.AcousticEchoCanceler
 
-import org.tensorflow.lite.support.audio.TensorAudio;
-import org.tensorflow.lite.support.label.Category;
-import org.tensorflow.lite.task.audio.classifier.AudioClassifier;
-import org.tensorflow.lite.task.audio.classifier.Classifications;
-
-
-class AudioRecorderModule(reactContext: ReactApplicationContext) :
-    ReactContextBaseJavaModule(reactContext) {
+class AudioRecorderModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
     companion object {
         const val NAME = "AudioRecorder"
     }
-    private var mEmitter: DeviceEventManagerModule? = null
-    private val modelPath = "yamnet_classification.tflite"
-    private val probabilityThreshold = 0.60f
-    private var classifier: AudioClassifier? = null
-    private var tensor: TensorAudio? = null
+    val criticalLabels = setOf(
+        "Crying, sobbing",
+        "Emergency vehicle",
+        "Emergency vehicle",
+        "Gunshot, gunfire",
+        "Glass",
+        "Smash, crash",
+        "Smoke detector, smoke alarm",
+        "Fire alarm"
+    )
+
+    val CustomEnvironmentalSound = arrayOf(
+        "breathing",
+        "chirping_birds",
+        "church_bells",
+        "clapping",
+        "clock_alarm",
+        "clock_tick",
+        "crackling_fire",
+        "crickets",
+        "drinking_sipping",
+        "engine",
+        "fireworks",
+        "footsteps",
+        "helicopter",
+        "hen",
+        "insects",
+        "keyboard_typing",
+        "mouse_click",
+        "pouring_water",
+        "rain",
+        "sea_waves",
+        "siren",
+        "sneezing",
+        "thunderstorm",
+        "toilet_flush",
+        "train",
+        "vacuum_cleaner",
+        "washing_machine",
+        "water_drops",
+        "wind",
+        "speech",
+        "Background"
+    )
+    val yamnet_labels = arrayOf(
+        "Speech",
+        "Child speech, kid speaking",
+        "Conversation",
+        "Narration, monologue",
+        "Babbling",
+        "Speech synthesizer",
+        "Shout",
+        "Bellow",
+        "Whoop",
+        "Yell",
+        "Children shouting",
+        "Screaming",
+        "Whispering",
+        "Laughter",
+        "Baby laughter",
+        "Giggle",
+        "Snicker",
+        "Belly laugh",
+        "Chuckle, chortle",
+        "Crying, sobbing",
+        "Baby cry, infant cry",
+        "Whimper",
+        "Wail, moan",
+        "Sigh",
+        "Singing",
+        "Choir",
+        "Yodeling",
+        "Chant",
+        "Mantra",
+        "Child singing",
+        "Synthetic singing",
+        "Rapping",
+        "Humming",
+        "Groan",
+        "Grunt",
+        "Whistling",
+        "Breathing",
+        "Wheeze",
+        "Snoring",
+        "Gasp",
+        "Pant",
+        "Snort",
+        "Cough",
+        "Throat clearing",
+        "Sneeze",
+        "Sniff",
+        "Run",
+        "Shuffle",
+        "Walk, footsteps",
+        "Chewing, mastication",
+        "Biting",
+        "Gargling",
+        "Stomach rumble",
+        "Burping, eructation",
+        "Hiccup",
+        "Fart",
+        "Hands",
+        "Finger snapping",
+        "Clapping",
+        "Heart sounds, heartbeat",
+        "Heart murmur",
+        "Cheering",
+        "Applause",
+        "Chatter",
+        "Crowd",
+        "Hubbub, speech noise, speech babble",
+        "Children playing",
+        "Animal",
+        "Domestic animals, pets",
+        "Dog",
+        "Bark",
+        "Yip",
+        "Howl",
+        "Bow-wow",
+        "Growling",
+        "Whimper (dog)",
+        "Cat",
+        "Purr",
+        "Meow",
+        "Hiss",
+        "Caterwaul",
+        "Livestock, farm animals, working animals",
+        "Horse",
+        "Clip-clop",
+        "Neigh, whinny",
+        "Cattle, bovinae",
+        "Moo",
+        "Cowbell",
+        "Pig",
+        "Oink",
+        "Goat",
+        "Bleat",
+        "Sheep",
+        "Fowl",
+        "Chicken, rooster",
+        "Cluck",
+        "Crowing, cock-a-doodle-doo",
+        "Turkey",
+        "Gobble",
+        "Duck",
+        "Quack",
+        "Goose",
+        "Honk",
+        "Wild animals",
+        "Roaring cats (lions, tigers)",
+        "Roar",
+        "Bird",
+        "Bird vocalization, bird call, bird song",
+        "Chirp, tweet",
+        "Squawk",
+        "Pigeon, dove",
+        "Coo",
+        "Crow",
+        "Caw",
+        "Owl",
+        "Hoot",
+        "Bird flight, flapping wings",
+        "Canidae, dogs, wolves",
+        "Rodents, rats, mice",
+        "Mouse",
+        "Patter",
+        "Insect",
+        "Cricket",
+        "Mosquito",
+        "Fly, housefly",
+        "Buzz",
+        "Bee, wasp, etc.",
+        "Frog",
+        "Croak",
+        "Snake",
+        "Rattle",
+        "Whale vocalization",
+        "Music",
+        "Musical instrument",
+        "Plucked string instrument",
+        "Guitar",
+        "Electric guitar",
+        "Bass guitar",
+        "Acoustic guitar",
+        "Steel guitar, slide guitar",
+        "Tapping (guitar technique)",
+        "Strum",
+        "Banjo",
+        "Sitar",
+        "Mandolin",
+        "Zither",
+        "Ukulele",
+        "Keyboard (musical)",
+        "Piano",
+        "Electric piano",
+        "Organ",
+        "Electronic organ",
+        "Hammond organ",
+        "Synthesizer",
+        "Sampler",
+        "Harpsichord",
+        "Percussion",
+        "Drum kit",
+        "Drum machine",
+        "Drum",
+        "Snare drum",
+        "Rimshot",
+        "Drum roll",
+        "Bass drum",
+        "Timpani",
+        "Tabla",
+        "Cymbal",
+        "Hi-hat",
+        "Wood block",
+        "Tambourine",
+        "Rattle (instrument)",
+        "Maraca",
+        "Gong",
+        "Tubular bells",
+        "Mallet percussion",
+        "Marimba, xylophone",
+        "Glockenspiel",
+        "Vibraphone",
+        "Steelpan",
+        "Orchestra",
+        "Brass instrument",
+        "French horn",
+        "Trumpet",
+        "Trombone",
+        "Bowed string instrument",
+        "String section",
+        "Violin, fiddle",
+        "Pizzicato",
+        "Cello",
+        "Double bass",
+        "Wind instrument, woodwind instrument",
+        "Flute",
+        "Saxophone",
+        "Clarinet",
+        "Harp",
+        "Bell",
+        "Church bell",
+        "Jingle bell",
+        "Bicycle bell",
+        "Tuning fork",
+        "Chime",
+        "Wind chime",
+        "Change ringing (campanology)",
+        "Harmonica",
+        "Accordion",
+        "Bagpipes",
+        "Didgeridoo",
+        "Shofar",
+        "Theremin",
+        "Singing bowl",
+        "Scratching (performance technique)",
+        "Pop music",
+        "Hip hop music",
+        "Beatboxing",
+        "Rock music",
+        "Heavy metal",
+        "Punk rock",
+        "Grunge",
+        "Progressive rock",
+        "Rock and roll",
+        "Psychedelic rock",
+        "Rhythm and blues",
+        "Soul music",
+        "Reggae",
+        "Country",
+        "Swing music",
+        "Bluegrass",
+        "Funk",
+        "Folk music",
+        "Middle Eastern music",
+        "Jazz",
+        "Disco",
+        "Classical music",
+        "Opera",
+        "Electronic music",
+        "House music",
+        "Techno",
+        "Dubstep",
+        "Drum and bass",
+        "Electronica",
+        "Electronic dance music",
+        "Ambient music",
+        "Trance music",
+        "Music of Latin America",
+        "Salsa music",
+        "Flamenco",
+        "Blues",
+        "Music for children",
+        "New-age music",
+        "Vocal music",
+        "A capella",
+        "Music of Africa",
+        "Afrobeat",
+        "Christian music",
+        "Gospel music",
+        "Music of Asia",
+        "Carnatic music",
+        "Music of Bollywood",
+        "Ska",
+        "Traditional music",
+        "Independent music",
+        "Song",
+        "Background music",
+        "Theme music",
+        "Jingle (music)",
+        "Soundtrack music",
+        "Lullaby",
+        "Video game music",
+        "Christmas music",
+        "Dance music",
+        "Wedding music",
+        "Happy music",
+        "Sad music",
+        "Tender music",
+        "Exciting music",
+        "Angry music",
+        "Scary music",
+        "Wind",
+        "Rustling leaves",
+        "Wind noise (microphone)",
+        "Thunderstorm",
+        "Thunder",
+        "Water",
+        "Rain",
+        "Raindrop",
+        "Rain on surface",
+        "Stream",
+        "Waterfall",
+        "Ocean",
+        "Waves, surf",
+        "Steam",
+        "Gurgling",
+        "Fire",
+        "Crackle",
+        "Vehicle",
+        "Boat, Water vehicle",
+        "Sailboat, sailing ship",
+        "Rowboat, canoe, kayak",
+        "Motorboat, speedboat",
+        "Ship",
+        "Motor vehicle (road)",
+        "Car",
+        "Vehicle horn, car horn, honking",
+        "Toot",
+        "Car alarm",
+        "Power windows, electric windows",
+        "Skidding",
+        "Tire squeal",
+        "Car passing by",
+        "Race car, auto racing",
+        "Truck",
+        "Air brake",
+        "Air horn, truck horn",
+        "Reversing beeps",
+        "Ice cream truck, ice cream van",
+        "Bus",
+        "Emergency vehicle",
+        "Emergency vehicle",
+        "Ambulance (siren)",
+        "Emergency vehicle (police, ambulance, firetruck)",
+        "Motorcycle",
+        "Traffic noise, roadway noise",
+        "Rail transport",
+        "Train",
+        "Train whistle",
+        "Train horn",
+        "Railroad car, train wagon",
+        "Train wheels squealing",
+        "Subway, metro, underground",
+        "Aircraft",
+        "Aircraft engine",
+        "Jet engine",
+        "Propeller, airscrew",
+        "Helicopter",
+        "Fixed-wing aircraft, airplane",
+        "Bicycle",
+        "Skateboard",
+        "Engine",
+        "Light engine (high frequency)",
+        "Dental drill, dentist's drill",
+        "Lawn mower",
+        "Chainsaw",
+        "Medium engine (mid frequency)",
+        "Heavy engine (low frequency)",
+        "Engine knocking",
+        "Engine starting",
+        "Idling",
+        "Accelerating, revving, vroom",
+        "Door",
+        "Doorbell",
+        "Ding-dong",
+        "Sliding door",
+        "Slam",
+        "Knock",
+        "Tap",
+        "Squeak",
+        "Cupboard open or close",
+        "Drawer open or close",
+        "Dishes, pots, and pans",
+        "Cutlery, silverware",
+        "Chopping (food)",
+        "Frying (food)",
+        "Microwave oven",
+        "Blender",
+        "Water tap, faucet",
+        "Sink (filling or washing)",
+        "Bathtub (filling or washing)",
+        "Hair dryer",
+        "Toilet flush",
+        "Toothbrush",
+        "Electric toothbrush",
+        "Vacuum cleaner",
+        "Zipper (clothing)",
+        "Keys jangling",
+        "Coin (dropping)",
+        "Scissors",
+        "Electric shaver, electric razor",
+        "Shuffling cards",
+        "Typing",
+        "Typewriter",
+        "Computer keyboard",
+        "Writing",
+        "Alarm",
+        "Telephone",
+        "Telephone bell ringing",
+        "Ringtone",
+        "Telephone dialing, DTMF",
+        "Dial tone",
+        "Busy signal",
+        "Alarm clock",
+        "Emergency vehicle (police, ambulance, firetruck)",
+        "Civil defense siren",
+        "Buzzer",
+        "Smoke detector, smoke alarm",
+        "Fire alarm",
+        "Foghorn",
+        "Whistle",
+        "Steam whistle",
+        "Mechanisms",
+        "Ratchet, pawl",
+        "Clock",
+        "Tick",
+        "Tick-tock",
+        "Gears",
+        "Pulleys",
+        "Sewing machine",
+        "Mechanical fan",
+        "Air conditioning",
+        "Cash register",
+        "Printer",
+        "Camera",
+        "Single-lens reflex camera",
+        "Tools",
+        "Hammer",
+        "Jackhammer",
+        "Sawing",
+        "Filing (rasp)",
+        "Sanding",
+        "Power tool",
+        "Drill",
+        "Explosion",
+        "Gunshot, gunfire",
+        "Machine gun",
+        "Fusillade",
+        "Artillery fire",
+        "Cap gun",
+        "Fireworks",
+        "Firecracker",
+        "Burst, pop",
+        "Eruption",
+        "Boom",
+        "Wood",
+        "Chop",
+        "Splinter",
+        "Crack",
+        "Glass",
+        "Chink, clink",
+        "Shatter",
+        "Liquid",
+        "Splash, splatter",
+        "Slosh",
+        "Squish",
+        "Drip",
+        "Pour",
+        "Trickle, dribble",
+        "Gush",
+        "Fill (with liquid)",
+        "Spray",
+        "Pump (liquid)",
+        "Stir",
+        "Boiling",
+        "Sonar",
+        "Arrow",
+        "Whoosh, swoosh, swish",
+        "Thump, thud",
+        "Thunk",
+        "Electronic tuner",
+        "Effects unit",
+        "Chorus effect",
+        "Basketball bounce",
+        "Bang",
+        "Slap, smack",
+        "Whack, thwack",
+        "Smash, crash",
+        "Breaking",
+        "Bouncing",
+        "Whip",
+        "Flap",
+        "Scratch",
+        "Scrape",
+        "Rub",
+        "Roll",
+        "Crushing",
+        "Crumpling, crinkling",
+        "Tearing",
+        "Beep, bleep",
+        "Ping",
+        "Ding",
+        "Clang",
+        "Squeal",
+        "Creak",
+        "Rustle",
+        "Whir",
+        "Clatter",
+        "Sizzle",
+        "Clicking",
+        "Clickety-clack",
+        "Rumble",
+        "Plop",
+        "Jingle, tinkle",
+        "Hum",
+        "Zing",
+        "Boing",
+        "Crunch",
+        "Silence",
+        "Sine wave",
+        "Harmonic",
+        "Chirp tone",
+        "Sound effect",
+        "Pulse",
+        "Inside, small room",
+        "Inside, large room or hall",
+        "Inside, public space",
+        "Outside, urban or manmade",
+        "Outside, rural or natural",
+        "Reverberation",
+        "Echo",
+        "Noise",
+        "Environmental noise",
+        "Static",
+        "Mains hum",
+        "Distortion",
+        "Sidetone",
+        "Cacophony",
+        "White noise",
+        "Pink noise",
+        "Throbbing",
+        "Vibration",
+        "Television",
+        "Radio",
+        "Field recording"
+    )
+
+    private var currentPlaybackId: Long = 0
+    private var isRecording = false
+    private var activeAudioTrack: AudioTrack? = null
     private var record: AudioRecord? = null
     private var timerTask: TimerTask? = null
-    private var isRecording = false
     private val timer = Timer()
+    private var vibroInterpreter: VibroInterpreter? = null
+    private val sampleRate = 16000
+    private val rollingBuffer = ShortArray(sampleRate * 5)
+    private var bufferOffset = 0
+    private val bufferSize = AudioRecord.getMinBufferSize(
+        sampleRate,
+        AudioFormat.CHANNEL_IN_MONO,
+        AudioFormat.ENCODING_PCM_16BIT
+    )
+    private var lastHpSample = 0f
 
-    @ReactMethod
-    fun startRecording(promise: Promise) {
-        if (isRecording) {
-            return
-        }
-        isRecording = true
-        val context = reactApplicationContext
-        // Loading the model from the assets folder
-        try {
-            Log.d("classifier","classifier initialize")
-            classifier = AudioClassifier.createFromFile(context, modelPath)
-            Log.d("startRecording","classifier initialize")
-        } catch (e: IOException) {
-            e.printStackTrace()
-            return
-        }
 
-        // Creating an audio recorder
-        tensor = classifier?.createInputTensorAudio()
-        Log.d("startRecording","tensor initialize")
-        // showing the audio recorder specification
-        val format = classifier?.requiredTensorAudioFormat
-        val specs = "Number of channels: ${format?.channels}\nSample Rate: ${format?.sampleRate}"
-        Log.d("SPECS",specs)
+    override fun getName(): String = NAME
 
-        // Creating and start recording
-        record = classifier?.createAudioRecord()
-        record?.startRecording()
-
-        timerTask = object : TimerTask() {
-            override fun run() {
-                // Classifying audio data
-                val numberOfSamples = tensor?.load(record) ?: 0
-                val output = classifier?.classify(tensor) ?: emptyList()
-
-                // Filtering out classifications with low probability
-                val finalOutput = mutableListOf<Category>()
-                for (classifications in output) {
-                    for (category in classifications.categories) {
-                        if (category.score > probabilityThreshold) {
-                            finalOutput.add(category)
-                        }
-                    }
-                }
-
-                // Sorting the results
-                finalOutput.sortByDescending { it.score }
-
-                if (finalOutput.isNotEmpty()) {
-                    val firstPrediction = finalOutput.first()
-                    val currentTime = System.currentTimeMillis()
-
-                    val params = Arguments.createMap()
-                    params.putDouble("time", currentTime.toDouble()) // Convert to Double for WritableMap
-                    params.putString("label", firstPrediction.label)
-                    params.putDouble("confidence", firstPrediction.score.toDouble()) // Convert to Double
-
-                    sendEvent(reactApplicationContext, "onPrediction", params)
-                }
-            }
-        }
-
-        timer.schedule(timerTask, 1, 500)
-    }
-
-    @ReactMethod
-    fun stopRecording() {
-        if (!isRecording) {
-            return
-        }
-        isRecording = false
-
-        timerTask?.cancel()
-        record?.stop()
-    }
-
-    private fun sendEvent(reactContext: ReactContext, eventName: String, params: WritableMap?) {
+    private fun sendEvent(reactContext: ReactContext, eventName: String, params: WritableMap) {
         reactContext
             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
             .emit(eventName, params)
     }
 
-    override fun getName(): String {
-        return NAME
+    private fun applyNoiseGate(buffer: ShortArray, threshold: Short = 400) {
+        for (i in buffer.indices) {
+            if (abs(buffer[i].toInt()) < threshold) buffer[i] = 0
+        }
+    }
+    private fun normalize(buffer: ShortArray) {
+        var maxAmp = 0
+        for (s in buffer) maxAmp = max(maxAmp, abs(s.toInt()))
+        if (maxAmp == 0) return
+
+        val scale = Short.MAX_VALUE.toFloat() / maxAmp
+        for (i in buffer.indices) {
+            buffer[i] = (buffer[i] * scale).toInt().toShort()
+        }
+    }
+    private fun highPassFilter(buffer: ShortArray, alpha: Float = 0.95f) {
+        for (i in buffer.indices) {
+            val current = buffer[i].toFloat()
+            val filtered = alpha * (lastHpSample + current - lastHpSample)
+            buffer[i] = filtered.toInt().toShort()
+            lastHpSample = current
+        }
+    }
+
+
+
+    @ReactMethod
+    fun startRecording(numClasses: Int, labels: ReadableArray, filename: String, promise: Promise)
+    {
+
+        if (isRecording) {
+            promise.reject("RECORDING_ALREADY_ACTIVE", "Recording is already in progress.")
+            return
+        }
+        Log.d("LOCATION OF THE FILE",filename)
+
+        try {
+            if(numClasses==0){
+                vibroInterpreter = VibroInterpreter(reactApplicationContext, "VIBRO.tflite", 9)
+
+            }else{
+                vibroInterpreter = VibroInterpreter(reactApplicationContext,
+                    "/models/$filename", numClasses)
+
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            promise.reject("MODEL_LOAD_ERROR", "Failed to load model: ${e.message}")
+            return
+        }
+
+        record = AudioRecord(
+            MediaRecorder.AudioSource.MIC,
+            sampleRate,
+            AudioFormat.CHANNEL_IN_MONO,
+            AudioFormat.ENCODING_PCM_16BIT,
+            bufferSize
+        )
+        if (NoiseSuppressor.isAvailable()) {
+            NoiseSuppressor.create(record!!.audioSessionId)
+        }
+        
+
+        record?.startRecording()
+        isRecording = true
+
+        timerTask = object : TimerTask() {
+            override fun run() {
+                val stepSize = sampleRate // 1 second of audio = 16000 samples
+                val tempBuffer = ShortArray(stepSize)
+
+                val readCount = record?.read(tempBuffer, 0, stepSize) ?: return
+                if (readCount <= 0) return
+
+                //applyNoiseGate(tempBuffer)
+                //highPassFilter(tempBuffer)
+                //normalize(tempBuffer)
+                // Shift old data left by stepSize
+                for (i in tempBuffer.indices) {
+                    tempBuffer[i] = (tempBuffer[i] * 0.999f).toInt().toShort()
+                }
+
+                System.arraycopy(
+                    rollingBuffer,
+                    stepSize,
+                    rollingBuffer,
+                    0,
+                    rollingBuffer.size - stepSize
+                )
+//                Log.d("DEBUG", "Rolling buffer size: ${rollingBuffer.size}")
+
+                // Add new audio to the end of rolling buffer
+                System.arraycopy(tempBuffer, 0, rollingBuffer, rollingBuffer.size - stepSize, stepSize)
+
+                // Classify the current n-second buffer
+                val results = vibroInterpreter?.classify(rollingBuffer) ?: return
+                val yamnetResult = results.first
+                val customResult = results.second
+
+                val eventData = Arguments.createMap()
+
+                // Process YAMNet scores
+                val yamnetPredictionArray = Arguments.createArray()
+                yamnetResult?.forEachIndexed { index, confidence ->
+                    val prediction = Arguments.createMap()
+
+                    if (yamnet_labels[index] in criticalLabels){
+                        if(confidence.toDouble()>=.30) {
+                            prediction.putString("label", yamnet_labels[index])
+                            prediction.putDouble("confidence", confidence.toDouble())
+                            yamnetPredictionArray.pushMap(prediction)
+                        }
+                    }else{
+                        if(confidence.toDouble()>=.50) {
+                            prediction.putString("label", yamnet_labels[index])
+                            prediction.putDouble("confidence", confidence.toDouble())
+                            yamnetPredictionArray.pushMap(prediction)
+                        }
+                    }
+                }
+                eventData.putArray("yamnetPredictions", yamnetPredictionArray)
+
+                // Process custom scores
+                val customPredictionArray = Arguments.createArray()
+                if(numClasses>0){
+
+                    customResult?.forEachIndexed { index, confidence ->
+                        if (confidence.toDouble() >= 0.50 && labels.getString(index) !in CustomEnvironmentalSound) {
+                            val prediction = Arguments.createMap()
+                            prediction.putString("label", labels.getString(index))
+                            prediction.putDouble("confidence", confidence.toDouble())
+                            customPredictionArray.pushMap(prediction)
+                        }
+                    }
+                }
+                eventData.putArray("customPredictions", customPredictionArray)
+                val audioBase64 = shortArrayToBase64(rollingBuffer)
+                Log.d("DEBUG", "Base64 audio length: ${audioBase64.length}")
+
+                eventData.putString("audioBase64", audioBase64)
+
+                sendEvent(reactApplicationContext, "onPrediction", eventData)
+            }
+        }
+        timer.schedule(timerTask, 0, 1000)
+        promise.resolve("Recording started.")
+    }
+    fun shortArrayToBase64(data: ShortArray): String {
+        val byteBuffer = ByteBuffer.allocate(data.size * 2)
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+        for (sample in data) {
+            byteBuffer.putShort(sample)
+        }
+        return Base64.encodeToString(byteBuffer.array(), Base64.NO_WRAP)
+    }
+
+
+   @ReactMethod
+    fun playAudio(base64Audio: String?, promise: Promise) {
+        try {
+            if (base64Audio.isNullOrEmpty()) {
+                promise.reject("INVALID_INPUT", "Base64 audio string is null or empty.")
+                return
+            }
+
+            // 1. Increment the ID. This invalidates any previous sleeping threads.
+            synchronized(this) {
+                currentPlaybackId++
+            }
+            val myPlaybackId = currentPlaybackId 
+
+            // Stop any currently playing audio
+            stopPlayerInternal()
+
+            val audioBytes = Base64.decode(base64Audio, Base64.NO_WRAP)
+            val shortBuffer = ByteBuffer.wrap(audioBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+            val audioData = ShortArray(shortBuffer.remaining())
+            shortBuffer.get(audioData)
+
+            val sampleRate = 16000
+            val channelConfig = AudioFormat.CHANNEL_OUT_MONO
+            val audioFormat = AudioFormat.ENCODING_PCM_16BIT
+            val minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+            val bufferSize = maxOf(minBufferSize, audioData.size * 2)
+
+            // Assign to the CLASS-LEVEL variable 'activeAudioTrack'
+            activeAudioTrack = AudioTrack(
+                AudioManager.STREAM_MUSIC,
+                sampleRate,
+                channelConfig,
+                audioFormat,
+                bufferSize,
+                AudioTrack.MODE_STREAM
+            )
+
+            activeAudioTrack?.play()
+            activeAudioTrack?.write(audioData, 0, audioData.size)
+
+            // Auto-stop thread
+            Thread {
+                try {
+                    val durationMs = (audioData.size * 1000L) / sampleRate
+                    Thread.sleep(durationMs + 200)
+                    
+                    // Only resolve if we finished naturally (and weren't stopped manually)
+                    if (myPlaybackId == currentPlaybackId && activeAudioTrack != null) {
+                        stopPlayerInternal()
+                        promise.resolve("Audio playback finished.")
+                    }
+                } catch (e: InterruptedException) {
+                    Log.e("AudioRecorderModule", "Sleep interrupted: ${e.message}")
+                } catch (e: Exception) {
+                    // Handle potential promise crash if already resolved
+                }
+            }.start()
+
+        } catch (e: Exception) {
+            Log.e("AudioRecorderModule", "Exception: ${e.message}")
+            promise.reject("PLAYBACK_ERROR", "General error: ${e.message}")
+        }
+    }
+
+    // 3. ADD these new methods to stop audio
+    @ReactMethod
+    fun stopAudio(promise: Promise) {
+        stopPlayerInternal()
+        promise.resolve("Audio stopped.")
+    }
+
+    @ReactMethod
+    fun stopPlayer(promise: Promise) {
+        // Alias for stopAudio
+        stopAudio(promise)
+    }
+
+    // Helper function to safely stop and release
+    private fun stopPlayerInternal() {
+        try {
+            if (activeAudioTrack != null) {
+                activeAudioTrack?.pause()
+                activeAudioTrack?.flush()
+                activeAudioTrack?.stop()
+                activeAudioTrack?.release()
+            }
+        } catch (e: Exception) {
+            Log.e("AudioRecorderModule", "Error stopping audio: ${e.message}")
+        } finally {
+            activeAudioTrack = null
+        }
+    }
+
+    @ReactMethod
+    fun stopRecording(promise: Promise) {
+        if (!isRecording) {
+            promise.reject("NO_RECORDING", "No recording in progress.")
+            return
+        }
+
+        isRecording = false
+        timerTask?.cancel()
+        record?.stop()
+        record?.release()
+        record = null
+        promise.resolve("Recording stopped.")
     }
 }

@@ -11,14 +11,26 @@ import logout from "../assets/icons/logout.png";
 import eyeHide from "../assets/icons/eye-hide.png";
 import eye from "../assets/icons/eye.png";
 import play from "../assets/icons/play.png";
+import pause from "../assets/icons/pause.png";
 import sound from "../assets/icons/sound.png";
 import group from "../assets/icons/group.png";
 import person from "../assets/icons/you.png";
 import microphone from "../assets/images/microphone.png";
 import recording from "../assets/images/recording.png";
+import addgroup from "../assets/icons/addgroup.png";
+import chat from "../assets/icons/chat.png";
+import info from "../assets/icons/info.png";
+import add_user from "../assets/icons/add_user.png";
+import replay from "../assets/icons/replay.png";
+import musicnote from "../assets/icons/musicnote.png";
+import trash from "../assets/icons/trash.png";
+import folder  from "../assets/icons/folder.png";
+import warning  from "../assets/icons/warning.png";
 
 export default {
+  warning,
   play,
+  pause,
   bookmark,
   home,
   plus,
@@ -35,5 +47,13 @@ export default {
   group,
   person,
   microphone,
-  recording
+  recording,
+  addgroup,
+  chat,
+  info,
+  add_user,
+  replay,
+  musicnote,
+  trash,
+  folder
 };

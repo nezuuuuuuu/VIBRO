@@ -1,85 +1,206 @@
+// src/components/mainNavigator.js
 import React from 'react';
-import { StatusBar, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { Image, Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import '@react-native-firebase/app';
-import Home from '../screens/(tabs)/home'; 
-import Group from '../screens/(tabs)/group'; 
-import Sound from '../screens/(tabs)/sound'; 
-import Profile from '../screens/(tabs)/profile'; 
-import Login from '../screens/account/login'; 
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Home from '../screens/(tabs)/home';
+import Group from '../screens/(tabs)/group';
+import CreateGroup from '../screens/(tabs)/createGroup';
+import Sound from '../screens/(tabs)/sound';
+import ProfileScreen from '../screens/(tabs)/profile';
+import EditProfile from '../screens/(tabs)/editprofile';
+import GroupDetails from '../screens/(tabs)/GroupDetails';
+import GroupSoundsDetected from '../screens/(tabs)/GroupSoundsDetected';
+import GroupInfo from '../screens/(tabs)/GroupInfo';
+import ChatScreen from '../screens/(tabs)/chatScreen';
+// import MorphingBlob from '../screens/(tabs)/morphingBlob';
 import { icons } from '../constants';
+import "../../global.css";
+import CustomSounds from '../screens/(tabs)/customSound';
+
+
+import { useAppStore } from '../../store/appStore'; 
+import CustomFolder from '../screens/(tabs)/customFolder';
+
 const Tab = createBottomTabNavigator();
+const ProfileStack = createNativeStackNavigator();
+const GroupStack = createNativeStackNavigator();
+
+const ProfileStackNavigator = () => {
+  return (
+    <ProfileStack.Navigator screenOptions={{
+        headerStyle: {
+          backgroundColor: 'bg-primary',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+        headerBackTitleVisible: false,
+      }}
+    >
+      <ProfileStack.Screen name="ProfileScreen" component={ProfileScreen} />
+      <ProfileStack.Screen name="EditProfile" component={EditProfile} />
+    </ProfileStack.Navigator>
+  );
+};
+
+const GroupStackNavigator = () => {
+  return (
+    <GroupStack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: 'bg-primary',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        }
+      }}
+    >
+      <GroupStack.Screen
+        name="GroupsList"
+        component={Group}
+        options={{ title: 'My Groups' }}
+      />
+      
+      <GroupStack.Screen
+        name="CreateGroup"
+        component={CreateGroup}
+        options={{ headerShown: false }}
+      />
+      <GroupStack.Screen
+        name="GroupDetails"
+        component={GroupDetails}
+      />
+      <GroupStack.Screen
+        name="GroupSoundsDetected"
+        component={GroupSoundsDetected}
+        options={{ title: 'Sound Detections' }}
+      />
+      <GroupStack.Screen
+        name="GroupInfo"
+        component={GroupInfo}
+        options={{ title: 'Group Information' }}
+      />
+      <GroupStack.Screen
+        name="ChatScreen"
+        component ={ChatScreen}
+        options={({ title: 'Chat Screen'})}
+      />
+        
+      <GroupStack.Screen
+       name="CustomSounds"
+       component={CustomSounds}
+         options={{
+          headerShown: true,
+          }} />
+
+      <GroupStack.Screen
+        name="CustomFolder"
+        component={CustomFolder}
+        options={({ title: 'Custom Folder'})}
+      />
+    </GroupStack.Navigator>
+  );
+};
 
 const MainNavigator = () => {
+  const { isOfflineMode } = useAppStore();
+
   return (
-    <>
-      <SafeAreaView className="h-full bg-primary">
-        <NavigationContainer>
-          <Tab.Navigator
-            screenOptions={({ route }) => ({
-              headerShown: true,
-              headerStyle: {
-                backgroundColor: '#1B1B3A',
-                borderBottomWidth: 0,
-              },
-              headerTintColor: '#F5F5F5',
-              tabBarIcon: ({ focused, color, size }) => {
-                let iconSource;
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: true,
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconSource;
 
-                switch (route.name) {
-                  case 'Home':
-                    iconSource = icons.home;
-                    break;
-                  case 'Group':
-                    iconSource = icons.group;
-                    break;
-                  case 'Sound':
-                    iconSource = icons.sound;
-                    break;
-                  case 'Profile':
-                    iconSource = icons.profile;
-                    break;
-                  default:
-                    break;
-                }
+          switch (route.name) {
+            case 'Home':
+              iconSource = icons.home;
+              break;
+            case 'Sound':
+              iconSource = icons.sound;
+              break;
+            case 'Group':
+              iconSource = icons.group;
+              break;
+            case 'Profile':
+              iconSource = icons.profile;
+              break;
+            default:
+              break;
+          }
 
-                return (
-                  <Image
-                    source={iconSource}
-                    style={{
-                      width: 24,
-                      height: 24,
-                      tintColor: focused ? '#10B981' : '#9CA3AF',
-                    }}
-                    resizeMode="contain"
-                  />
-                );
-              },
-              tabBarActiveTintColor: '#8A2BE2',
-              tabBarInactiveTintColor: '#CDCDE0',
-              tabBarShowLabel: false,
-              tabBarStyle: {
-                backgroundColor: '#1B1B3A',
-                borderTopWidth: 1,
-                borderTopColor: '#232533',
-                height: 84,
-                justifyContent: 'center',
-              },
-              tabBarItemStyle: {
-                top: 20,
-              },
-            })}
-          >
-            <Tab.Screen name="Home" component={Home} />
-            <Tab.Screen name="Group" component={Group} />
-            <Tab.Screen name="Sound" component={Sound} />
-            <Tab.Screen name="Profile" component={Profile} />
-          </Tab.Navigator>
-        </NavigationContainer>
-      </SafeAreaView>
-    </>
+          return (
+            <Image
+              source={iconSource}
+              style={{
+                width: 24,
+                height: 24,
+                tintColor: focused ? '#8A2BE2' : '#9CA3AF',
+              }}
+              resizeMode="contain"
+            />
+          );
+        },
+        tabBarActiveTintColor: '#8A2BE2',
+        tabBarInactiveTintColor: '#CDCDE0',
+        tabBarShowLabel: false,
+        tabBarStyle: {
+          backgroundColor: '#1B1B3A',
+          borderTopWidth: 1,
+          borderTopColor: '#232533',
+          height: 84,
+          justifyContent: 'center',
+        },
+        tabBarItemStyle: {
+          height: '100%', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          paddingHorizontal: 0,
+          paddingVertical: 20,
+        },
+      })}
+    >
+      <Tab.Screen name="Home" component={Home} />
+      <Tab.Screen
+        name="Group"
+        component={GroupStackNavigator}
+        options={{
+          tabBarLabel: 'Group',
+          headerShown: false,
+        }}
+        listeners={{
+          tabPress: (e) => {
+            if (isOfflineMode) { 
+              e.preventDefault();
+              Alert.alert("Offline Mode", "Group features are not available when offline.");
+            }
+          },
+        }}
+      />
+     
+        {/* <Tab.Screen
+        name="morhpingBlob"
+        component={MorphingBlob}
+        
+      /> */}
+
+      <Tab.Screen
+        name="Sound"
+        component={Sound}
+        listeners={{
+          tabPress: (e) => {
+            if (isOfflineMode) { 
+              e.preventDefault();
+              Alert.alert("Offline Mode", "Sound features are not available when offline."); 
+            }
+          },
+        }}
+      />
+      <Tab.Screen name="Profile" component={ProfileStackNavigator} options={{ tabBarLabel: 'Profile', headerShown: false }} />
+    </Tab.Navigator>
   );
 };
 
