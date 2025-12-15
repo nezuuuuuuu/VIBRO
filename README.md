@@ -144,7 +144,7 @@ This guide assumes you have **Node.js** (v20+), **npm/Yarn**, and the necessary 
 
 If everything is set up correctly, you should see your new app running in the Android Emulator or your connected device.
 
-### 3. Train API Setup and Deployment
+### 4. Train API Setup and Deployment
 1.  **Clone the Repository:**
     ```sh
     git https://github.com/nezuuuuuuu/VIBRO_FLASK_TRAIN.git
@@ -152,7 +152,7 @@ If everything is set up correctly, you should see your new app running in the An
 
 2.  **Install Dependencies:**
     ```sh
-  pip install -r requirements.txt
+    pip install -r requirements.txt
     ```
 3.  **Start the Flask Server:**
    
