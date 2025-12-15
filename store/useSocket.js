@@ -56,7 +56,7 @@ export const useSocket = create((set, get) => ({
       newSocket.on('new-sound', async ({ userId, username, groupId, groupName, label, confidence, sound }) => {
         if(userId === currentId) return; // Ignore own events
 
-         const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren','Emergency vehicle'];
+         const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren','Emergency vehicle','Fire alarm'];
         console.log('🔔 New sound event received:', { userId, username, groupId, groupName, label, confidence });
 
         if (NOTIF_LEVEL_1_ALLOWED_LABELS.includes(label)) {
@@ -68,7 +68,7 @@ export const useSocket = create((set, get) => ({
               groupId,
               groupName,
               username,
-              userId
+              currentId
             },
             android: {
               channelId: 'sound-alerts3',

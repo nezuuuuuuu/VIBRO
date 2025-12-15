@@ -51,7 +51,9 @@ interface ChatScreenProps {
 }
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
-    const { groupId, groupName, currentUserId } = route.params;
+    const { groupId, groupName } = route.params;
+    const { user } = useAuthStore();
+    const currentUserId = user?._id;
     const {token } = useAuthStore();
 
     const [messages, setMessages] = useState<MessagePayload[]>([]);
@@ -168,19 +170,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
 
     }, [groupId, fetchMessages]);
 
-    useEffect(() => {
-        if (messages.length > 0 && shouldScrollToBottomRef.current) {
-            console.log('Scrolling to bottom...');
-            setTimeout(() => {
-                if (flatListRef.current?.getScrollResponder()) {
-                    flatListRef.current?.scrollToEnd({ animated: true });
-                    shouldScrollToBottomRef.current = false;
-                } else {
-                     console.log('FlatList or ScrollResponder not available for scrolling.');
-                }
-            }, 100);
-        }
-    }, [messages.length]);
+ 
 
     const handleSend = async (type: 'text' | 'image', content?: string | null, imageUrl?: string | null) => {
         if (isSending) return;
@@ -301,6 +291,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
                     keyExtractor={(item) => item._id}
                     className="flex-1 px-2.5 bg-gray-100"
                     contentContainerStyle={{ paddingVertical: 10 }}
+                    onContentSizeChange={() => {
+                        if (shouldScrollToBottomRef.current && messages.length > 0) {
+                            flatListRef.current?.scrollToEnd({ animated: false });
+                        }
+                    }}
                     ListEmptyComponent={
                         <Text className="text-center mt-12 text-gray-500 text-base">
                             No messages yet. Start the conversation!

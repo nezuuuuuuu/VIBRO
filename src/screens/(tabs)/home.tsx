@@ -409,7 +409,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                             
                             actions: [
                                     {
-                                      title: "I'm Safe?",
+                                      title: "I am Safe!",
                                       pressAction: { id: 'i_am_safe' },
                                     },
                                     {

@@ -125,13 +125,17 @@ export function registerNotificationListeners() {
 
   // Then, push ChatScreen onto the stack
   // Use a small delay to ensure the tab has mounted
-  setTimeout(() => {
-    navigate('ChatScreen', {
-      groupId: data?.groupId,
-      groupName: data?.groupName,
-      currentUserId: data?.userId,
-    });
-  }, 200); // 100ms delay usually works
+  setTimeout(async () => {
+    console.log("data**", data)
+  const token = await AsyncStorage.getItem('token');
+
+  navigate('ChatScreen', {
+    groupId: data?.groupId,
+    groupName: data?.groupName,
+    currentUserId: data?.currentUserId,
+
+  });
+}, 1000);
 }else if (actionId === 'help_me') {
     try {
         const token = await AsyncStorage.getItem('token');

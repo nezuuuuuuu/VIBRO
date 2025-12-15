@@ -1,17 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Welcome from './src/screens/(welcome)/index';
 import AuthScreen from './src/screens/(auth)';
 import Tabs from './src/components/mainNavigator';
 import { useAuthStore } from "./store/authStore";
-import { View, ActivityIndicator, Platform, Image, StatusBar, Alert } from 'react-native';
+import { View, ActivityIndicator, Platform, Image, StatusBar, Alert,PermissionsAndroid } from 'react-native';
 import Signup from './src/screens/(auth)/signup';
 import Login from './src/screens/(auth)';
 import OTPVerification from './src/screens/(auth)/otpverification';
 import notifee, { AndroidColor, AndroidImportance } from '@notifee/react-native';
 import { navigationRef } from './src/components/navigationRef';
 import {registerNotificationListeners} from './src/components/notification';
+import messaging from "@react-native-firebase/messaging"
 
 const Stack = createNativeStackNavigator();
 
@@ -77,12 +78,55 @@ if (Platform.OS === 'android') {
 
 export default function App() {
 
+  
 
 
   const { checkAuth, user, token } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false); 
+
+
+
+  const requestPermission = async ()=>{
+    try {
+      const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+      console.log("result**", result)
+      console.log("result**2", PermissionsAndroid.RESULTS.GRANTED)
+      if(result === PermissionsAndroid.RESULTS.GRANTED){
+        // request for device token
+        requestToken()
+      }else{
+        Alert.alert("Permission Denied")
+      }
+    } catch (error) {
+        console.log(error)
+    }
+  }
+
+  
+  const requestToken = async ()=>{
+    try {
+      await messaging().registerDeviceForRemoteMessages();
+      const token = await messaging().getToken();
+      console.log("token**", token)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+  // messaging().setBackgroundMessageHandler(async remoteMessage => { 
+    
+  //   console.log('Message handled in the background!', remoteMessage);
+  // }); // deprecated
+  // useEffect(() => {
+  //   const unsubscribe = messaging().onMessage(async remoteMessage => {
+  //     Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
+  //   });
+
+  //   return unsubscribe;
+  // }, []);
+ 
 useEffect(() => {
+  // requestPermission()
   registerNotificationListeners();
 }, []);
   useEffect(() => {
