@@ -237,7 +237,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     };
 
     const renderMessage = ({ item }: { item: MessagePayload }) => {
-        const isMyMessage = item.senderId._id === currentUserId;
+        let isMyMessage;
+        if(!item.senderId){
+            console.log("Deleted user detected in message:", item);
+            item.senderId={username: "Deleted User", _id: "deleted"};
+        }else{
+        isMyMessage = item.senderId._id === currentUserId;
+        }
         return (
             <View
                 className={`max-w-[75%] p-2.5 rounded-[15px] my-1.5 ${

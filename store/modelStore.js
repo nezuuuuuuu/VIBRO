@@ -11,7 +11,7 @@ if (typeof global.Buffer === 'undefined') {
   global.Buffer = Buffer;
 }
 
-const API_BASE_URL = 'http://13.54.189.45:5000/'; // Replace with your server IP
+const API_BASE_URL = 'http://13.54.189.45'; // Replace with your server IP
 // const API_BASE_URL = BASE_URL;
 
 
@@ -27,37 +27,43 @@ export const useModelStore = create((set) => ({
   setModel: (model) => set({ model }),
 
   fetchAndCreateModel: async (groupId, groupName) => {
-    set({ isTrainingModel: true, error: null });
-    try {
-      if (!groupId) throw new Error('Group ID is required to train a model.');
+  set({ isTrainingModel: true, error: null });
+  console.log(`Starting model training for Group ID: ${groupId}, Group Name: ${groupName}`);
+  try {
+    if (!groupId) throw new Error('Group ID is required to train a model.');
 
-      const response = await axios.get(`${API_BASE_URL}/folders`, { 
-        params: { groupId },
-        responseType: 'arraybuffer',
-      });
-
-      if (response.status === 200) {
-        const directoryPath = `${RNFS.DocumentDirectoryPath}/models`;
-        const exists = await RNFS.exists(directoryPath);
-        if (!exists) await RNFS.mkdir(directoryPath);
-
-        const filePath = `${directoryPath}/${groupId}.tflite`; 
-        const base64Data = Buffer.from(response.data, 'binary').toString('base64');
-
-        await RNFS.writeFile(filePath, base64Data, 'base64');
-        console.log('Model saved at:', filePath);
-
-        set({ isTrainingModel: false });
-        return { success: true, modelPath: filePath };
-      } else {
-        throw new Error(`Failed to retrieve model: Server responded with status ${response.status}`);
-      }
-    } catch (error) {
-      console.error('fetchAndCreateModel error:', error.message);
-      set({ isTrainingModel: false, error: error.message });
-      return { success: false, error: error.message };
+    const url = `${API_BASE_URL}/folders?groupId=${groupId}`;
+    const response = await fetch(url);
+    console.log('Response received from server for model training request.');
+    if (!response.ok) {
+      throw new Error(`Failed to retrieve model: Server responded with status ${response.status}`);
     }
-  },
+
+    // Fetch returns ArrayBuffer directly
+    const arrayBuffer = await response.arrayBuffer();
+
+    const directoryPath = `${RNFS.DocumentDirectoryPath}/models`;
+    const exists = await RNFS.exists(directoryPath);
+    if (!exists) await RNFS.mkdir(directoryPath);
+
+    const filePath = `${directoryPath}/${groupId}.tflite`;
+
+    // Convert ArrayBuffer → Base64
+    const base64Data = Buffer.from(arrayBuffer).toString('base64');
+
+    await RNFS.writeFile(filePath, base64Data, 'base64');
+    console.log('Model saved at:', filePath);
+
+    set({ isTrainingModel: false });
+    return { success: true, modelPath: filePath };
+
+  } catch (error) {
+    console.error('fetchAndCreateModel error:', error.message);
+    set({ isTrainingModel: false, error: error.message });
+    return { success: false, error: error.message };
+  }
+},
+
 
   fetchModelById: async (groupId) => {
     set({ loading: true, error: null }); 

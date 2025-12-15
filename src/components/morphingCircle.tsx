@@ -30,6 +30,7 @@ const SOUND_ICONS: { [key: string]: any } = {
   'Emergency vehicle': require('../assets/images/labels_image/siren.png'),
   'Music': require('../assets/images/labels_image/music.png'),
   'Fire alarm': require('../assets/images/labels_image/fire_alarm2.png'),
+  'Glass': require('../assets/images/labels_image/broken_glass.png'),
 
 };
 

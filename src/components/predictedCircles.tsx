@@ -1,4 +1,4 @@
-import { Dimensions, View, Text } from 'react-native';
+import { Dimensions, View, TouchableOpacity, Text } from 'react-native';
 import { useMemo, useState, useEffect } from 'react';
 import MorphingCircle from './morphingCircle';
 
@@ -65,6 +65,7 @@ export default function PredictedCircles({
   predictions,
   containerWidth,
   containerHeight,
+  onCirclePress,
 }) {
   const now = Date.now();
 
@@ -149,8 +150,36 @@ export default function PredictedCircles({
 
         const { x, y } = pos;
         console.log(`Rendering circle for "${label}" at (${x.toFixed(1)}, ${y.toFixed(1)}) with size ${size.toFixed(1)} critical level ${criticalLevel}`);
-
+        if(criticalLevel==1){
         return (
+          <TouchableOpacity
+            key={label}
+            onPress={() => onCirclePress(label)}
+            style={{
+              position: 'absolute',
+              left: x,
+              top: y,
+              width: size,
+              height: size,
+
+              zIndex: criticalLevel * 100 + Math.floor(arr[0].timestamp / 1000),
+            }}
+          >
+            <MorphingCircle
+              size={size}
+              colors={colors}
+              text={label}
+              textColor="#fff"
+              textSize={Math.min(40, size / 15)}
+
+              icon={iconSource}
+            />
+          </TouchableOpacity>
+        );
+      } else{
+
+
+ return (
           <View
             key={label}
             style={{
@@ -174,7 +203,11 @@ export default function PredictedCircles({
             />
           </View>
         );
+
+      
+      }
       })}
     </View>
   );
+  
 }

@@ -48,7 +48,7 @@ import { useAppStore } from '../../../store/appStore';
 const { AudioRecorder, Flashlight } = NativeModules;
 
 const NOTIF_LEVEL_1_ALLOWED_LABELS = ['Police car (siren)', 'Siren', 'Ambulance (siren)', 'siren', 'Fire engine, fire truck (siren)','Fire alarm', 'Emergency vehicle'];
-const NOTIF_LEVEL_2_ALLOWED_LABELS = [ 'Glass','Baby cry, infant cry','Crying, sobbing'];
+const NOTIF_LEVEL_2_ALLOWED_LABELS = [ 'Glass','Crying, sobbing'];
 const NOTIF_LEVEL_3_ALLOWED_LABELS = ['Glass','Speech','Music'];
 const ACTIVE_SWITCH_COLOR = '#8A2BE2';
 const INACTIVE_SWITCH_COLOR = '#767577';
@@ -398,7 +398,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     Vibration.vibrate([0, 500, 200, 500]); // Vibrate for 500ms, pause 200ms, vibrate 500ms (High urgency)
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
-                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 1`,
+                        body: `LEVEL 1`,
                         data: {
                           currentCriticalSound: label,
                            
@@ -424,7 +424,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     Vibration.vibrate(500); // Vibrate for 500ms (Medium urgency)
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
-                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 2`,
+                        body: `LEVEL 2`,
                         android: {
                             channelId: 'sound-alerts3',
                             importance: AndroidImportance.MIN,
@@ -434,7 +434,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     // Vibration.vibrate(200); // Vibrate for 200ms (Low urgency)
                     await notifee.displayNotification({
                         title: `Detected: ${label}`,
-                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - LEVEL 3`,
+                        body: `LEVEL 3`,
                         android: {
                             channelId: 'sound-alerts1',
                             importance: AndroidImportance.LOW,
@@ -444,7 +444,7 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                     Vibration.vibrate([0, 1000]); // Vibrate for 1000ms (Distinct for custom sounds)
                     await notifee.displayNotification({
                         title: `Detected Custom Sound: ${label}`,
-                        body: `Confidence: ${(confidence * 100).toFixed(2)}% - Custom Model`,
+                        body: `Custom Model`,
                         android: {
                             channelId: 'sound-alerts2',
                             importance: AndroidImportance.HIGH,
@@ -545,10 +545,19 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
         setSafetyModalVisible(false);
         setCurrentCriticalSound(null);
       };
+      const handleCirclePress = (label:any) => {
+
+        setCurrentCriticalSound(label);
+        setSafetyModalVisible(true);
+      };
 
     return (
      <View className='h-full bg-primary' >
-       <View className='items-center px-4'> 
+       <View className='items-center px-4' style={{
+        position: 'relative',
+        zIndex: 1,
+        elevation: 2, // Android
+      }}> 
          <Text className='mt-4 text-2xl font-pbold text-white'>Sounds Detected</Text>
                {/* <MorphingCircle /> */}
 
@@ -598,30 +607,35 @@ const handlePrediction = async (prediction: { isCustom: boolean, label: string, 
                  </View> */}
          </View>
 
-        <View
-  style={{
-    height: '70%',
-    width: '90%',
-   
-  }}
-  onLayout={(e) => {
-    const { width, height } = e.nativeEvent.layout;
-    setBox({ width, height });
-  }}
->
-  {box.width > 0 && (
-    <PredictedCircles
-      predictions={predictions}
-      containerWidth={box.width}
-      containerHeight={box.height}
-    />
-  )}
-</View>
+            <View
+              style={{
+                height: '70%',
+                width: '90%',
+              
+              }}
+              onLayout={(e) => {
+                const { width, height } = e.nativeEvent.layout;
+                setBox({ width, height });
+              }}
+            >
+              {box.width > 0 && (
+                <PredictedCircles
+                  predictions={predictions}
+                  containerWidth={box.width}
+                  containerHeight={box.height}
+                  onCirclePress={handleCirclePress}
+
+                />
+              )}
+            </View>
        </View>
 
        
 
-       <View className='absolute bottom-6 left-0 right-0 flex-row items-center justify-center'>
+       <View className='absolute bottom-6 left-0 right-0 flex-row items-center justify-center' style={{
+        zIndex: 2,
+        elevation: 1, // Android
+      }}>
          <TouchableOpacity
              onPress={startRecording}
              className={`h-16 w-16 items-center justify-center rounded-full ${isRecording ? 'bg-red-500' : 'bg-secondary'}`}

@@ -125,14 +125,10 @@ export default function App() {
   //   return unsubscribe;
   // }, []);
  
-useEffect(() => {
-  // requestPermission()
-  registerNotificationListeners();
-}, []);
+
   useEffect(() => {
-
-
     const init = async () => {
+      await registerNotificationListeners();
       await checkAuth();  // fetches and sets user/token
       setLoading(false);  // only show UI after auth is checked
     };
