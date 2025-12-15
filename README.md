@@ -156,7 +156,7 @@ If everything is set up correctly, you should see your new app running in the An
     ```
 3.  **Start the Flask Server:**
    
-        ```typescript
+        ```
         python app.py
         By default, the API runs at http://127.0.0.1:5000.
         ```
