@@ -81,18 +81,27 @@ export default function App() {
   
 
 
-  const { checkAuth, user, token } = useAuthStore();
+  const { checkAuth, user, token, fcmId, setFcmId } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false); 
 
 
 
   const requestPermission = async ()=>{
+    if (Platform.OS !== 'android') return;
+
+  if (Platform.Version < 33) {
+    // Android 12 and below → permission auto-granted
+    console.log('POST_NOTIFICATIONS auto-granted');
+    requestToken();
+    return;
+  }
     try {
       const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
       console.log("result**", result)
       console.log("result**2", PermissionsAndroid.RESULTS.GRANTED)
       if(result === PermissionsAndroid.RESULTS.GRANTED){
+        console.log("Permission Granted")
         // request for device token
         requestToken()
       }else{
@@ -102,32 +111,26 @@ export default function App() {
         console.log(error)
     }
   }
-
   
   const requestToken = async ()=>{
     try {
       await messaging().registerDeviceForRemoteMessages();
       const token = await messaging().getToken();
+      await setFcmId(token)
       console.log("token**", token)
     } catch (error) {
       console.log(error)
     }
   }
-  // messaging().setBackgroundMessageHandler(async remoteMessage => { 
-    
-  //   console.log('Message handled in the background!', remoteMessage);
-  // }); // deprecated
-  // useEffect(() => {
-  //   const unsubscribe = messaging().onMessage(async remoteMessage => {
-  //     Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
-  //   });
 
-  //   return unsubscribe;
-  // }, []);
- 
+
+  useEffect(()=>{
+    requestPermission()
+  }, [])
 
   useEffect(() => {
     const init = async () => {
+
       await registerNotificationListeners();
       await checkAuth();  // fetches and sets user/token
       setLoading(false);  // only show UI after auth is checked

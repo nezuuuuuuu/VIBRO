@@ -2,10 +2,12 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from './api'; // Adjust the path as needed
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
     user: null,
     token: null,
     isLoading: false,
+    fcmId:'',
+    setFcmId: (fcmId) => set({ fcmId }),
 
     register: async (username, email, password) => {
         
@@ -68,7 +70,7 @@ export const useAuthStore = create((set) => ({
                 return { success: true };
             } else {
                 // API returned an error (e.g., 400 Bad Request)
-                sset({ isLoading: false });
+                set({ isLoading: false });
                 console.error("Verification API Error:", data.message);
                 return { success: false, error: data.message };
             }
@@ -82,6 +84,8 @@ export const useAuthStore = create((set) => ({
 
     login: async (email, password) => {
         set({ isLoading: true });
+        const { fcmId } = get(); // ✅ GET fcmId from Zustand state
+
         try {
             const response = await fetch(`${BASE_URL}/auth/login`, {
                 method: 'POST',
@@ -91,11 +95,12 @@ export const useAuthStore = create((set) => ({
                 body: JSON.stringify({
                     email,
                     password,
+                    fcmId
                 }),
             });
-        
+            
+            console.log("fcmId result:",fcmId); // Debug step 1
             const data = await response.json();
-            console.log("asdasdasd222222"+email + password)
             if(!response.ok) throw new Error(data.message || 'Something went wrong!');
 
             await AsyncStorage.setItem('user', JSON.stringify(data.user));

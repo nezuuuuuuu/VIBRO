@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "1089594067420",
-    "project_id": "pushnotification-19f7f",
-    "storage_bucket": "pushnotification-19f7f.firebasestorage.app"
+    "project_number": "717555895310",
+    "project_id": "vibro-notif",
+    "storage_bucket": "vibro-notif.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1089594067420:android:bd2d9aec363c31780ce719",
+        "mobilesdk_app_id": "1:717555895310:android:5021cb8d52cd6865f7c05f",
         "android_client_info": {
           "package_name": "com.vibro"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDb0AikIOga_9dsW7G_p6jacpXrpD0hry8"
+          "current_key": "AIzaSyA_ybNez6PMFu_1ZZq20H5YYu8GE-DoImU"
         }
       ],
       "services": {
