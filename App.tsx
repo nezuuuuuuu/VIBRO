@@ -10,10 +10,10 @@ import Signup from './src/screens/(auth)/signup';
 import Login from './src/screens/(auth)';
 import OTPVerification from './src/screens/(auth)/otpverification';
 import notifee, { AndroidColor, AndroidImportance } from '@notifee/react-native';
-import { navigationRef } from './src/components/navigationRef';
+import { navigationRef,navigate } from './src/components/navigationRef';
 import {registerNotificationListeners} from './src/components/notification';
 import messaging from "@react-native-firebase/messaging"
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const Stack = createNativeStackNavigator();
 
 
@@ -129,8 +129,38 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const init = async () => {
+  
+  const consumePendingNavigation = async () => {
+    const stored = await AsyncStorage.getItem('PENDING_NAVIGATION');
+    if (!stored) return;
 
+    const { target, params } = JSON.parse(stored);
+
+    await AsyncStorage.removeItem('PENDING_NAVIGATION');
+
+    // Wait until navigation is fully ready
+    const interval = setInterval(() => {
+      if (navigationRef.isReady()) {
+        clearInterval(interval);
+
+        // Navigate properly
+        navigate('Tabs', { screen: 'Group' });
+
+        setTimeout(() => {
+          navigate(target, params);
+        }, 300);
+      }
+    }, 50);
+  };
+
+  consumePendingNavigation();
+}, []);
+  
+
+  useEffect(() => {
+    const init = async () => {
+        const stored = await AsyncStorage.getItem('PENDING_NAVIGATION');
+      console.log("stored pending nav:", stored);
       await registerNotificationListeners();
       await checkAuth();  // fetches and sets user/token
       setLoading(false);  // only show UI after auth is checked
