@@ -132,6 +132,8 @@ export default function App() {
   
   const consumePendingNavigation = async () => {
     const stored = await AsyncStorage.getItem('PENDING_NAVIGATION');
+    console.log("stored pending nav:", stored);
+
     if (!stored) return;
 
     const { target, params } = JSON.parse(stored);
@@ -159,8 +161,7 @@ export default function App() {
 
   useEffect(() => {
     const init = async () => {
-        const stored = await AsyncStorage.getItem('PENDING_NAVIGATION');
-      console.log("stored pending nav:", stored);
+        
       await registerNotificationListeners();
       await checkAuth();  // fetches and sets user/token
       setLoading(false);  // only show UI after auth is checked

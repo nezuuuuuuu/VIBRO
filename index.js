@@ -32,12 +32,16 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
       {
         title: 'Are you okay?',
         pressAction: { id: 'inquire_okay' },
+        launchActivity: 'default', 
       },
     ],
   },
   });
 
 });
+
+
+
 
 
 AppRegistry.registerComponent(appName, () => App);
